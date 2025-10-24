@@ -1,0 +1,19 @@
+{
+  "posts": [
+    {
+      "id": 1,
+      "title": "First Post",
+      "body": "This is the first post content",
+      "userId": 1
+    }
+  ],
+  "comments": [
+    {
+      "id": 1,
+      "postId": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "body": "Great post!"
+    }
+  ]
+}
