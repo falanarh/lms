@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Breadcrumb } from "@/components/Breadcrumb";
+import Breadcrumb from "./Breadcrumb";
 
 export default function BreadcrumbPreview() {
   const baseItems = [
