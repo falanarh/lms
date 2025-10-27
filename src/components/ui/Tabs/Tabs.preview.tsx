@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import Tabs, { InfoIcon, TabItem } from "@/components/Tabs";
+import Tabs, { InfoIcon, TabItem } from "@/components/ui/Tabs";
 
 export default function TabsPreview() {
   const baseItems: TabItem[] = [

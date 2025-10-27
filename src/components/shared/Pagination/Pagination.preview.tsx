@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Pagination } from "@/components/Pagination";
+import { Pagination } from "@/components/shared/Pagination";
 
 export default function PaginationPreview() {
   const [page, setPage] = React.useState(7);

@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { FileUpload } from "@/components/FileUpload";
+import { FileUpload } from "@/components/ui/FileUpload";
 
 export default function FileUploadPreview() {
   const demoFile = React.useMemo(() => new File(["hello"], "contoh.pdf", { type: "application/pdf" }), []);

@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Textarea } from "@/components/Textarea";
+import { Textarea } from "@/components/ui/Textarea";
 
 export default function TextareaPreview() {
   return (

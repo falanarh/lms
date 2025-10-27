@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import RadioButton, { RadioOption } from "@/components/RadioButton";
+import RadioButton, { RadioOption } from "@/components/ui/RadioButton";
 
 const options: RadioOption[] = [
   { value: "video", label: "Video" },

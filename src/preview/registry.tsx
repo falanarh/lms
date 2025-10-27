@@ -1,16 +1,16 @@
 "use client";
 import React from "react";
-import ButtonPreview from "@/components/Button/Button.preview";
-import NavbarPreview from "@/components/Navbar/Navbar.preview";
-import BreadcrumbPreview from "@/components/Breadcrumb/Breadcrumb.preview";
-import DropdownPreview from "@/components/Dropdown/Dropdown.preview";
-import PaginationPreview from "@/components/Pagination/Pagination.preview";
-import InputPreview from "@/components/Input/Input.preview";
-import TextareaPreview from "@/components/Textarea/Textarea.preview";
-import FileUploadPreview from "@/components/FileUpload/FileUpload.preview";
-import RadioButtonPreview from "@/components/RadioButton/RadioButton.preview";
-import BadgePreview from "@/components/Badge/Badge.preview";
-import TabsPreview from "@/components/Tabs/Tabs.preview";
+import ButtonPreview from "@/components/ui/Button/Button.preview";
+import NavbarPreview from "@/components/layout/Navbar/Navbar.preview";
+import BreadcrumbPreview from "@/components/ui/Breadcrumb/Breadcrumb.preview";
+import DropdownPreview from "@/components/ui/Dropdown/Dropdown.preview";
+import PaginationPreview from "@/components/shared/Pagination/Pagination.preview";
+import InputPreview from "@/components/ui/Input/Input.preview";
+import TextareaPreview from "@/components/ui/Textarea/Textarea.preview";
+import FileUploadPreview from "@/components/ui/FileUpload/FileUpload.preview";
+import RadioButtonPreview from "@/components/ui/RadioButton/RadioButton.preview";
+import BadgePreview from "@/components/ui/Badge/Badge.preview";
+import TabsPreview from "@/components/ui/Tabs/Tabs.preview";
 
 export type PreviewEntry = {
   slug: string;
