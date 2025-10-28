@@ -22,6 +22,7 @@
  */
 import React from "react";
 
+
 export type RadioSize = "sm" | "md";
 
 export type RadioOption = {
@@ -151,6 +152,4 @@ function CheckIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
-export default RadioButton;
 

@@ -1,12 +1,13 @@
 "use client";
 /**
  * Komponen: Textarea
- * Tujuan: Field teks multiline dengan label, helper/error text, state a11y, dan ukuran.
+ * Tujuan: Field textarea serbaguna dengan label, helper/error text, dan state a11y yang konsisten dengan Input.
  *
  * Ringkasan
- * - Styling: Tailwind CSS + CSS variables untuk warna, border, radius, spacing, font.
- * - Aksesibilitas: <label htmlFor> terhubung ke textarea, aria-invalid, aria-describedby, aria-busy saat loading.
+ * - Styling: Tailwind CSS + CSS variables untuk warna, border, radius, spacing, font (sama dengan Input).
+ * - Aksesibilitas: <label htmlFor> terhubung ke textarea, aria-invalid, aria-describedby.
  * - Keyboard: Focus-visible ring jelas via var(--color-focus-ring).
+ * - Auto-resize: Opsional menyesuaikan tinggi otomatis berdasarkan konten.
  *
  * Import
  * ```tsx
@@ -15,23 +16,26 @@
  *
  * Props
  * - size?: "sm" | "md" | "lg" (default: "md")
- * - label?: string — label di atas field
- * - helperText?: string — teks bantu di bawah field
+ * - label?: string — label di atas textarea
+ * - helperText?: string — teks bantu di bawah textarea
  * - errorText?: string — pesan error (aktif saat isInvalid=true)
  * - isInvalid?: boolean — menandai error (set aria-invalid)
- * - isLoading?: boolean — tampilkan spinner di sisi kanan atas dan set aria-busy
+ * - autoResize?: boolean — otomatis sesuaikan tinggi berdasarkan konten
+ * - minRows?: number — jumlah baris minimum (default: 3)
+ * - maxRows?: number — jumlah baris maksimum untuk auto-resize
  * - containerClassName?: string — kelas tambahan untuk container luar
  * - ...TextareaHTMLAttributes (name, value, onChange, placeholder, disabled, required, rows, dll.)
  *
- * CSS Variables (fallback tersedia):
- * - --surface, --surface-elevated, --border
+ * CSS Variables yang digunakan (fallback tersedia):
+ * - --surface, --surface-elevated
  * - --color-foreground, --color-foreground-muted
+ * - --border
  * - --color-focus-ring, --color-ring-offset
- * - --danger
- * - --radius-md, --font-sm, --font-md, --font-lg, --space-1, --space-2, --space-3
+ * - --danger, --on-danger
+ * - --radius-md, --font-sm, --font-md, --font-lg, --space-1, --space-3
  *
  * Preview
- * - Buka route `/preview/textarea` untuk melihat varian, ukuran, focus, disabled, invalid, loading.
+ * - Buka route `/preview/textarea` untuk melihat varian, ukuran, focus, disabled, invalid, auto-resize.
  */
 import React from "react";
 
@@ -43,21 +47,23 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
   helperText?: string;
   errorText?: string;
   isInvalid?: boolean;
-  isLoading?: boolean;
+  autoResize?: boolean;
+  minRows?: number;
+  maxRows?: number;
   containerClassName?: string;
 }
 
-const sizeMap: Record<TextareaSize, { field: string; text: string }> = {
+const sizeMap: Record<TextareaSize, { textarea: string; text: string }> = {
   sm: {
-    field: "min-h-24 px-[var(--space-3,0.75rem)] py-[var(--space-2,0.5rem)]",
+    textarea: "px-[var(--space-3,0.75rem)] py-2 min-h-[80px]",
     text: "text-[var(--font-sm,0.875rem)]",
   },
   md: {
-    field: "min-h-28 px-[var(--space-3,0.75rem)] py-[var(--space-2,0.5rem)]",
+    textarea: "px-[var(--space-3,0.75rem)] py-2.5 min-h-[96px]",
     text: "text-[var(--font-md,1rem)]",
   },
   lg: {
-    field: "min-h-36 px-[var(--space-3,0.75rem)] py-[var(--space-3,0.75rem)]",
+    textarea: "px-[var(--space-3,0.75rem)] py-3 min-h-[112px]",
     text: "text-[var(--font-lg,1.125rem)]",
   },
 };
@@ -69,25 +75,86 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
     helperText,
     errorText,
     isInvalid,
-    isLoading,
+    autoResize = false,
+    minRows = 3,
+    maxRows,
     disabled,
     containerClassName,
     id,
     className,
+    onChange,
     rows,
     ...props
   },
   ref
 ) {
-  const autoId = React.useId();
-  const resolvedId = id ?? autoId;
+  const textareaId = React.useId();
+  const resolvedId = id ?? textareaId;
   const helperId = `${resolvedId}-help`;
+  const innerRef = React.useRef<HTMLTextAreaElement | null>(null);
+
   const sz = sizeMap[size];
   const showError = !!isInvalid && !!errorText;
 
+  // Auto-resize handler
+  const handleResize = React.useCallback(() => {
+    const textarea = innerRef.current;
+    if (!textarea || !autoResize) return;
+
+    // Reset height untuk menghitung ulang
+    textarea.style.height = "auto";
+
+    // Hitung tinggi baru
+    const computedStyle = window.getComputedStyle(textarea);
+    const lineHeight = parseInt(computedStyle.lineHeight);
+    const paddingTop = parseInt(computedStyle.paddingTop);
+    const paddingBottom = parseInt(computedStyle.paddingBottom);
+    
+    let newHeight = textarea.scrollHeight;
+
+    // Terapkan min/max rows jika ada
+    if (minRows && lineHeight) {
+      const minHeight = lineHeight * minRows + paddingTop + paddingBottom;
+      newHeight = Math.max(newHeight, minHeight);
+    }
+    
+    if (maxRows && lineHeight) {
+      const maxHeight = lineHeight * maxRows + paddingTop + paddingBottom;
+      newHeight = Math.min(newHeight, maxHeight);
+    }
+
+    textarea.style.height = `${newHeight}px`;
+  }, [autoResize, minRows, maxRows]);
+
+  // Handle ref gabungan (forwarded ref + internal ref)
+  const handleRef = React.useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      innerRef.current = node;
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    },
+    [ref]
+  );
+
+  // Auto-resize saat mount dan content berubah
+  React.useEffect(() => {
+    if (autoResize) {
+      handleResize();
+    }
+  }, [autoResize, handleResize, props.value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (autoResize) {
+      handleResize();
+    }
+    onChange?.(e);
+  };
+
   return (
-    <div className={["w-full", containerClassName].filter(Boolean).join(" ")}
-    >
+    <div className={["w-full", containerClassName].filter(Boolean).join(" ")}>
       {label && (
         <label
           htmlFor={resolvedId}
@@ -95,49 +162,43 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
             "mb-[var(--space-1,0.25rem)] block",
             "text-[var(--font-sm,0.875rem)]",
             "text-[var(--color-foreground,#111827)]",
-            "[font-family:var(--font-body)]",
+            "font-[var(--font-body)]",
           ].join(" ")}
         >
           {label}
         </label>
       )}
 
-      <div className="relative">
-        <textarea
-          ref={ref}
-          id={resolvedId}
-          rows={rows ?? (size === "lg" ? 6 : size === "md" ? 5 : 4)}
-          className={[
-            "w-full min-w-0 resize-y",
-            sz.field,
-            sz.text,
-            "rounded-[var(--radius-md,8px)]",
-            "bg-[var(--surface,white)]",
-            "text-[var(--color-foreground,#111827)]",
-            "placeholder:text-[var(--color-foreground-muted,#6b7280)]",
-            "border border-[var(--border,rgba(0,0,0,0.12))]",
-            "transition-[color,box-shadow,background-color,border-color] outline-none",
-            "focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)]",
-            "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
-            isInvalid ? "border-[var(--danger,#dc2626)]" : "",
-            disabled ? "opacity-50 cursor-not-allowed" : "",
-            className,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          aria-invalid={isInvalid || undefined}
-          aria-describedby={[(helperText || showError) ? helperId : undefined].filter(Boolean).join(" ") || undefined}
-          aria-busy={isLoading || undefined}
-          disabled={disabled}
-          {...props}
-        />
-
-        {isLoading && (
-          <span className="absolute right-3 top-3 text-[var(--color-foreground-muted,#6b7280)]" aria-hidden>
-            <Spinner className="size-4" />
-          </span>
-        )}
-      </div>
+      <textarea
+        ref={handleRef}
+        id={resolvedId}
+        rows={autoResize ? undefined : rows ?? minRows}
+        className={[
+          "w-full min-w-0",
+          sz.textarea,
+          sz.text,
+          "rounded-[var(--radius-md,8px)]",
+          "bg-[var(--surface,white)]",
+          "text-[var(--color-foreground,#111827)]",
+          "placeholder:text-[var(--color-foreground-muted,#6b7280)]",
+          "border border-[var(--border,rgba(0,0,0,0.12))]",
+          "transition-[color,box-shadow,background-color,border-color] outline-none",
+          "focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)]",
+          "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
+          "resize-y", // Allow vertical resize kecuali jika autoResize aktif
+          autoResize ? "resize-none overflow-hidden" : "",
+          isInvalid ? "border-[var(--danger,#dc2626)]" : "",
+          disabled ? "opacity-50 cursor-not-allowed" : "",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        aria-invalid={isInvalid || undefined}
+        aria-describedby={[(helperText || showError) ? helperId : undefined].filter(Boolean).join(" ") || undefined}
+        disabled={disabled}
+        onChange={handleChange}
+        {...props}
+      />
 
       {(helperText || showError) && (
         <p
@@ -156,21 +217,5 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
     </div>
   );
 });
-
-function Spinner({ className }: { className?: string }) {
-  return (
-    <svg
-      className={["animate-spin", className].filter(Boolean).join(" ")}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      role="status"
-      aria-label="Loading"
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
-    </svg>
-  );
-}
 
 export default Textarea;

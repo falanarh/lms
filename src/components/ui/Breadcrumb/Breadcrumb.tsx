@@ -131,7 +131,7 @@ export function Breadcrumb({
                 <Link
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
-                  className={[itemBase, colorClass, "px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]", "[font-family:var(--font-body)]"].join(" ")}
+                  className={[itemBase, colorClass, "px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]", "font-[var(--font-body)]"].join(" ")}
                 >
                   {item.label}
                 </Link>
@@ -141,12 +141,12 @@ export function Breadcrumb({
                   onClick={item.onClick}
                   aria-current={isActive ? "page" : undefined}
                   disabled={isDisabled}
-                  className={[itemBase, colorClass, "px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]", "[font-family:var(--font-body)]"].join(" ")}
+                  className={[itemBase, colorClass, "px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]", "font-[var(--font-body)]"].join(" ")}
                 >
                   {item.label}
                 </button>
               ) : (
-                <span aria-current={isActive ? "page" : undefined} className={["px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]", "[font-family:var(--font-body)]", colorClass].join(" ")}>
+                <span aria-current={isActive ? "page" : undefined} className={["px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]", "font-[var(--font-body)]", colorClass].join(" ")}>
                   {item.label}
                 </span>
               )}

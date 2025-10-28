@@ -56,7 +56,7 @@ export default function TabsPreview() {
   );
 }
 
-function Panel({ title }: { title: string }) {
+export function Panel({ title }: { title: string }) {
   return (
     <div className="p-4 rounded-[var(--radius-lg,12px)] bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]">
       <p className="text-[var(--font-md,1rem)]">{title} content</p>
