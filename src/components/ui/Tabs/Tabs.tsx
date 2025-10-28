@@ -68,7 +68,7 @@ function tabClasses(active: boolean, variant: TabsVariant) {
     isPill ? "rounded-full" : "",
     active
       ? activeSurface
-      : "bg-transparent text-[var(--color-foreground-muted,#6b7280)] hover:text-[var(--color-foreground,#111827)] hover:bg-[color-mix(in_oklab,white_92%,var(--color-primary,#2563eb))]",
+      : "bg-transparent text-[var(--color-foreground-muted,#6b7280)] hover:text-[var(--color-foreground,#111827)] hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))]",
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2",
   ].join(" ");
 }
@@ -157,7 +157,7 @@ export function Tabs({
                 sz.pad,
                 sz.text,
                 variant === "pill" ? "" : sz.radius,
-                "data-[disabled=true]:opacity-50",
+                "data-[disabled=true]:opacity-50 text-gray-500 hover:text-black",
               ].join(" ")}
               data-disabled={isDisabled || undefined}
             >

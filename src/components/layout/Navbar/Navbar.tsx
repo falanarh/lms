@@ -1,4 +1,5 @@
 "use client";
+import { Bell, User, User2 } from "lucide-react";
 /**
  * Komponen: Navbar
  * Tujuan: Navigasi utama aplikasi dengan brand, daftar menu, dan area aksi (notifikasi + profil).
@@ -102,6 +103,7 @@
  * - Buka route `/preview/navbar` untuk melihat seluruh varian & state.
  */
 
+
 import React from "react";
 
 export type NavbarVariant = "solid" | "outline" | "ghost";
@@ -131,10 +133,10 @@ export type NavbarProps = {
   "aria-label"?: string;
 };
 
-const sizeMap: Record<NavbarSize, { container: string; item: string; gap: string }> = {
-  sm: { container: "h-12 px-4", item: "px-3 py-1.5 text-sm rounded-xl", gap: "gap-4" },
-  md: { container: "h-14 px-6", item: "px-3.5 py-2 text-sm rounded-xl", gap: "gap-6" },
-  lg: { container: "h-16 px-8", item: "px-4 py-2.5 text-base rounded-2xl", gap: "gap-8" },
+const sizeMap: Record<NavbarSize, { container: string; item: string; gap: string; height: string }> = {
+  sm: { container: "px-6 sm:px-8", item: "px-3 py-2 text-sm rounded-xl", gap: "gap-2", height: "h-14" },
+  md: { container: "px-6 sm:px-8 lg:px-10", item: "px-4 py-2 text-sm rounded-xl", gap: "gap-3", height: "h-16" },
+  lg: { container: "px-6 sm:px-8 lg:px-12 xl:px-16", item: "px-4 py-2.5 text-base rounded-xl", gap: "gap-4", height: "h-16" },
 };
 
 function variantContainer(variant: NavbarVariant, error?: boolean) {
@@ -142,15 +144,16 @@ function variantContainer(variant: NavbarVariant, error?: boolean) {
     return [
       "bg-[var(--color-danger,#dc2626)]",
       "text-[var(--color-on-danger,#ffffff)]",
-      "border border-transparent",
+      "border-b border-transparent",
     ].join(" ");
   }
+
   switch (variant) {
     case "outline":
       return [
-        "bg-[var(--navbar-bg,transparent)]",
+        "bg-[var(--navbar-bg,#ffffff)]",
         "text-[var(--navbar-text,inherit)]",
-        "border",
+        "border-b",
         "border-[var(--navbar-border,rgba(0,0,0,0.1))]",
       ].join(" ");
     case "ghost":
@@ -165,17 +168,19 @@ function variantContainer(variant: NavbarVariant, error?: boolean) {
         "text-[var(--navbar-text,inherit)]",
         "border-b",
         "border-[var(--navbar-border,rgba(0,0,0,0.08))]",
+        "shadow-sm",
       ].join(" ");
   }
 }
 
 function itemClasses(active: boolean) {
   return [
-    "inline-flex items-center justify-center transition-colors",
+    "inline-flex items-center justify-center transition-all duration-200",
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
+    "font-medium",
     active
-      ? "bg-[var(--color-primary-50,rgba(37,99,235,0.08))] text-[var(--color-primary,#2563eb)]"
-      : "text-[var(--navbar-item,#6b7280)] hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:text-[var(--color-primary,#2563eb)]",
+      ? "bg-[var(--color-primary-50,rgba(37,99,235,0.1))] text-[var(--color-primary,#2563eb)]"
+      : "text-[var(--navbar-item,#71717a)] hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:text-[var(--color-primary,#2563eb)]",
   ].join(" ");
 }
 
@@ -207,7 +212,7 @@ export function Navbar({
       role="navigation"
       aria-label={ariaLabel}
       className={[
-        "w-full",
+        "w-full sticky top-0 z-50 backdrop-blur-sm",
         variantContainer(variant, error),
         isDisabled ? "opacity-60 pointer-events-none select-none" : "",
         className,
@@ -215,15 +220,17 @@ export function Navbar({
         .filter(Boolean)
         .join(" ")}
     >
-      <div className={["mx-auto flex items-center justify-between", sz.container].join(" ")}>
+      <div className={["mx-auto max-w-[1600px]", sz.container, sz.height, "flex items-center justify-between"].join(" ")}>
         {/* Left: Brand */}
         <div className="flex items-center gap-3 min-w-0">
           {brandIcon ?? <DefaultBrandIcon />}
-          <span className="font-semibold text-[var(--navbar-brand,#111827)] truncate">{brandTitle}</span>
+          <span className="font-semibold text-lg text-[var(--navbar-brand,#18181b)] truncate">
+            {brandTitle}
+          </span>
         </div>
 
-        {/* Center: Items */}
-        <ul className={["flex items-center", sz.gap].join(" ")}>
+        {/* Center: Navigation Items */}
+        <ul className={["flex items-center justify-center", sz.gap].join(" ")}>
           {items.map((item) => {
             const active = item.key === activeKey;
             const isItemDisabled = isDisabled || item.disabled;
@@ -246,12 +253,12 @@ export function Navbar({
           })}
         </ul>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-4">
+        {/* Right: User Actions */}
+        <div className="flex items-center gap-3 justify-end">
           {isLoading ? (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
-              <div className="h-6 w-24 rounded-full bg-gray-200 animate-pulse" />
+              <div className="h-10 w-10 rounded-full bg-zinc-200 animate-pulse" />
+              <div className="h-6 w-24 rounded-full bg-zinc-200 animate-pulse" />
             </div>
           ) : (
             <>
@@ -260,28 +267,36 @@ export function Navbar({
                   type="button"
                   className={[
                     "size-10 rounded-full flex items-center justify-center",
-                    "bg-[var(--navbar-icon-bg,#f3f4f6)] text-[var(--navbar-icon,#6b7280)]",
-                    "hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:text-[var(--color-primary,#2563eb)]",
+                    "bg-[var(--navbar-icon-bg,#f4f4f5)] text-[var(--navbar-icon,#71717a)]",
+                    "hover:bg-[var(--color-primary-50,rgba(37,99,235,0.1))] hover:text-[var(--color-primary,#2563eb)]",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2",
+                    "transition-all duration-200",
                   ].join(" ")}
                   aria-label="Notifications"
                   disabled={isDisabled}
                 >
-                  <BellIcon />
+                  <Bell size={18} />
                 </button>
               )}
-
               <div className="flex items-center gap-3">
-                <div className="relative size-10 rounded-full overflow-hidden bg-gray-200">
+                <button
+                  className={[
+                    "size-10 rounded-full flex items-center justify-center overflow-hidden",
+                    "bg-[var(--navbar-icon-bg,#f4f4f5)] text-[var(--navbar-icon,#71717a)]",
+                    "hover:bg-[var(--color-primary-50,rgba(37,99,235,0.1))] hover:text-[var(--color-primary,#2563eb)]",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2",
+                    "transition-all duration-200",
+                  ].join(" ")}
+                >
                   {user?.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.avatarUrl} alt="" className="size-full object-cover" />
                   ) : (
-                    <UserIcon />
+                    <User2 size={20} />
                   )}
-                </div>
+                </button>
                 {user?.role && (
-                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-[var(--badge-bg,#e5e7eb)] text-[var(--badge-text,#111827)]">
+                  <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-[var(--badge-bg,#f4f4f5)] text-[var(--badge-text,#18181b)] whitespace-nowrap">
                     {user.role}
                   </span>
                 )}
@@ -296,27 +311,9 @@ export function Navbar({
 
 function DefaultBrandIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <circle cx="16" cy="16" r="16" fill="var(--color-primary,#2563eb)" />
-      <path d="M10 17l4 4 8-8" stroke="var(--color-on-primary,#ffffff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M14 19a2 2 0 1 1-4 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M6 8a6 6 0 1 1 12 0c0 4 2 6 2 6H4s2-2 2-6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-400" aria-hidden>
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 20a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 17l4 4 8-8" stroke="var(--color-on-primary,#ffffff)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
