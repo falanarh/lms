@@ -226,7 +226,7 @@ export function Dropdown({
   return (
     <div className={["inline-flex items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
       {label && (
-        <span className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)] font-[var(--font-body)]">
+        <span className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)] [font-family:var(--font-body)]">
           {label}
         </span>
       )}
@@ -361,4 +361,3 @@ function CheckIcon() {
 }
 
 export default Dropdown;
-

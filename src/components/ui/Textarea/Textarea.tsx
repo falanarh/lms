@@ -95,7 +95,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
             "mb-[var(--space-1,0.25rem)] block",
             "text-[var(--font-sm,0.875rem)]",
             "text-[var(--color-foreground,#111827)]",
-            "font-[var(--font-body)]",
+            "[font-family:var(--font-body)]",
           ].join(" ")}
         >
           {label}
@@ -174,4 +174,3 @@ function Spinner({ className }: { className?: string }) {
 }
 
 export default Textarea;
-

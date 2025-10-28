@@ -9,8 +9,13 @@
 import React from "react";
 
 export type BadgeVariant = "solid" | "soft" | "outline" | "ghost";
-export type BadgeTone = "primary" | "neutral" | "success" | "warning" | "danger";
-export type BadgeSize = "sm" | "md";
+export type BadgeTone =
+  | "primary"
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger";
+export type BadgeSize = "xs" | "sm" | "md";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
@@ -25,8 +30,17 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   className?: string;
 }
 
-const sizeMap: Record<BadgeSize, { pad: string; text: string; gap: string; close: string }> = {
+const sizeMap: Record<
+  BadgeSize,
+  { pad: string; text: string; gap: string; close: string }
+> = {
   // Padding dibuat sedikit lebih besar, teks diperkecil agar proporsional
+  xs: {
+    pad: "px-2 py-1.5",
+    text: "text-[12px] leading-none",
+    gap: "gap-1",
+    close: "size-2",
+  },
   sm: {
     pad: "px-[var(--space-2,0.5rem)] py-[var(--space-1,0.25rem)]",
     text: "text-[var(--font-5xs,0.5rem)] leading-none",
@@ -130,13 +144,23 @@ export function Badge({
     rounded === "full" ? "rounded-full" : "rounded-[var(--radius-md,8px)]",
     disabled ? "opacity-60 select-none" : "",
     className,
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <span className={base} {...rest}>
-      {leftIcon && <span aria-hidden className="inline-flex items-center">{leftIcon}</span>}
+      {leftIcon && (
+        <span aria-hidden className="inline-flex items-center">
+          {leftIcon}
+        </span>
+      )}
       <span className={[sz.text, "text-current"].join(" ")}>{children}</span>
-      {rightIcon && <span aria-hidden className="inline-flex items-center">{rightIcon}</span>}
+      {rightIcon && (
+        <span aria-hidden className="inline-flex items-center">
+          {rightIcon}
+        </span>
+      )}
       {onClose && (
         <button
           type="button"
@@ -158,8 +182,19 @@ export function Badge({
 
 function XIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M3 3l10 10M13 3 3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M3 3l10 10M13 3 3 13"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

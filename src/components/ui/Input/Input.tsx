@@ -40,7 +40,7 @@ import React from "react";
 
 export type InputSize = "sm" | "md" | "lg";
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   size?: InputSize;
   label?: string;
   helperText?: string;
@@ -106,7 +106,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
             "mb-[var(--space-1,0.25rem)] block",
             "text-[var(--font-sm,0.875rem)]",
             "text-[var(--color-foreground,#111827)]",
-            "font-[var(--font-body)]",
+            "[font-family:var(--font-body)]",
           ].join(" ")}
         >
           {label}

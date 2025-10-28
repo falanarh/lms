@@ -11,6 +11,8 @@ import FileUploadPreview from "@/components/ui/FileUpload/FileUpload.preview";
 import RadioButtonPreview from "@/components/ui/RadioButton/RadioButton.preview";
 import BadgePreview from "@/components/ui/Badge/Badge.preview";
 import TabsPreview from "@/components/ui/Tabs/Tabs.preview";
+import DiscussionCardPreview from "@/components/shared/DiscussionCard/DiscussionCard.preview";
+import ForumListPreview from "@/components/shared/ForumList/ForumList.preview";
 
 export type PreviewEntry = {
   slug: string;
@@ -73,6 +75,16 @@ export const PREVIEW_REGISTRY: PreviewEntry[] = [
     slug: "tabs",
     title: "Tabs",
     element: <TabsPreview />,
+  },
+  {
+    slug: "discussion-card",
+    title: "DiscussionCard",
+    element: <DiscussionCardPreview />,
+  },
+  {
+    slug: "forum-list",
+    title: "ForumList",
+    element: <ForumListPreview />,
   },
 ];
 
