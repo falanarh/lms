@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./provider";
-import { Navbar } from "@/components/layout/Navbar";
-
+import { Navbar } from "@/components/layout/Navbar/Navbar";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -42,7 +41,7 @@ export default function RootLayout({
           user={{ role: "Manager" }}
         />
       
-        <div className="min-h-[calc(100vh-4rem)] mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 bg-zinc-50">
+        <div className="min-h-[calc(100vh-4rem)] mx-auto  bg-zinc-50">
           <Providers>{children}</Providers>
         </div>
       </body>

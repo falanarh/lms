@@ -30,11 +30,18 @@ export default function CoursePage() {
         <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
           {/* Top section with breadcrumb and header */}
           <div className="py-6 space-y-6">
-            {/* Breadcrumb */}
-            <div className="pt-2">
-              <Breadcrumb separator="chevron" items={baseItems} />
-            </div>
 
+            {/* Breadcrumb */}
+          {/* Desktop & Tablet */}
+          <div className="pt-2 hidden md:block">
+            <Breadcrumb separator="chevron" items={baseItems} />
+          </div>
+
+          {/* Mobile */}
+          <div className="pt-2 block md:hidden">
+            <Breadcrumb separator="slash" items={baseItems} size="sm" />
+          </div>
+         
             {/* Page header with improved spacing */}
             <div className="space-y-2">
               <h1 className="font-bold text-3xl lg:text-4xl text-zinc-900 tracking-tight">

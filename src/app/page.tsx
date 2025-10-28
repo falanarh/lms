@@ -22,6 +22,7 @@ import { ReviewList } from "@/features/course/components/ReviewList";
 import { RatingSummaryCard } from "@/features/course/components/RatingSummaryCard";
 import ProgressCard from "@/features/course/components/ProgressStudyCard";
 import { CustomIcon } from "@/components/ui/IconCard/IconCard";
+import {PostList} from "@/features/posts/PostList";
 
 const coursesData = [
   {
@@ -307,33 +308,7 @@ const filteredCourses = coursesData
       />
     </div>
 
-    <div className="flex items-center gap-6 flex-wrap">
-              <CustomIcon
-                variant="outline"
-                size="medium"
-                color="#615fff"
-                paths={iconPaths.check}
-              />
-              <CustomIcon
-                variant="outline"
-                size="medium"
-                color="#10b981"
-                paths={iconPaths.user}
-              />
-              <CustomIcon
-                variant="outline"
-                size="small"
-                color="#ef4444"
-                paths={iconPaths.heart}
-              />
-              <CustomIcon
-                variant="filled"
-                size="large"
-                color="#f59e0b"
-                paths={iconPaths.settings}
-              />
-            </div>
-        
+        <PostList /> 
         
       </main>
     </div>

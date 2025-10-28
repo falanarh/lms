@@ -67,10 +67,11 @@ export interface BreadcrumbProps {
 }
 
 const sizeClass: Record<BreadcrumbSize, string> = {
-  sm: "text-[var(--font-sm,0.875rem)]",
-  md: "text-[var(--font-md,1rem)]",
-  lg: "text-[var(--font-lg,1.125rem)]",
+  sm: "text-sm",   
+  md: "text-base",
+  lg: "text-lg",   
 };
+
 
 const itemBase = [
   "inline-flex items-center rounded-[var(--radius-md,8px)]",
@@ -122,7 +123,7 @@ export function Breadcrumb({
           return (
             <li key={`${item.label}-${idx}`} className="flex items-center">
               {!isFirst && (
-                <span aria-hidden className="mx-[var(--space-1,0.25rem)]">
+                <span aria-hidden className="mx-[var(--space-1,0.1rem)]">
                   {typeof separator === "string" ? <Separator type={separator as "chevron" | "slash"} /> : separator}
                 </span>
               )}
