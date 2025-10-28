@@ -203,9 +203,8 @@ function DiscussionCard({
             {headerMeta.state && (
               <div className="absolute right-0 top-0">
                 <Badge
-                  size="xs"
-                  variant="outline"
-                  tone={headerMeta.state === "open" ? "success" : "neutral"}
+                  size="sm"
+                  variant={headerMeta.state === "open" ? "secondary" : "outline"}
                 >
                   {headerMeta.state === "open" ? "Open" : "Closed"}
                 </Badge>

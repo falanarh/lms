@@ -110,7 +110,7 @@ export function ForumList({ forum, className, viewMode = "card" }: ForumListProp
             </div>
             
             <div className="flex flex-col items-end">
-              <Badge size="sm" variant="soft" tone={meta.tone} className="font-medium uppercase tracking-wider text-[0.65rem]">
+              <Badge size="sm" variant="secondary" className="font-medium uppercase tracking-wider text-[0.65rem]">
                 {meta.tone === "primary" ? "Active" : "Community"}
               </Badge>
             </div>
@@ -182,7 +182,7 @@ export function ForumList({ forum, className, viewMode = "card" }: ForumListProp
             <h3 className="text-base font-bold text-gray-900 group-hover:text-[var(--color-primary,#2563eb)] transition-colors duration-200">
               {forum.title}
             </h3>
-            <Badge size="sm" variant="soft" tone={meta.tone} className="font-medium uppercase tracking-wider text-[0.65rem]">
+            <Badge size="sm" variant="secondary" className="font-medium uppercase tracking-wider text-[0.65rem]">
               {meta.tone === "primary" ? "Active" : "Community"}
             </Badge>
           </div>

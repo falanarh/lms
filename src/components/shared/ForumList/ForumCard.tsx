@@ -49,45 +49,57 @@ export function ForumCard({ forum, className }: ForumCardProps) {
       className={[
         "relative w-full overflow-hidden",
         "bg-white",
-        "border-0",
-        "rounded-md",
-        "shadow-[0_4px_20px_rgba(0,0,0,0.08)]",
+        "border border-gray-100",
+        "rounded-xl",
+        "shadow-sm",
         "transition-all duration-300 ease-out",
-        "hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
+        "hover:shadow-lg hover:border-gray-200 hover:-translate-y-1",
         "group",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      {/* Left accent bar */}
+      {/* Top accent bar */}
       <div 
-        className="absolute left-0 top-0 w-1 h-full" 
+        className="absolute left-0 top-0 right-0 h-1" 
         style={{ backgroundColor: accentColor }}
       />
       
-      <div className="flex flex-col h-full pl-4">
+      <div className="flex flex-col h-full p-6">
         {/* Card header */}
-        <div className="pt-5 pb-2 flex items-center justify-between">
-          <Badge 
-            size="sm" 
-            variant="soft" 
-            tone={meta.tone} 
-            className="font-medium text-xs uppercase tracking-wider"
-          >
-            {isCourseForum ? "Course" : "General"}
-          </Badge>
-          
-          <div className="text-xs text-gray-500 flex items-center gap-1.5 pr-5">
-            <Clock4 className="w-3 h-3" />
-            <span>{timeAgo(forum.lastActivity)}</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: `${accentColor}15` }}
+            >
+              {isCourseForum ? (
+                <Users className="w-5 h-5" style={{ color: accentColor }} />
+              ) : (
+                <MessagesSquare className="w-5 h-5" style={{ color: accentColor }} />
+              )}
+            </div>
+            <div>
+              <Badge 
+                size="sm" 
+                variant="secondary"
+                className="font-medium text-xs uppercase tracking-wider"
+              >
+                {isCourseForum ? "Course" : "General"}
+              </Badge>
+              <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                <Clock4 className="w-3 h-3" />
+                <span>{timeAgo(forum.lastActivity)}</span>
+              </div>
+            </div>
           </div>
         </div>
         
         {/* Card content */}
-        <div className="pr-5 pb-5 flex flex-col flex-grow">
+        <div className="flex flex-col flex-grow">
           {/* Title */}
-          <h3 className="text-xl font-bold text-gray-800 group-hover:text-[var(--color-primary,#2563eb)] transition-colors duration-200 leading-tight mt-1 mb-3">
+          <h3 className="text-xl font-bold text-gray-800 group-hover:text-[var(--color-primary,#2563eb)] transition-colors duration-200 leading-tight mb-3">
             {forum.title}
           </h3>
           
@@ -100,30 +112,29 @@ export function ForumCard({ forum, className }: ForumCardProps) {
 
           {/* Stats and action section */}
           <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${accentColor}15` }}
-                >
-                  {isCourseForum ? (
-                    <Users className="w-4 h-4" style={{ color: accentColor }} />
-                  ) : (
-                    <MessagesSquare className="w-4 h-4" style={{ color: accentColor }} />
-                  )}
-                </div>
-                <span className="font-medium text-sm">{forum.totalTopics} Topik</span>
-              </div>
-              
-              <Button
-                rightIcon={<ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />}
-                size="sm"
-                variant="ghost"
-                className="group font-medium text-sm hover:bg-transparent hover:text-[var(--color-primary,#2563eb)]"
+            <div className="flex items-center gap-2">
+              <div 
+                className="px-3 py-1.5 rounded-full flex items-center gap-2"
+                style={{ backgroundColor: `${accentColor}10` }}
               >
-                Lihat Forum
-              </Button>
+                <span 
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: accentColor }}
+                />
+                <span className="font-medium text-sm" style={{ color: accentColor }}>
+                  {forum.totalTopics} Topik
+                </span>
+              </div>
             </div>
+            
+            <Button
+              rightIcon={<ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />}
+              size="sm"
+              variant="ghost"
+              className="group font-medium text-sm hover:bg-transparent hover:text-[var(--color-primary,#2563eb)]"
+            >
+              Lihat Forum
+            </Button>
           </div>
         </div>
       </div>
