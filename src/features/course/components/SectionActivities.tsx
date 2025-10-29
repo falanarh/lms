@@ -9,59 +9,85 @@
  * - Toast notifications untuk feedback
  * - Responsive design
  * - Keyboard shortcuts (Enter/Escape saat edit)
+ * - Integration dengan API menggunakan TanStack Query
  */
 
-import { Pencil, Plus, Trash2, Check, X, FolderOpen, GripVertical } from "lucide-react";
-import React, { useState, useEffect, useRef } from "react";
+import { Pencil, Plus, Trash2, Check, X, FolderOpen, GripVertical, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Sortable from "sortablejs";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { Button } from "@/components/ui/Button";
 import ActivityCard from "./ActivityCard";
+import { useSections } from "@/hooks/useSections";
+import { useContents } from "@/hooks/useContent";
 
 interface Activity {
-  id: number;
+  id: string;
   title: string;
-  type: "pdf" | "video" | "doc" | "ppt";
-  size: string;
+  type: "PDF" | "VIDEO" | "LINK" | "SCORM";
+  size?: string;
   description?: string;
+  sequence: number;
 }
 
 interface Section {
-  id: number;
+  id: string;
   title: string;
+  description?: string;
   activities: Activity[];
+  sequence: number;
 }
 
 interface SectionActivitiesProps {
-  onAddActivity?: (sectionId: number) => void;
+  onAddActivity?: (sectionId: string) => void;
+  groupId?: string; // Optional: untuk filter berdasarkan group
 }
 
-export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
-  const [sections, setSections] = useState<Section[]>([
-    {
-      id: 1,
-      title: "Section 1: Pengantar",
-      activities: [
-        { id: 1, title: "Slide Pengenalan", type: "pdf", size: "2.4 MB" },
-        { id: 2, title: "Video Tutorial", type: "video", size: "145 MB", description: "Durasi: 45 menit" },
-      ],
-    },
-    {
-      id: 2,
-      title: "Section 2: Praktik",
-      activities: [
-        { id: 3, title: "Handout Materi", type: "doc", size: "1.2 MB" },
-      ],
-    },
-    {
-      id: 3,
-      title: "Section 3: Quiz",
-      activities: [],
-    },
-  ]);
-  
-  const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
+export function SectionActivities({ onAddActivity, groupId }: SectionActivitiesProps) {
+  const { data: sectionsData, isPending: isSectionsPending, isFetching: isSectionsFetching } = useSections();
+  const { data: contentsData, isPending: isContentsPending, isFetching: isContentsFetching } = useContents();
+
+  // Transform API data ke format Section yang digunakan komponen
+  const sections = useMemo<Section[]>(() => {
+    if (!sectionsData?.data || !contentsData?.data) return [];
+
+    // Convert object to array dan filter berdasarkan groupId jika ada
+    const sectionsArray = Object.values(sectionsData.data).filter(Boolean);
+    const contentsArray = Object.values(contentsData.data).filter(Boolean);
+
+    const filteredSections = groupId 
+      ? sectionsArray.filter(s => s?.id_group === groupId)
+      : sectionsArray;
+
+    return filteredSections
+      .filter(section => section && section.id_section) // Filter out null/undefined
+      .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+      .map(section => {
+        // Get activities untuk section ini
+        const sectionActivities = contentsArray
+          .filter(content => content && content.id_section === section.id_section)
+          .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+          .map(content => ({
+            id: content.id_content,
+            title: content.name || 'Untitled',
+            type: mapContentType(content.type || 'DOC'),
+            size: calculateFileSize(content.content_url || ''),
+            description: content.description || '',
+            sequence: content.sequence || 0,
+          }));
+
+        return {
+          id: section.id_section,
+          title: section.name || 'Untitled Section',
+          description: section.description || '',
+          activities: sectionActivities,
+          sequence: section.sequence || 0,
+        };
+      });
+  }, [sectionsData, contentsData, groupId]);
+
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState<string>("");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -69,11 +95,30 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
   
   const sectionsContainerRef = useRef<HTMLDivElement>(null);
   const sortableInstanceRef = useRef<Sortable | null>(null);
-  const activitiesSortableRefs = useRef<Map<number, Sortable>>(new Map());
+  const activitiesSortableRefs = useRef<Map<string, Sortable>>(new Map());
+
+  // Helper function untuk mapping tipe content
+  function mapContentType(type: string): "PDF" | "VIDEO" | "LINK" | "SCORM" {
+    const typeUpper = type.toUpperCase();
+    if (typeUpper === "PDF" || typeUpper === "VIDEO" || typeUpper === "LINK" || typeUpper === "SCORM") {
+      return typeUpper as "PDF" | "VIDEO" | "LINK" | "SCORM";
+    }
+    return "PDF"; // default fallback
+  }
+
+  // Helper function untuk calculate file size (simplified)
+  function calculateFileSize(url: string): string {
+    // Ini adalah placeholder - seharusnya didapat dari metadata file
+    const ext = url.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return "~2 MB";
+    if (ext === 'mp4' || ext === 'avi') return "~150 MB";
+    if (ext === 'zip') return "~5 MB";
+    return "Unknown";
+  }
 
   // Initialize Sortable for Sections
   useEffect(() => {
-    if (sectionsContainerRef.current && !sortableInstanceRef.current) {
+    if (sectionsContainerRef.current && !sortableInstanceRef.current && sections.length > 0) {
       sortableInstanceRef.current = new Sortable(sectionsContainerRef.current, {
         animation: 150,
         handle: ".section-drag-handle",
@@ -84,13 +129,7 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
           const { oldIndex, newIndex } = evt;
           
           if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
-            setSections((prevSections) => {
-              const newSections = [...prevSections];
-              const [movedSection] = newSections.splice(oldIndex, 1);
-              newSections.splice(newIndex, 0, movedSection);
-              return newSections;
-            });
-
+            // TODO: Implement API call untuk update sequence
             showToastMessage("success", "Urutan section berhasil diubah!");
           }
         },
@@ -103,7 +142,7 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
         sortableInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [sections.length]);
 
   // Initialize Sortable for Activities in each section
   useEffect(() => {
@@ -118,23 +157,11 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
           group: "activities",
           onEnd: (evt) => {
             const { oldIndex, newIndex, from, to } = evt;
-            const fromSectionId = parseInt(from.getAttribute("data-activities-section") || "0");
-            const toSectionId = parseInt(to.getAttribute("data-activities-section") || "0");
+            const fromSectionId = from.getAttribute("data-activities-section") || "";
+            const toSectionId = to.getAttribute("data-activities-section") || "";
 
             if (oldIndex !== undefined && newIndex !== undefined) {
-              setSections((prevSections) => {
-                const newSections = [...prevSections];
-                const fromSection = newSections.find((s) => s.id === fromSectionId);
-                const toSection = newSections.find((s) => s.id === toSectionId);
-
-                if (fromSection && toSection) {
-                  const [movedActivity] = fromSection.activities.splice(oldIndex, 1);
-                  toSection.activities.splice(newIndex, 0, movedActivity);
-                }
-
-                return newSections;
-              });
-
+              // TODO: Implement API call untuk update sequence & section
               if (fromSectionId === toSectionId) {
                 showToastMessage("success", "Urutan activity berhasil diubah!");
               } else {
@@ -165,17 +192,13 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
     setEditedTitle(section.title);
   };
 
-  const handleSaveClick = (sectionId: number) => {
+  const handleSaveClick = (sectionId: string) => {
     if (!editedTitle.trim()) {
       showToastMessage("warning", "Judul section tidak boleh kosong!");
       return;
     }
 
-    setSections((prevSections) =>
-      prevSections.map((sec) =>
-        sec.id === sectionId ? { ...sec, title: editedTitle } : sec
-      )
-    );
+    // TODO: Implement API call untuk update section
     setEditingSectionId(null);
     setEditedTitle("");
     showToastMessage("success", "Section berhasil diperbarui!");
@@ -186,88 +209,69 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
     setEditedTitle("");
   };
 
-  const handleDeleteSection = (sectionId: number) => {
-    setSections((prevSections) => prevSections.filter((sec) => sec.id !== sectionId));
+  const handleDeleteSection = (sectionId: string) => {
+    // TODO: Implement API call untuk delete section
     showToastMessage("info", "Section berhasil dihapus!");
   };
 
-  // const handleAddSection = () => {
-  //   const newSectionId = sections.length > 0 ? Math.max(...sections.map(s => s.id)) + 1 : 1;
-  //   const newSection: Section = {
-  //     id: newSectionId,
-  //     title: `Section ${newSectionId}`,
-  //     activities: [],
-  //   };
-  //   setSections([...sections, newSection]);
-  //   showToastMessage("success", `Section ${newSectionId} berhasil ditambahkan!`);
-  //   const element = document.querySelector(`[data-id="${newSectionId}"]`);
-  //   console.log(element);
-  //   if (element) {
-  //     element.scrollIntoView({ behavior: "smooth" });
-  //   }
-  // };
-
   const handleAddSection = () => {
-  const newSectionId = sections.length > 0 ? Math.max(...sections.map(s => s.id)) + 1 : 1;
-  const newSection: Section = {
-    id: newSectionId,
-    title: `Section ${newSectionId}`,
-    activities: [],
+    // TODO: Implement API call untuk create section
+    showToastMessage("success", "Section baru berhasil ditambahkan!");
   };
 
-  setSections(prev => [...prev, newSection]);
-  showToastMessage("success", `Section ${newSectionId} berhasil ditambahkan!`);
-
-  // Wait a bit for React to render new section
-  setTimeout(() => {
-    const element = document.querySelector(`[data-id="${newSectionId}"]`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, 200);
-};
-
-
-  const handleAddActivity = (sectionId: number) => {
-    const section = sections.find((s) => s.id === sectionId);
-    if (!section) return;
-
-    const activityTypes: Array<"pdf" | "video" | "doc" | "ppt"> = ["pdf", "video", "doc", "ppt"];
-    const randomType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-    
-    const newActivityId = Math.max(0, ...sections.flatMap(s => s.activities.map(a => a.id))) + 1;
-    const newActivity: Activity = {
-      id: newActivityId,
-      title: `Activity ${section.activities.length + 1}`,
-      type: randomType,
-      size: randomType === "video" ? "120 MB" : "2.5 MB",
-      description: randomType === "video" ? "Durasi: 30 menit" : undefined,
-    };
-
-    setSections((prevSections) =>
-      prevSections.map((sec) =>
-        sec.id === sectionId
-          ? { ...sec, activities: [...sec.activities, newActivity] }
-          : sec
-      )
-    );
-    showToastMessage("success", "Activity berhasil ditambahkan!");
-    
+  const handleAddActivity = (sectionId: string) => {
     if (onAddActivity) {
       onAddActivity(sectionId);
     }
   };
 
-  const handleDeleteActivity = (sectionId: number, activityId: number) => {
-    setSections((prevSections) =>
-      prevSections.map((sec) =>
-        sec.id === sectionId
-          ? { ...sec, activities: sec.activities.filter((act) => act.id !== activityId) }
-          : sec
-      )
-    );
+  const handleDeleteActivity = (sectionId: string, activityId: string) => {
+    // TODO: Implement API call untuk delete activity
     showToastMessage("info", "Activity berhasil dihapus!");
   };
+
+  // Loading state
+  if (isSectionsPending || isContentsPending) {
+    return (
+      <div className="w-full flex items-center justify-center py-12">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="size-8 animate-spin text-blue-600" />
+          <p className="text-sm text-gray-600">Memuat data sections dan activities...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (sections.length === 0) {
+    return (
+      <div className="w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">
+            Struktur Course – Section & Activity
+          </h2>
+          <Button
+            onClick={handleAddSection}
+            size="sm"
+            className="w-full sm:w-auto"
+            leftIcon={<Plus size={18} className="sm:size-5" />}
+          >
+            Tambah Section Baru
+          </Button>
+        </div>
+
+        <div className="border border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
+          <div className="size-16 mb-4 flex items-center justify-center">
+            <FolderOpen size={48} className="text-gray-400" />
+          </div>
+          <p className="text-base mb-2 font-medium">Belum ada Section</p>
+          <p className="text-sm text-gray-400 text-center max-w-md">
+            Mulai dengan menambahkan section baru untuk mengorganisir konten course Anda
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -321,7 +325,12 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
                       }}
                     />
                   ) : (
-                    <h3 className="text-base font-medium truncate">{section.title}</h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-medium truncate">{section.title}</h3>
+                      {section.description && (
+                        <p className="text-xs text-gray-500 truncate">{section.description}</p>
+                      )}
+                    </div>
                   )}
                   <span className="text-sm text-gray-500 flex-shrink-0">
                     {section.activities.length} Activity
@@ -388,8 +397,8 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
                     <div className="flex-1">
                       <ActivityCard
                         title={activity.title}
-                        type={activity.type}
-                        size={activity.size}
+                        type={"PDF"}
+                        size={"2 MB"}
                         description={activity.description}
                       />
                     </div>
@@ -418,14 +427,14 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
             )}
 
             {/* Add Activity Button */}
-
-            <Button className="w-full py-2 px-4 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors"
-               variant="outline" onClick={() => handleAddActivity(section.id)} leftIcon={<Plus size={18} className="sm:size-5" />}
-               >
-               Tambah Activity
-               </Button>
-              
-    
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => handleAddActivity(section.id)}
+              leftIcon={<Plus size={18} className="sm:size-5" />}
+            >
+              Tambah Activity
+            </Button>
           </div>
         ))}
       </div>
@@ -440,6 +449,16 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
             autoDismiss={true}
             duration={toastVariant === "success" ? 2000 : 3000}
           />
+        </div>
+      )}
+
+      {/* Loading Overlay saat fetching */}
+      {(isSectionsFetching || isContentsFetching) && (
+        <div className="fixed inset-0 bg-black/10 flex items-center justify-center z-40">
+          <div className="bg-white rounded-lg p-4 shadow-lg flex items-center gap-3">
+            <Loader2 className="size-5 animate-spin text-blue-600" />
+            <span className="text-sm text-gray-700">Memperbarui data...</span>
+          </div>
         </div>
       )}
 

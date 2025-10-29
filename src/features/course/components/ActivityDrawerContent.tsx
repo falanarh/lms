@@ -7,12 +7,16 @@ import { Label } from "@/components/ui/Label";
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/Textarea";
 import { Switch } from "@/components/ui/Switch/Switch";
-import { ChevronLeft, Video, Link, FileText, CheckSquare, Package, Calendar, Plus, X, Lock } from "lucide-react";
+import { ChevronLeft, Video, Link, FileText, CheckSquare, Package, Calendar, Plus, X, Lock, Loader2 } from "lucide-react";
 import { useState } from "react";
 import SessionCard from "./SessionCardJadwalKurikulum";
 import ActivityCard from "./ActivityCard";
+import { getContentQueryKey, useCreateContent } from "@/hooks/useContent";
+import { Toast } from "@/components/ui/Toast/Toast";
+import { queryClient } from "@/lib/queryClient";
+import { getSectionQueryKey } from "@/hooks/useSections";
 
-type ActivityType = "video" | "link" | "pdf" | "quiz" | "scorm" | "jadwal_kurikulum" | null;
+type ActivityType = "VIDEO" | "LINK" | "PDF" | "QUIZ" | "SCORM" | "jadwal_kurikulum" | null;
 type ContentSource = "new" | "curriculum" | null;
 
 interface RestrictionState {
@@ -29,14 +33,15 @@ interface UploadedMaterial {
 interface ActivityDrawerContentProps {
   onClose: () => void;
   onSave?: () => void;
+  sectionId?: string; // ID section untuk membuat content baru
 }
 
 const ACTIVITY_OPTIONS = [
-  { type: "video", label: "Video Upload", description: "Upload file video lokal", icon: Video, color: "blue" },
-  { type: "link", label: "Link Eksternal", description: "YouTube atau e-Certificate", icon: Link, color: "orange" },
-  { type: "pdf", label: "PDF / Dokumen", description: "Upload PDF, DOC, PPT", icon: FileText, color: "green" },
-  { type: "quiz", label: "Kuis", description: "Buat kuis interaktif", icon: CheckSquare, color: "purple" },
-  { type: "scorm", label: "SCORM Package", description: "Import konten SCORM 1.2 / 2004", icon: Package, color: "amber", span: 2 },
+  { type: "VIDEO", label: "Video Upload", description: "Upload file video lokal", icon: Video, color: "blue" },
+  { type: "LINK", label: "Link Eksternal", description: "YouTube atau e-Certificate", icon: Link, color: "orange" },
+  { type: "PDF", label: "PDF / Dokumen", description: "Upload PDF, DOC, PPT", icon: FileText, color: "green" },
+  { type: "QUIZ", label: "Kuis", description: "Buat kuis interaktif", icon: CheckSquare, color: "purple" },
+  { type: "SCORM", label: "SCORM Package", description: "Import konten SCORM 1.2 / 2004", icon: Package, color: "amber", span: 2 },
 ];
 
 const CONTENT_SOURCE_OPTIONS = [
@@ -44,53 +49,32 @@ const CONTENT_SOURCE_OPTIONS = [
   { value: "new", label: "Konten Baru", description: "Buat konten activity baru", icon: Plus, color: "green" },
 ];
 
-const CURRICULUM_SESSIONS = [
-  {
-    id: "session-1",
-    title: "Sesi 1: Pengantar Next.js",
-    date: "2024-08-01",
-    status: "upcoming",
-    topic: "Fundamental Next.JS",
-    duration: "30 menit",
-    instructor: "Dr. Alfian Syrff",
-    description: "Pengenalan dasar tentang Next.js framework dan konsep fundamental yang perlu dipahami",
-    materials: [
-      { type: "pdf", title: "Next.js Fundamentals", size: "12 MB" },
-      { type: "video", title: "Next.js Introduction", size: "30 MB" },
-    ],
-  },
-  {
-    id: "session-2",
-    title: "Sesi 2: React Hooks & State Management",
-    date: "2024-08-08",
-    status: "upcoming",
-    topic: "React Advanced Concepts",
-    duration: "45 menit",
-    instructor: "Dr. Alfian Syrff",
-    description: "Mempelajari React Hooks seperti useState, useEffect, dan teknik state management modern",
-    materials: [
-      { type: "pdf", title: "React Hooks Guide", size: "8 MB" },
-      { type: "video", title: "State Management Tutorial", size: "45 MB" },
-      { type: "pdf", title: "Best Practices", size: "5 MB" },
-    ],
-  },
-  {
-    id: "session-3",
-    title: "Sesi 3: API Routes & Data Fetching",
-    date: "2024-08-15",
-    status: "upcoming",
-    topic: "Backend Integration",
-    duration: "60 menit",
-    instructor: "Prof. Sarah Johnson",
-    description: "Implementasi API routes di Next.js dan berbagai metode fetching data (SSR, SSG, ISR)",
-    materials: [
-      { type: "video", title: "API Routes Demo", size: "50 MB" },
-      { type: "pdf", title: "Data Fetching Patterns", size: "10 MB" },
-    ],
-  },
-];
 
-export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContentProps) {
+export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDrawerContentProps) {
+  const { mutate: createContent, isPending: isCreating } = useCreateContent({
+    onSuccess: async () => {
+      setShowToast(true);
+      setToastMessage("Activity berhasil ditambahkan!");
+      setToastVariant("success");
+
+      // Force refetch queries immediately
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: getContentQueryKey() }),
+        queryClient.refetchQueries({ queryKey: getSectionQueryKey() })
+      ]);
+
+      // Wait for toast to show, then close
+      setTimeout(() => {
+        onClose();
+        if (onSave) onSave();
+      }, 1500);
+    },
+    onError: (error: any) => {
+      setShowToast(true);
+      setToastMessage(error?.message || "Gagal menambahkan activity");
+      setToastVariant("warning");
+    },
+  });
   const [contentSource, setContentSource] = useState<ContentSource>(null);
   const [selectedActivityType, setSelectedActivityType] = useState<ActivityType>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
@@ -98,6 +82,10 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
   const [uploadedScorm, setUploadedScorm] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState<"info" | "warning" | "success">("success");
   const [restrictionEnabled, setRestrictionEnabled] = useState(false);
   const [restrictions, setRestrictions] = useState<RestrictionState>({
     prerequisiteEnabled: false,
@@ -105,13 +93,20 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
   });
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedSession, setSelectedSession] = useState<typeof CURRICULUM_SESSIONS[0] | null>(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [completionEnabled, setCompletionEnabled] = useState(false);
+  const [mustOpenLink, setMustOpenLink] = useState(false);
+  const [deadlineEnabled, setDeadlineEnabled] = useState(false);
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [quizGradingEnabled, setQuizGradingEnabled] = useState(false);
+  const [quizStartDate, setQuizStartDate] = useState("");
+  const [quizEndDate, setQuizEndDate] = useState("");
 
   const handleRestrictionToggle = (type: keyof RestrictionState) => {
     setRestrictions(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
-  const handleSessionSelect = (session: typeof CURRICULUM_SESSIONS[0]) => {
+  const handleSessionSelect = (session: any) => {
     setSelectedSession(session);
     setSelectedActivityType('jadwal_kurikulum');
     setTitle(session.title);
@@ -142,11 +137,173 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
     setUploadedMaterials(prev => prev.filter(material => material.id !== id));
   };
 
+  const handleSave = () => {
+    // Validation
+    if (!sectionId) {
+      setShowToast(true);
+      setToastMessage("Section ID tidak ditemukan");
+      setToastVariant("warning");
+      return;
+    }
+
+    if (!title.trim()) {
+      setShowToast(true);
+      setToastMessage("Judul activity tidak boleh kosong");
+      setToastVariant("warning");
+      return;
+    }
+
+    if (!selectedActivityType || selectedActivityType === "jadwal_kurikulum") {
+      setShowToast(true);
+      setToastMessage("Pilih tipe activity terlebih dahulu");
+      setToastVariant("warning");
+      return;
+    }
+
+    // Determine content_url based on activity type
+    let contentUrl = "";
+    if (selectedActivityType === "LINK") {
+      if (!linkUrl.trim()) {
+        setShowToast(true);
+        setToastMessage("URL link tidak boleh kosong");
+        setToastVariant("warning");
+        return;
+      }
+      contentUrl = linkUrl;
+    } else if (selectedActivityType === "VIDEO") {
+      contentUrl = uploadedVideo || "";
+    } else if (selectedActivityType === "PDF") {
+      contentUrl = uploadedMaterials[0]?.title || "";
+    } else if (selectedActivityType === "SCORM") {
+      contentUrl = uploadedScorm || "";
+    }
+
+    // Prepare dates - use restriction dates or default to current + 1 year
+    const now = new Date();
+    const oneYearLater = new Date();
+    oneYearLater.setFullYear(now.getFullYear() + 1);
+
+    const contentStart = restrictions.timeEnabled && startDate 
+      ? new Date(startDate).toISOString() 
+      : now.toISOString();
+    
+    const contentEnd = restrictions.timeEnabled && endDate 
+      ? new Date(endDate).toISOString() 
+      : oneYearLater.toISOString();
+
+    // Get next sequence number (simplified - should ideally come from API)
+    const sequence = 12;
+
+    // Create content payload
+    const newContent = {
+      id_section: sectionId,
+      type: selectedActivityType,
+      content_url: contentUrl,
+      name: title,
+      description: description || "",
+      content_start: contentStart,
+      content_end: contentEnd,
+      sequence: sequence,
+    };
+
+    createContent(newContent);
+  };
+
   const BackButton = ({ onClick }: { onClick: () => void }) => (
     <Button variant="ghost" size="sm" onClick={onClick} className="my-4">
       <ChevronLeft className="size-4 mr-2" />
       Kembali
     </Button>
+  );
+
+  const CompletionSection = () => (
+    <div className="my-4 space-y-4 border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-green-600 flex items-center justify-center">
+            <CheckSquare className="size-5 text-white" />
+          </div>
+          <div>
+            <h5 className="font-medium text-green-900">Pengaturan Penyelesaian</h5>
+            <p className="text-sm text-green-700">Atur kriteria kapan activity dianggap selesai</p>
+          </div>
+        </div>
+        <Switch checked={completionEnabled} onChange={setCompletionEnabled} />
+      </div>
+
+      {completionEnabled && (
+        <div className="space-y-6">
+         
+          {selectedActivityType === 'LINK' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h6 className="font-medium">Harus Membuka Tautan</h6>
+                  <p className="text-sm text-gray-500">Peserta harus membuka link ini agar dianggap selesai</p>
+                </div>
+                <Switch checked={mustOpenLink} onChange={setMustOpenLink} />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h6 className="font-medium">Tenggat Waktu</h6>
+                <p className="text-sm text-gray-500">Tetapkan deadline penyelesaian aktivitas</p>
+              </div>
+              <Switch checked={deadlineEnabled} onChange={setDeadlineEnabled} />
+            </div>
+            {deadlineEnabled && (
+              <div>
+                <Label htmlFor="deadlineDate" className="block text-sm font-medium text-gray-700 my-2">Deadline</Label>
+                <Input
+                  id="deadlineDate"
+                  type="datetime-local"
+                  value={deadlineDate}
+                  onChange={(e) => setDeadlineDate(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          {selectedActivityType === 'QUIZ' && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h6 className="font-medium">Penilaian</h6>
+                    <p className="text-sm text-gray-500">Aktifkan penilaian untuk kuis ini</p>
+                  </div>
+                  <Switch checked={quizGradingEnabled} onChange={setQuizGradingEnabled} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="quizStartDate" className="block text-sm font-medium text-gray-700 mb-2">Mulai Kuis</Label>
+                  <Input
+                    id="quizStartDate"
+                    type="datetime-local"
+                    value={quizStartDate}
+                    onChange={(e) => setQuizStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="quizEndDate" className="block text-sm font-medium text-gray-700 mb-2">Selesai Kuis</Label>
+                  <Input
+                    id="quizEndDate"
+                    type="datetime-local"
+                    value={quizEndDate}
+                    onChange={(e) => setQuizEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 
   const FileUploadArea = ({ 
@@ -192,7 +349,7 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
   );
 
   const RestrictionSection = () => (
-    <div className="mt-8 space-y-4 border rounded-xl p-4">
+    <div className="my-4 space-y-4 border rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-purple-600 flex items-center justify-center">
@@ -288,14 +445,26 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
               onClick={() => handleSessionSelect(session)}
               title={session.title}
               date={session.date}
-              status={session.status}
+              status={"upcoming"}
               topic={session.topic}
               duration={session.duration}
               instructor={session.instructor}
-              materials={session.materials}
             />
           ))}
         </div>
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
+            <Toast
+              variant={toastVariant}
+              message={toastMessage}
+              onClose={() => setShowToast(false)}
+              autoDismiss={true}
+              duration={toastVariant === "success" ? 2000 : 3000}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -326,6 +495,19 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
             </Card>
           ))}
         </div>
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
+            <Toast
+              variant={toastVariant}
+              message={toastMessage}
+              onClose={() => setShowToast(false)}
+              autoDismiss={true}
+              duration={toastVariant === "success" ? 2000 : 3000}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -341,9 +523,9 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           setSelectedSession(null);
         }} />
 
-        {selectedActivityType !== "quiz" && (
+        {selectedActivityType !== "QUIZ" && (
           <>
-            <div>
+            <div className="mb-4">
               <Label htmlFor="activity-title">Judul Aktivitas</Label>
               <Input
                 id="activity-title"
@@ -366,6 +548,8 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
             </div>
 
             <RestrictionSection />
+
+            <CompletionSection />
 
             {showMaterialsList && (
               <div className="mt-6">
@@ -399,7 +583,7 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
                        <ActivityCard
                         key={index}
                         title={material.title}
-                        type={material.type}
+                        type={"video"}
                         size={material.size}
                         showAction
                         actionLabel="Download"
@@ -416,7 +600,7 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           </>
         )}
 
-        {selectedActivityType === "video" && (
+        {selectedActivityType === "VIDEO" && (
           <>
             <FileUploadArea
               icon={Video}
@@ -440,11 +624,13 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           </>
         )}
 
-        {selectedActivityType === "link" && (
+        {selectedActivityType === "LINK" && (
           <div>
             <Label>Link Eksternal</Label>
             <Input
               type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://www.youtube.com/watch?v=example"
               className="mt-1"
             />
@@ -454,7 +640,7 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           </div>
         )}
 
-        {selectedActivityType === "pdf" && (
+        {selectedActivityType === "PDF" && (
           <>
             <FileUploadArea
               icon={FileText}
@@ -483,7 +669,7 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           </>
         )}
 
-        {selectedActivityType === "scorm" && (
+        {selectedActivityType === "SCORM" && (
           <>
             <div>
               <Label>SCORM Package</Label>
@@ -513,19 +699,37 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           </>
         )}
 
-        {selectedActivityType === "quiz" && (
+        {selectedActivityType === "QUIZ" && (
           <div>
             <Label>Quiz</Label>
             <p className="text-sm text-gray-500 mt-1">
               Buat kuis interaktif untuk menguji pemahaman peserta
             </p>
+
+            <CompletionSection />
           </div>
         )}
 
-        {selectedActivityType !== "quiz" && (
+        {selectedActivityType !== "QUIZ" && (
           <div className="flex justify-end gap-3 mt-8 mb-4 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>Batal</Button>
-            <Button onClick={onSave}>Simpan</Button>
+            <Button variant="outline" onClick={onClose} disabled={isCreating}>Batal</Button>
+            <Button onClick={handleSave} disabled={isCreating}>
+              {isCreating && <Loader2 className="size-4 mr-2 animate-spin" />}
+              {isCreating ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
+            <Toast
+              variant={toastVariant}
+              message={toastMessage}
+              onClose={() => setShowToast(false)}
+              autoDismiss={true}
+              duration={toastVariant === "success" ? 2000 : 3000}
+            />
           </div>
         )}
       </div>
@@ -559,6 +763,19 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
           </Card>
         ))}
       </div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
+          <Toast
+            variant={toastVariant}
+            message={toastMessage}
+            onClose={() => setShowToast(false)}
+            autoDismiss={true}
+            duration={toastVariant === "success" ? 2000 : 3000}
+          />
+        </div>
+      )}
     </div>
   );
 }

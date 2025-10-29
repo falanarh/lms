@@ -65,7 +65,7 @@
 import React from "react";
 import { FileText, Video, Download, Eye } from "lucide-react";
 
-export type MaterialType = "pdf" | "video" | "doc" | "ppt";
+export type MaterialType = "PDF" | "VIDEO" | "LINK" | "SCORM";
 
 export interface ActivityCardProps {
   title: string;
@@ -88,28 +88,28 @@ const materialConfig: Record<
     label: string;
   }
 > = {
-  pdf: {
+  PDF: {
     icon: FileText,
     color: "red",
     bgColor: "bg-red-100",
     iconColor: "text-red-600",
     label: "PDF",
   },
-  video: {
+  VIDEO: {
     icon: Video,
     color: "blue",
     bgColor: "bg-blue-100",
     iconColor: "text-blue-600",
     label: "VIDEO",
   },
-  doc: {
+  LINK: {
     icon: FileText,
-    color: "green",
-    bgColor: "bg-green-100",
-    iconColor: "text-green-600",
-    label: "DOC",
+    color: "blue",
+    bgColor: "bg-blue-100",
+    iconColor: "text-blue-600",
+    label: "LINK",
   },
-  ppt: {
+  SCORM: {
     icon: FileText,
     color: "orange",
     bgColor: "bg-orange-100",

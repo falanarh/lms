@@ -23,6 +23,7 @@ import { RatingSummaryCard } from "@/features/course/components/RatingSummaryCar
 import ProgressCard from "@/features/course/components/ProgressStudyCard";
 import { CustomIcon } from "@/components/ui/IconCard/IconCard";
 import {PostList} from "@/features/posts/PostList";
+import { ContentList } from "@/features/course/components/ContentList";
 
 const coursesData = [
   {
@@ -275,6 +276,21 @@ const filteredCourses = coursesData
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans ">
       <main className="flex min-h-screen w-full flex-col items-center justify-between bg-white sm:items-start">
+
+        {coursesData.map((course) => (
+          <CourseCard
+            key={course.id}
+            title={course.title}
+            rating={course.rating}
+            image={course.image}
+            category={course.category}
+            categoryColor={course.categoryColor}
+            ratingCount={course.ratingCount}
+            instructor={course.instructor}
+            studentCount={course.studentCount}
+          />
+        ))}
+
         <Image
           className="dark:invert"
           src="/next.svg"
@@ -308,7 +324,10 @@ const filteredCourses = coursesData
       />
     </div>
 
+          
+
         <PostList /> 
+        <ContentList />
         
       </main>
     </div>

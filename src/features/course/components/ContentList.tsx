@@ -1,22 +1,21 @@
 "use client"
 
 import { Post } from '@/api/posts'
-import { usePosts } from '@/hooks/usePost'
+import { useContents } from '@/hooks/useContent'
+import { useSections } from '@/hooks/useSections'
 import React, { useState } from 'react'
 
-export const PostList = () => {
-  const { data, isPending, isFetching } = usePosts()
+export const ContentList = () => {
+  const { data, isPending, isFetching } = useContents()
   
+  console.log(data)
+
   if (isPending) return <div>Loading</div>
 
   return (
     <section>
       <ul>
-        {data?.map((post: Post, index:number) => (
-          <li className='text-black' key={post.id}>
-            {index + 1}. {post.title}
-          </li>
-        ))}
+       
       </ul>
 
       <style jsx>{`

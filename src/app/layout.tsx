@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "./provider";
 import { Navbar } from "@/components/layout/Navbar/Navbar";
+import QueryProvider from "@/providers/QueryProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -42,7 +42,7 @@ export default function RootLayout({
         />
       
         <div className="min-h-[calc(100vh-4rem)] mx-auto  bg-zinc-50">
-          <Providers>{children}</Providers>
+          <QueryProvider>{children}</QueryProvider>
         </div>
       </body>
     </html>
