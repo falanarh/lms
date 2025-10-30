@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { DUMMY_COURSES } from "@/features/course/constant/course";
 import { ViewModeValue } from "@/features/course/types";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Pagination } from "@/components/shared/Pagination/Pagination";
@@ -11,6 +10,7 @@ import {
   CourseHeader,
   CourseLayout,
 } from "@/features/course/components";
+import { useCourses } from "@/hooks/useCourse";
 
 const COURSES_PER_PAGE = 4;
 
@@ -21,10 +21,13 @@ export default function CoursePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewModeValue>("grid-4");
 
+  const { data, isPending, isFetching } = useCourses();
+  const courses = data ?? [];
+
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const filteredAndSortedCourses = useMemo(() => {
-    let filtered = DUMMY_COURSES.filter((course) => {
+    let filtered = courses.filter((course) => {
       const matchesSearch = course.title
         .toLowerCase()
         .includes(debouncedSearchQuery.toLowerCase());
@@ -50,7 +53,7 @@ export default function CoursePage() {
     });
 
     return filtered;
-  }, [debouncedSearchQuery, selectedCategory, sortBy]);
+  }, [courses, debouncedSearchQuery, selectedCategory, sortBy]);
 
   const totalPages = Math.ceil(
     filteredAndSortedCourses.length / COURSES_PER_PAGE
@@ -89,7 +92,11 @@ export default function CoursePage() {
         onViewModeChange={setViewMode}
       />
 
-      <CourseGrid courses={paginatedCourses} viewMode={viewMode} />
+      <CourseGrid
+        courses={paginatedCourses}
+        viewMode={viewMode}
+        isLoading={isPending || isFetching}
+      />
 
       {totalPages > 1 && (
         <Pagination
