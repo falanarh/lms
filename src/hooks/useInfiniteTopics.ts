@@ -122,7 +122,7 @@ export const topicsApi = {
     if (search) {
       filteredTopics = allMockTopics.filter(topic =>
         topic.title.toLowerCase().includes(search.toLowerCase()) ||
-        topic.description.toLowerCase().includes(search.toLowerCase())
+        (topic.description && topic.description.toLowerCase().includes(search.toLowerCase()))
       );
     }
 

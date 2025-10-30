@@ -19,7 +19,7 @@ export function createDiscussion(data: Omit<Discussion, 'discussionType'>, exist
 export function computeDiscussionType(
   discussion: Omit<Discussion, 'discussionType'>,
   existingDiscussions: Discussion[] = []
-): 'direct' | 'nested-first' | 'nested-second' {
+): 'direct' | 'nestedFirst' | 'nestedSecond' {
   // Jika tidak replying to siapa-siapa, maka jawaban langsung ke topic
   if (!discussion.replyingToId) {
     return 'direct';
@@ -34,14 +34,14 @@ export function computeDiscussionType(
   }
 
   // Jika discussion yang direply adalah jawaban langsung ke topic (direct),
-  // maka ini adalah nested-first
+  // maka ini adalah nestedFirst
   if (repliedDiscussion.discussionType === 'direct') {
-    return 'nested-first';
+    return 'nestedFirst';
   }
 
   // Jika discussion yang direply sudah nested (ada replyToId),
-  // maka ini adalah nested-second
-  return 'nested-second';
+  // maka ini adalah nestedSecond
+  return 'nestedSecond';
 }
 
 /**

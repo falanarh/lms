@@ -1,37 +1,59 @@
 "use client";
 
 import React, { useState } from "react";
-import { CircleQuestionMark, Clock4, MessagesSquare, X, Plus, ChevronDown, ArrowBigUp, ArrowBigDown } from "lucide-react";
+import { CircleQuestionMark, Clock4, MessagesSquare, X, Plus, ChevronDown, ArrowBigUp, ArrowBigDown, Edit2, MoreVertical, Trash2 } from "lucide-react";
 import Badge from "../../ui/Badge";
 import { Button } from "../../ui/Button";
+import { Input } from "../../ui/Input";
 import { Textarea } from "../../ui/Textarea";
 import Discussion from "./Discussion";
 import { InfiniteDiscussions } from "../InfiniteScroll/InfiniteDiscussions";
 
 export interface TopicMeta {
   id: string;
+  idForum?: string;
   title: string;
-  questionDetail?: string;
-  startedBy: string;
-  startedAgo: string;
-  repliesCount: number;
-  lastReplyAgo: string;
+  body?: string;              // Changed from questionDetail to match API
+  createdBy: string;          // Changed from startedBy to match API
+  createdAt: string;          // Changed from startedAgo to match API
+  commentCount?: number;      // Changed from repliesCount to match API
+  isResolved?: boolean;       // Changed from state to match API
+  resolvedAt?: string | null; // Added from API
+  resolvedBy?: string | null; // Added from API
+  upvoteCount?: number;       // Added from API
+  downvoteCount?: number;     // Added from API
   avatarInitials?: string;
   avatarBadge?: number | string;
-  state?: "open" | "closed";
+  // Computed properties for UI
+  startedAgo?: string;        // Computed from createdAt
+  lastReplyAgo?: string;      // Computed from discussions
+  state?: "open" | "closed";  // Computed from isResolved
+  repliesCount?: number;      // Computed from discussions length
+  // Legacy properties for backward compatibility
+  questionDetail?: string;    // Alias for body
+  startedBy?: string;         // Alias for createdBy
 }
 
 export interface Discussion {
   id: string;
+  idTopic?: string;           // Added from API
+  idUser: string;             // Changed from author to match API
+  idParent?: string | null;   // Changed from replyingToId to match API
+  idRoot?: string | null;     // Added from API
+  comment: string;            // Changed from content to match API
+  upvoteCount: number;        // ✅ match API
+  downvoteCount: number;      // ✅ match API
+  discussionType: 'direct' | 'nestedFirst' | 'nestedSecond'; // ✅ match API
+  isUpdated?: boolean;        // Added from API
+  createdAt: string;          // Changed from time to match API
+  updatedAt?: string;         // Added from API
+  // Computed properties for UI
   avatar?: string;
-  author: string;
-  time: string;
-  content: string;
-  upvotedBy: string[];
-  downvotedBy: string[];
-  replyingToId?: string;
-  replyingToAuthor?: string;
-  discussionType: 'direct' | 'nested-first' | 'nested-second';
+  author?: string;            // Computed from idUser
+  time?: string;              // Computed from createdAt
+  content?: string;           // Computed from comment
+  replyingToId?: string;      // Computed from idParent
+  replyingToAuthor?: string;  // Computed from idParent
 }
 
 export interface TopicProps {
@@ -51,14 +73,22 @@ export interface TopicProps {
   onUpvoteTopic?: (topicId: string) => void;
   onDownvoteTopic?: (topicId: string) => void;
   topicVotes?: { upvotes: number; downvotes: number; userVote: 'up' | 'down' | null };
+  // New: Topic edit/delete functionality
+  canEditTopic?: boolean;
+  onEditTopic?: (topicId: string, newTitle: string, newDescription?: string) => void;
+  onDeleteTopic?: (topicId: string) => void;
+  // New: Discussion edit/delete functionality
+  canEditDiscussion?: boolean;
+  onEditDiscussion?: (discussionId: string, newContent: string) => void;
+  onDeleteDiscussion?: (discussionId: string) => void;
   className?: string;
 }
 
 // Helper untuk sort discussions berdasarkan vote
 function sortDiscussionsByVote(discussions: Discussion[]): Discussion[] {
   return [...discussions].sort((a, b) => {
-    const voteA = a.upvotedBy.length - a.downvotedBy.length;
-    const voteB = b.upvotedBy.length - b.downvotedBy.length;
+    const voteA = a.upvoteCount - a.downvoteCount;
+    const voteB = b.upvoteCount - b.downvoteCount;
     return voteB - voteA;
   });
 }
@@ -87,6 +117,12 @@ export function Topic({
   onUpvoteTopic,
   onDownvoteTopic,
   topicVotes,
+  canEditTopic = false,
+  onEditTopic,
+  onDeleteTopic,
+  canEditDiscussion = false,
+  onEditDiscussion,
+  onDeleteDiscussion,
   className,
 }: TopicProps) {
   // Debug: Log badge state
@@ -103,69 +139,82 @@ export function Topic({
   const [replyText, setReplyText] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; author: string } | null>(null);
   const [isInfiniteMode, setIsInfiniteMode] = useState(infiniteScroll);
+  const [showTopicMenu, setShowTopicMenu] = useState(false);
+
+  // Topic edit states
+  const [isEditingTopic, setIsEditingTopic] = useState(false);
+  const [editTitle, setEditTitle] = useState(meta.title);
+  const [editDescription, setEditDescription] = useState(meta.questionDetail || "");
+  const [isSavingTopic, setIsSavingTopic] = useState(false);
 
   // Sync discussions dengan external changes
   React.useEffect(() => {
     setDiscussions(sortDiscussionsByVote(initialDiscussions));
   }, [initialDiscussions]);
 
+  // Sync topic edit states dengan meta changes
+  React.useEffect(() => {
+    setEditTitle(meta.title);
+    setEditDescription(meta.questionDetail || "");
+  }, [meta.title, meta.questionDetail]);
+
   // Vote handlers
   const handleUpvote = (discussionId: string) => {
     if (!currentUserId) return;
 
-    setDiscussions((currentDiscussions) => {
-      const updatedDiscussions = currentDiscussions.map((discussion) => {
-        if (discussion.id !== discussionId) return discussion;
+    // setDiscussions((currentDiscussions) => {
+    //   const updatedDiscussions = currentDiscussions.map((discussion) => {
+    //     if (discussion.id !== discussionId) return discussion;
 
-        const hasUpvoted = discussion.upvotedBy.includes(currentUserId);
-        const hasDownvoted = discussion.downvotedBy.includes(currentUserId);
+    //     const hasUpvoted = discussion.upvotedBy.includes(currentUserId);
+    //     const hasDownvoted = discussion.downvotedBy.includes(currentUserId);
 
-        let newUpvotedBy = [...discussion.upvotedBy];
-        let newDownvotedBy = [...discussion.downvotedBy];
+    //     let newUpvotedBy = [...discussion.upvotedBy];
+    //     let newDownvotedBy = [...discussion.downvotedBy];
 
-        if (hasUpvoted) {
-          newUpvotedBy = newUpvotedBy.filter((id) => id !== currentUserId);
-        } else {
-          newUpvotedBy.push(currentUserId);
-          if (hasDownvoted) {
-            newDownvotedBy = newDownvotedBy.filter((id) => id !== currentUserId);
-          }
-        }
+    //     if (hasUpvoted) {
+    //       newUpvotedBy = newUpvotedBy.filter((id) => id !== currentUserId);
+    //     } else {
+    //       newUpvotedBy.push(currentUserId);
+    //       if (hasDownvoted) {
+    //         newDownvotedBy = newDownvotedBy.filter((id) => id !== currentUserId);
+    //       }
+    //     }
 
-        return { ...discussion, upvotedBy: newUpvotedBy, downvotedBy: newDownvotedBy };
-      });
-      return sortDiscussionsByVote(updatedDiscussions);
-    });
-    onUpvoteReply?.(discussionId);
+    //     return { ...discussion, upvotedBy: newUpvotedBy, downvotedBy: newDownvotedBy };
+    //   });
+    //   return sortDiscussionsByVote(updatedDiscussions);
+    // });
+    // onUpvoteReply?.(discussionId);
   };
 
   const handleDownvote = (discussionId: string) => {
     if (!currentUserId) return;
 
-    setDiscussions((currentDiscussions) => {
-      const updatedDiscussions = currentDiscussions.map((discussion) => {
-        if (discussion.id !== discussionId) return discussion;
+    // setDiscussions((currentDiscussions) => {
+    //   const updatedDiscussions = currentDiscussions.map((discussion) => {
+    //     if (discussion.id !== discussionId) return discussion;
 
-        const hasUpvoted = discussion.upvotedBy.includes(currentUserId);
-        const hasDownvoted = discussion.downvotedBy.includes(currentUserId);
+    //     const hasUpvoted = discussion.upvotedBy.includes(currentUserId);
+    //     const hasDownvoted = discussion.downvotedBy.includes(currentUserId);
 
-        let newUpvotedBy = [...discussion.upvotedBy];
-        let newDownvotedBy = [...discussion.downvotedBy];
+    //     let newUpvotedBy = [...discussion.upvotedBy];
+    //     let newDownvotedBy = [...discussion.downvotedBy];
 
-        if (hasDownvoted) {
-          newDownvotedBy = newDownvotedBy.filter((id) => id !== currentUserId);
-        } else {
-          newDownvotedBy.push(currentUserId);
-          if (hasUpvoted) {
-            newUpvotedBy = newUpvotedBy.filter((id) => id !== currentUserId);
-          }
-        }
+    //     if (hasDownvoted) {
+    //       newDownvotedBy = newDownvotedBy.filter((id) => id !== currentUserId);
+    //     } else {
+    //       newDownvotedBy.push(currentUserId);
+    //       if (hasUpvoted) {
+    //         newUpvotedBy = newUpvotedBy.filter((id) => id !== currentUserId);
+    //       }
+    //     }
 
-        return { ...discussion, upvotedBy: newUpvotedBy, downvotedBy: newDownvotedBy };
-      });
-      return sortDiscussionsByVote(updatedDiscussions);
-    });
-    onDownvoteReply?.(discussionId);
+    //     return { ...discussion, upvotedBy: newUpvotedBy, downvotedBy: newDownvotedBy };
+    //   });
+    //   return sortDiscussionsByVote(updatedDiscussions);
+    // });
+    // onDownvoteReply?.(discussionId);
   };
 
   // Reply form handlers
@@ -186,7 +235,7 @@ export function Topic({
   };
 
   const handleStartReply = (discussion: Discussion) => {
-    setReplyingTo({ id: discussion.id, author: discussion.author });
+    setReplyingTo({ id: discussion.id, author: discussion.author || `User ${discussion.idUser.slice(-6)}` });
     setShowReplyForm(true);
   };
 
@@ -194,6 +243,84 @@ export function Topic({
     setReplyText("");
     setShowReplyForm(false);
     setReplyingTo(null);
+  };
+
+  // Topic edit/delete handlers
+  const handleEditTopic = () => {
+    setShowTopicMenu(false);
+    setIsEditingTopic(true);
+    setEditTitle(meta.title);
+    setEditDescription(meta.questionDetail || "");
+  };
+
+  const handleSaveTopicEdit = async () => {
+    const trimmedTitle = editTitle.trim();
+    const trimmedDescription = editDescription.trim();
+
+    if (!trimmedTitle || trimmedTitle === meta.title) {
+      setIsEditingTopic(false);
+      setEditTitle(meta.title);
+      setEditDescription(meta.questionDetail || "");
+      return;
+    }
+
+    setIsSavingTopic(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Call parent handler with updated data
+      onEditTopic?.(meta.id, trimmedTitle, trimmedDescription || undefined);
+
+      // Reset editing state
+      setIsEditingTopic(false);
+      setShowTopicMenu(false);
+    } catch (error) {
+      console.error('Failed to update topic:', error);
+      // Could show error toast here
+    } finally {
+      setIsSavingTopic(false);
+    }
+  };
+
+  const handleCancelTopicEdit = () => {
+    setIsEditingTopic(false);
+    setEditTitle(meta.title);
+    setEditDescription(meta.questionDetail || "");
+  };
+
+  const handleDeleteTopic = () => {
+    setShowTopicMenu(false);
+    if (confirm('Apakah Anda yakin ingin menghapus topic ini?')) {
+      onDeleteTopic?.(meta.id);
+    }
+  };
+
+  // Discussion edit handler - update local state
+  const handleEditDiscussion = (discussionId: string, newContent: string) => {
+    setDiscussions((currentDiscussions) => {
+      const updatedDiscussions = currentDiscussions.map((discussion) => {
+        if (discussion.id !== discussionId) return discussion;
+        return { ...discussion, content: newContent };
+      });
+      return sortDiscussionsByVote(updatedDiscussions);
+    });
+
+    // Call parent handler if provided
+    onEditDiscussion?.(discussionId, newContent);
+  };
+
+  // Discussion delete handler - remove from local state
+  const handleDeleteDiscussion = (discussionId: string) => {
+    setDiscussions((currentDiscussions) => {
+      const updatedDiscussions = currentDiscussions.filter(
+        (discussion) => discussion.id !== discussionId
+      );
+      return sortDiscussionsByVote(updatedDiscussions);
+    });
+
+    // Call parent handler if provided
+    onDeleteDiscussion?.(discussionId);
   };
 
   // Discussion visibility
@@ -213,18 +340,63 @@ export function Topic({
     >
       {/* Topic Header */}
       <header id={`topic-${meta.id}`} className="relative px-6 pt-6 pb-4 h-full">
-        {/* Status Badge */}
-        <Badge
-          size="sm"
-          variant={meta.state === "open" ? "default" : "outline"}
-          className={`absolute right-6 top-6 z-10 ${
-            meta.state === "open"
-              ? "bg-green-500 text-white border-green-500 shadow-sm"
-              : "bg-gray-100 text-gray-700 border-gray-300"
-          }`}
-        >
-          {meta.state === "open" ? "Open" : "Closed"}
-        </Badge>
+        {/* Top Actions */}
+        <div className="absolute right-6 top-6 z-10 flex items-center gap-2">
+          {/* Status Badge */}
+          <Badge
+            size="sm"
+            variant={meta.state === "open" ? "default" : "outline"}
+            className={`${
+              meta.state === "open"
+                ? "bg-green-500 text-white border-green-500 shadow-sm"
+                : "bg-gray-100 text-gray-700 border-gray-300"
+            }`}
+          >
+            {meta.state === "open" ? "Open" : "Closed"}
+          </Badge>
+
+          {/* Topic Menu */}
+          {canEditTopic && (
+            <div className="relative">
+              <Button
+                leftIcon={<MoreVertical className="w-4 h-4 text-gray-600" />}
+                variant="outline"
+                className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 w-10 h-10 p-0"
+                onClick={() => setShowTopicMenu(!showTopicMenu)}
+                aria-label="Menu topik"
+              />
+
+              {/* Dropdown Menu */}
+              {showTopicMenu && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowTopicMenu(false)}
+                  />
+
+                  {/* Menu */}
+                  <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={handleEditTopic}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4 text-gray-600" />
+                      Edit Topic
+                    </button>
+                    <button
+                      onClick={handleDeleteTopic}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                      Hapus Topic
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Main Content */}
         <div className="flex items-start gap-4">
@@ -238,7 +410,7 @@ export function Topic({
                 className="text-[var(--font-sm,0.875rem)] font-[var(--font-body-bold,600)] tracking-wide"
                 role="img"
               >
-                {(meta.avatarInitials && meta.avatarInitials.trim().toUpperCase()) || getTopicInitials(meta.startedBy)}
+                {(meta.avatarInitials && meta.avatarInitials.trim().toUpperCase()) || getTopicInitials(meta.startedBy || meta.createdBy || '')}
               </span>
             </div>
 
@@ -301,16 +473,64 @@ export function Topic({
           <div className="flex-1 min-w-0 flex flex-col h-full">
             {/* Title and Description */}
             <div className="flex-1">
-              {/* Title - Fixed */}
-              <h3 className="text-[var(--color-foreground,#111827)] text-md font-bold mb-3 line-clamp-2">
-                {meta.title}
-              </h3>
+              {isEditingTopic ? (
+                // Edit Mode - Input fields for title and description
+                <div className="space-y-3">
+                  {/* Title Input */}
+                  <Input
+                    placeholder="Edit judul topic..."
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="text-md font-bold"
+                    autoFocus
+                    disabled={isSavingTopic}
+                  />
 
-              {/* Question Detail - Dynamic Height */}
-              {meta.questionDetail && (
-                <p className="text-md text-[var(--color-foreground-muted)] leading-relaxed min-h-[52px]">
-                  {meta.questionDetail}
-                </p>
+                  {/* Description Textarea */}
+                  <Textarea
+                    placeholder="Edit deskripsi topic..."
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    rows={3}
+                    className="text-sm resize-none"
+                    disabled={isSavingTopic}
+                  />
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelTopicEdit}
+                      disabled={isSavingTopic}
+                    >
+                      Batal
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveTopicEdit}
+                      disabled={!editTitle.trim() || editTitle.trim() === meta.title || isSavingTopic}
+                      isLoading={isSavingTopic}
+                    >
+                      {isSavingTopic ? "Menyimpan..." : "Simpan"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Display Mode - Static title and description
+                <>
+                  {/* Title - Fixed */}
+                  <h3 className="text-[var(--color-foreground,#111827)] text-md font-bold mb-3 line-clamp-2">
+                    {meta.title}
+                  </h3>
+
+                  {/* Question Detail - Dynamic Height */}
+                  {meta.questionDetail && (
+                    <p className="text-md text-[var(--color-foreground-muted)] leading-relaxed min-h-[52px]">
+                      {meta.questionDetail}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
@@ -378,6 +598,9 @@ export function Topic({
                   onDownvote={() => handleDownvote(discussion.id)}
                   onStartReply={() => handleStartReply(discussion)}
                   currentUserId={currentUserId}
+                  canEditDiscussion={canEditDiscussion}
+                  onEditDiscussion={handleEditDiscussion}
+                  onDeleteDiscussion={handleDeleteDiscussion}
                 />
               </div>
             )}
@@ -403,6 +626,9 @@ export function Topic({
                     onDownvote={() => handleDownvote(discussion.id)}
                     onStartReply={() => handleStartReply(discussion)}
                     currentUserId={currentUserId}
+                    canEditDiscussion={canEditDiscussion}
+                    onEditDiscussion={handleEditDiscussion}
+                    onDeleteDiscussion={handleDeleteDiscussion}
                   />
                 </li>
               ))}

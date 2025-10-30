@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import React, { useState } from "react";
+import { ThumbsUp, ThumbsDown, Edit2, MoreVertical, Trash2, X, Check } from "lucide-react";
 import type { Discussion as DiscussionType } from "./Topic";
+import { Button } from "../../ui/Button";
+import { Textarea } from "../../ui/Textarea";
 
 export interface DiscussionProps {
   discussion: DiscussionType;
@@ -10,7 +12,11 @@ export interface DiscussionProps {
   onDownvote: () => void;
   onStartReply: () => void;
   currentUserId?: string;
-  discussionType?: 'direct' | 'nested-first' | 'nested-second';
+  discussionType?: 'direct' | 'nestedFirst' | 'nestedSecond';
+  // New: Discussion edit/delete functionality
+  canEditDiscussion?: boolean;
+  onEditDiscussion?: (discussionId: string, newContent: string) => void;
+  onDeleteDiscussion?: (discussionId: string) => void;
 }
 
 // Helper untuk ambil inisial dari nama
@@ -39,6 +45,9 @@ export function Discussion({
   onStartReply,
   currentUserId,
   discussionType = 'direct',
+  canEditDiscussion = false,
+  onEditDiscussion,
+  onDeleteDiscussion,
 }: DiscussionProps) {
   const handleReplyToClick = () => {
     if (!discussion.replyingToId) return;
@@ -51,8 +60,59 @@ export function Discussion({
     }
   };
 
-  const isUpvoted = currentUserId && discussion.upvotedBy.includes(currentUserId);
-  const isDownvoted = currentUserId && discussion.downvotedBy.includes(currentUserId);
+  // Discussion edit/delete state and handlers
+  const [showDiscussionMenu, setShowDiscussionMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(discussion.content || discussion.comment || '');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleEditDiscussion = () => {
+    setShowDiscussionMenu(false);
+    setIsEditing(true);
+    setEditContent(discussion.content || discussion.comment || '');
+  };
+
+  const handleDeleteDiscussion = () => {
+    setShowDiscussionMenu(false);
+    if (confirm('Apakah Anda yakin ingin menghapus komentar ini?')) {
+      onDeleteDiscussion?.(discussion.id);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    const trimmedContent = editContent.trim();
+    if (!trimmedContent || trimmedContent === (discussion.content || discussion.comment || '')) {
+      setIsEditing(false);
+      setEditContent(discussion.content || discussion.comment || '');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Call parent handler with updated content
+      onEditDiscussion?.(discussion.id, trimmedContent);
+
+      // Reset editing state
+      setIsEditing(false);
+      setShowDiscussionMenu(false);
+    } catch (error) {
+      console.error('Failed to update discussion:', error);
+      // Could show error toast here
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditContent(discussion.content || discussion.comment || '');
+  };
+
+  const isUpvoted = currentUserId;
+  const isDownvoted = currentUserId;
 
   // Tentukan class berdasarkan jenis discussion
   const getDiscussionClass = () => {
@@ -61,8 +121,8 @@ export function Discussion({
     switch (discussionType) {
       case 'direct':
         return baseClass;
-      case 'nested-first':
-      case 'nested-second':
+      case 'nestedFirst':
+      case 'nestedSecond':
         return `${baseClass} ml-6 md:ml-12`; // Nested indentation
       default:
         return baseClass;
@@ -70,103 +130,191 @@ export function Discussion({
   };
 
   // Tentukan apakah perlu menampilkan @user reference
-  const shouldShowReplyReference = discussionType === 'nested-second' && discussion.replyingToAuthor;
+  const shouldShowReplyReference = discussionType === 'nestedSecond' && discussion.replyingToAuthor;
 
   return (
     <article
       id={`discussion-${discussion.id}`}
       className={getDiscussionClass()}
-      aria-label={`Balasan dari ${discussion.author}`}
+      aria-label={`Balasan dari ${discussion.author || `User ${discussion.idUser.slice(-6)}`}`}
     >
       {/* Avatar */}
       <div
         className="shrink-0 size-10 rounded-full bg-[color-mix(in_oklab,var(--color-primary,#2563eb)_85%,white_15%)] text-[var(--color-on-primary,#ffffff)] flex items-center justify-center shadow-sm"
-        aria-label={`${discussion.author} avatar`}
+        aria-label={`${discussion.author || `User ${discussion.idUser.slice(-6)}`} avatar`}
       >
         <span className="px-[var(--space-2,0.25rem)] py-[1px] text-[var(--font-2xs,0.6875rem)] font-[var(--font-body-bold,600)]" role="img">
-          {(discussion.avatar && discussion.avatar.trim().toUpperCase()) || getInitials(discussion.author)}
+          {(discussion.avatar && discussion.avatar.trim().toUpperCase()) || getInitials(discussion.author || `User ${discussion.idUser.slice(-6)}`)}
         </span>
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         {/* Author Info */}
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="font-[var(--font-body-bold,600)] text-sm leading-5 text-[var(--color-foreground,#111827)]">
-            {discussion.author}
-          </span>
+        <div className="flex items-center gap-2 mb-1 flex-wrap justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-[var(--font-body-bold,600)] text-sm leading-5 text-[var(--color-foreground,#111827)]">
+              {discussion.author || `User ${discussion.idUser.slice(-6)}`}
+            </span>
 
-          {/* Reply To Link - Hanya untuk nested-second */}
-          {shouldShowReplyReference && (
-            <button
-              onClick={handleReplyToClick}
-              className="text-sm text-[var(--color-primary)] font-medium hover:underline"
-              aria-label={`Lihat balasan ke ${discussion.replyingToAuthor}`}
-            >
-              @{discussion.replyingToAuthor}
-            </button>
+            {/* Reply To Link - Hanya untuk nestedSecond */}
+            {shouldShowReplyReference && (
+              <button
+                onClick={handleReplyToClick}
+                className="text-sm text-[var(--color-primary)] font-medium hover:underline"
+                aria-label={`Lihat balasan ke ${discussion.replyingToAuthor}`}
+              >
+                @{discussion.replyingToAuthor}
+              </button>
+            )}
+
+            <span className="text-sm leading-4 text-[var(--color-foreground-muted)]">
+              {discussion.time || 'Baru saja'}
+            </span>
+          </div>
+
+          {/* Discussion Menu */}
+          {canEditDiscussion && (
+            <div className="relative">
+              <Button
+                leftIcon={<MoreVertical className="w-3 h-3 text-gray-500" />}
+                variant="outline"
+                className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 w-7 h-7 p-0"
+                onClick={() => setShowDiscussionMenu(!showDiscussionMenu)}
+                aria-label="Menu komentar"
+              />
+
+              {/* Dropdown Menu */}
+              {showDiscussionMenu && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowDiscussionMenu(false)}
+                  />
+
+                  {/* Menu */}
+                  <div className="absolute right-0 top-8 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={handleEditDiscussion}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Edit2 className="w-3 h-3 text-gray-600" />
+                      Edit Komentar
+                    </button>
+                    <button
+                      onClick={handleDeleteDiscussion}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                      Hapus Komentar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
-
-          <span className="text-sm leading-4 text-[var(--color-foreground-muted)]">
-            {discussion.time}
-          </span>
         </div>
 
         {/* Discussion Content */}
-        <p className="text-sm leading-6 text-[var(--color-foreground,#111827)] break-words">
-          {discussion.content}
-        </p>
+        {isEditing ? (
+          // Edit Form - replaces both content and action buttons
+          <div className="mt-2 space-y-3">
+            {/* Edit Input Area - Only textarea */}
+            <div className="flex items-start gap-3">
+              {/* Input Area */}
+              <div className="flex-1">
+                <Textarea
+                  placeholder="Edit komentar Anda..."
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={3}
+                  className="text-sm resize-none"
+                  autoFocus
+                  disabled={isSaving}
+                />
+              </div>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="mt-2 flex items-center gap-4">
-          {/* Upvote Button */}
-          <button
-            onClick={onUpvote}
-            disabled={!currentUserId}
-            className={`flex items-center gap-1.5 text-xs transition-colors ${
-              isUpvoted
-                ? 'text-[var(--success)]'
-                : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)]'
-            } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
-            aria-label={`${isUpvoted ? 'Batalkan' : 'Tambah'} upvote`}
-            aria-pressed={isUpvoted || undefined}
-          >
-            <ThumbsUp
-              className={`size-4 ${isUpvoted ? 'fill-current' : ''}`}
-              aria-hidden="true"
-            />
-            <span>{discussion.upvotedBy.length}</span>
-          </button>
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                Batal
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={!editContent.trim() || editContent.trim() === (discussion.content || discussion.comment || '') || isSaving}
+                isLoading={isSaving}
+              >
+                {isSaving ? "Menyimpan..." : "Simpan"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          // Normal Display Mode
+          <>
+            <p className="text-sm leading-6 text-[var(--color-foreground,#111827)] break-words">
+              {discussion.content || discussion.comment || ''}
+            </p>
 
-          {/* Downvote Button */}
-          <button
-            onClick={onDownvote}
-            disabled={!currentUserId}
-            className={`flex items-center gap-1.5 text-xs transition-colors ${
-              isDownvoted
-                ? 'text-[var(--danger)]'
-                : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)]'
-            } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
-            aria-label={`${isDownvoted ? 'Batalkan' : 'Tambah'} downvote`}
-            aria-pressed={isDownvoted || undefined}
-          >
-            <ThumbsDown
-              className={`size-4 ${isDownvoted ? 'fill-current' : ''}`}
-              aria-hidden="true"
-            />
-            <span>{discussion.downvotedBy.length}</span>
-          </button>
+            {/* Action Buttons */}
+            <div className="mt-2 flex items-center gap-4">
+              {/* Upvote Button */}
+              <button
+                onClick={onUpvote}
+                disabled={!currentUserId}
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
+                  isUpvoted
+                    ? 'text-[var(--success)]'
+                    : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)]'
+                } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
+                aria-label={`${isUpvoted ? 'Batalkan' : 'Tambah'} upvote`}
+                // aria-pressed={isUpvoted || undefined}
+              >
+                <ThumbsUp
+                  className={`size-4 ${isUpvoted ? 'fill-current' : ''}`}
+                  aria-hidden="true"
+                />
+                <span>{discussion.upvoteCount}</span>
+              </button>
 
-          {/* Reply Button */}
-          <button
-            onClick={onStartReply}
-            disabled={!currentUserId}
-            className="text-xs text-[var(--color-foreground-muted)] hover:text-[var(--color-primary)] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Balas komentar ini"
-          >
-            Balas
-          </button>
-        </div>
+              {/* Downvote Button */}
+              <button
+                onClick={onDownvote}
+                disabled={!currentUserId}
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
+                  isDownvoted
+                    ? 'text-[var(--danger)]'
+                    : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)]'
+                } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
+                aria-label={`${isDownvoted ? 'Batalkan' : 'Tambah'} downvote`}
+                // aria-pressed={isDownvoted || undefined}
+              >
+                <ThumbsDown
+                  className={`size-4 ${isDownvoted ? 'fill-current' : ''}`}
+                  aria-hidden="true"
+                />
+                <span>{discussion.downvoteCount}</span>
+              </button>
+
+              {/* Reply Button */}
+              <button
+                onClick={onStartReply}
+                disabled={!currentUserId}
+                className="text-xs text-[var(--color-foreground-muted)] hover:text-[var(--color-primary)] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Balas komentar ini"
+              >
+                Balas
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </article>
   );

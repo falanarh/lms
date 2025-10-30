@@ -21,7 +21,7 @@ interface Discussion {
   downvotedBy: string[];
   replyingToId?: string;
   replyingToAuthor?: string;
-  discussionType: 'direct' | 'nested-first' | 'nested-second'; // ← Stored property
+  discussionType: 'direct' | 'nestedFirst' | 'nestedSecond'; // ← Stored property
 }
 ```
 
@@ -87,7 +87,7 @@ const discussions: Discussion[] = [
     downvotedBy: [],
     replyingToId: "d1",
     replyingToAuthor: "John Doe",
-    discussionType: "nested-first" // ← Stored property
+    discussionType: "nestedFirst" // ← Stored property
   }
 ];
 

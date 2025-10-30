@@ -1,16 +1,22 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
+import { Plus } from "lucide-react";
 import { ForumListContainer } from "@/components/shared/ForumList/ForumList";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import type { Forum } from "@/components/shared/ForumList/ForumList";
+import { Button } from "@/components/ui/Button";
+import { ForumModal } from "@/components/ui/Modal/ForumModal";
+import { useForums } from "@/hooks/useForums";
+import type { Forum } from "@/api/forums";
 
-// Sample forum data
-const sampleForums = [
+// Fallback data jika API gagal
+const fallbackForums: Forum[] = [
   {
     id: "1",
     title: "Pengembangan Web Fundamental",
     description:
-      "Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.",
-    type: "course" as const,
+      "Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.",
+    type: "course",
     lastActivity: "2023-10-28T10:30:00Z",
     totalTopics: 42,
   },
@@ -19,7 +25,7 @@ const sampleForums = [
     title: "React dan Next.js",
     description:
       "Berbagi pengetahuan tentang React, Next.js, dan ekosistemnya.",
-    type: "course" as const,
+    type: "course",
     lastActivity: "2023-10-27T15:45:00Z",
     totalTopics: 38,
   },
@@ -28,114 +34,81 @@ const sampleForums = [
     title: "Umum",
     description:
       "Diskusi umum tentang topik teknologi dan pengembangan perangkat lunak.",
-    type: "general" as const,
+    type: "general",
     lastActivity: "2023-10-28T08:15:00Z",
     totalTopics: 67,
-  },
-  {
-    id: "4",
-    title: "Database dan Backend",
-    description: "Pembahasan tentang database, API, dan pengembangan backend.",
-    type: "course" as const,
-    lastActivity: "2023-10-26T12:20:00Z",
-    totalTopics: 29,
-  },
-  {
-    id: "5",
-    title: "UI/UX Design",
-    description:
-      "Berbagi inspirasi dan teknik desain antarmuka pengguna dan pengalaman pengguna.",
-    type: "course" as const,
-    lastActivity: "2023-10-28T14:20:00Z",
-    totalTopics: 56,
-  },
-  {
-    id: "6",
-    title: "Mobile Development",
-    description:
-      "Pembahasan tentang pengembangan aplikasi mobile untuk iOS dan Android.",
-    type: "course" as const,
-    lastActivity: "2023-10-27T09:30:00Z",
-    totalTopics: 34,
-  },
-  {
-    id: "7",
-    title: "DevOps dan Deployment",
-    description:
-      "Teknik dan praktik terbaik untuk deployment dan operasi aplikasi.",
-    type: "course" as const,
-    lastActivity: "2023-10-26T16:45:00Z",
-    totalTopics: 23,
-  },
-  {
-    id: "8",
-    title: "Machine Learning",
-    description:
-      "Diskusi tentang konsep dan implementasi machine learning dan AI.",
-    type: "course" as const,
-    lastActivity: "2023-10-28T11:10:00Z",
-    totalTopics: 48,
-  },
-  {
-    id: "9",
-    title: "Karir IT",
-    description:
-      "Berbagi pengalaman dan tips tentang karir di industri teknologi.",
-    type: "general" as const,
-    lastActivity: "2023-10-27T13:25:00Z",
-    totalTopics: 71,
-  },
-  {
-    id: "10",
-    title: "Cybersecurity",
-    description:
-      "Pembahasan tentang keamanan siber dan praktik terbaik dalam melindungi data.",
-    type: "course" as const,
-    lastActivity: "2023-10-28T07:50:00Z",
-    totalTopics: 31,
-  },
-  {
-    id: "11",
-    title: "Cloud Computing",
-    description: "Eksplorasi platform cloud dan layanan komputasi awan.",
-    type: "course" as const,
-    lastActivity: "2023-10-26T14:15:00Z",
-    totalTopics: 27,
-  },
-  {
-    id: "12",
-    title: "Open Source",
-    description:
-      "Kontribusi dan diskusi tentang proyek open source dan komunitasnya.",
-    type: "general" as const,
-    lastActivity: "2023-10-28T12:40:00Z",
-    totalTopics: 52,
   },
 ];
 
 export default function ForumPage() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingForum, setEditingForum] = useState<Forum | null>(null);
+
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "Forum", isActive: true },
   ];
 
+  const { data: forums = fallbackForums, isLoading, error, refetch } = useForums();
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-16 py-8">
       <Breadcrumb items={breadcrumbItems} className="mb-6" />
 
-      {/* Forum Heading */}
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Daftar Forum</h1>
-      <p className="text-gray-600 mb-6">
-        Temukan berbagai diskusi menarik seputar teknologi dan pengembangan perangkat lunak.
-      </p>
+      {/* Forum Header with Create Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Daftar Forum</h1>
+          <p className="text-gray-600">
+            Temukan berbagai diskusi menarik seputar teknologi dan pengembangan perangkat lunak.
+          </p>
+        </div>
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          leftIcon={<Plus className="w-4 h-4" />}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+        >
+          Buat Forum
+        </Button>
+      </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Gagal memuat forum</h3>
+              <p className="text-sm text-red-600 mt-1">{error.message}</p>
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="px-3 py-1 text-sm bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      )}
 
       <ForumListContainer
-        forums={sampleForums}
+        forums={forums}
         className=""
         title=""
         showSearch={true}
-        searchPlaceholder="Search forums by title or description..."
+        searchPlaceholder="Cari forum berdasarkan judul atau deskripsi..."
         enableFilter={true}
+        isLoading={isLoading}
+        onEditForum={(forum) => setEditingForum(forum)}
+      />
+
+      {/* Create/Edit Forum Modal */}
+      <ForumModal
+        isOpen={isCreateModalOpen || !!editingForum}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditingForum(null);
+        }}
+        forum={editingForum}
       />
     </div>
   );

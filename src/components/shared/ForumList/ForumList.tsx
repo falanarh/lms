@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   List,
   Grid,
+  Edit2,
 } from "lucide-react";
 import ForumCard from "./ForumCard";
 import Pagination from "@/components/shared/Pagination/Pagination";
@@ -34,6 +35,7 @@ export interface ForumListProps {
   forum: Forum;
   className?: string;
   viewMode?: ViewMode;
+  onEdit?: (forum: Forum) => void;
 }
 
 export interface ForumListContainerProps {
@@ -43,6 +45,8 @@ export interface ForumListContainerProps {
   showSearch?: boolean;
   searchPlaceholder?: string;
   enableFilter?: boolean;
+  isLoading?: boolean;
+  onEditForum?: (forum: Forum) => void;
 }
 
 const TYPE_META: Record<
@@ -84,6 +88,7 @@ export function ForumList({
   forum,
   className,
   viewMode = "card",
+  onEdit,
 }: ForumListProps) {
   const [isHovered, setIsHovered] = useState(false);
   const router = useRouter();
@@ -174,14 +179,15 @@ export function ForumList({
                 </div>
                 <div className="flex items-center gap-2">
                   <span style={{ color: "#425466" }}>
-                    {timeAgo(forum.lastActivity)}
+                    {/* {timeAgo(forum.lastActivity)} */}
+                    {forum.lastActivity}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Section with Button */}
-            <div className="flex justify-end items-center mt-4">
+            {/* Bottom Section with Buttons */}
+            <div className="flex justify-end items-center gap-2 mt-4">
               <Button
                 rightIcon={
                   <ChevronsRight className="w-5 h-5 mt-1 -ml-1 group-hover:translate-x-1 transition-transform" />
@@ -198,6 +204,17 @@ export function ForumList({
               >
                 Lihat forum
               </Button>
+              {onEdit && (
+                <Button
+                  leftIcon={<Edit2 className="w-4 h-4 text-gray-600" />}
+                  variant="outline"
+                  className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 w-10 h-10 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(forum);
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -261,23 +278,36 @@ export function ForumList({
         </div>
       </div>
 
-      <Button
-        rightIcon={
-          <ChevronsRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        }
-        size="sm"
-        className="group font-medium"
-        style={{
-          backgroundColor: accentColor,
-          borderColor: accentColor,
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleForumClick();
-        }}
-      >
-        Lihat
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          rightIcon={
+            <ChevronsRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          }
+          size="sm"
+          className="group font-medium"
+          style={{
+            backgroundColor: accentColor,
+            borderColor: accentColor,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleForumClick();
+          }}
+        >
+          Lihat
+        </Button>
+        {onEdit && (
+          <Button
+            leftIcon={<Edit2 className="w-4 h-4 text-gray-600" />}
+            variant="outline"
+            className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 w-10 h-10 p-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(forum);
+            }}
+          />
+        )}
+      </div>
     </article>
   );
 }
@@ -290,6 +320,8 @@ export function ForumListContainer({
   showSearch = true,
   searchPlaceholder = "Search forums by title or description...",
   enableFilter = true,
+  isLoading = false,
+  onEditForum,
 }: ForumListContainerProps) {
   const [viewMode, setViewMode] = React.useState<ViewMode>("card");
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -435,8 +467,32 @@ export function ForumListContainer({
         </div>
       )}
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col gap-6">
+          {/* Skeleton cards */}
+          {[1, 2, 3].map((index) => (
+            <div key={index} className="bg-white rounded-2xl overflow-hidden shadow-md">
+              <div className="flex flex-col sm:flex-row">
+                <div className="w-full sm:w-64 h-48 sm:h-auto bg-gray-200 animate-pulse" />
+                <div className="flex-1 p-6 flex flex-col">
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-full" />
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
+                  </div>
+                  <div className="flex justify-end items-center mt-4">
+                    <div className="h-10 bg-gray-200 rounded-lg animate-pulse w-24" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* No Results Message */}
-      {filteredForums.length === 0 && (
+      {!isLoading && filteredForums.length === 0 && (
         <div className="text-sm text-gray-600">
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <p className="font-medium text-gray-900 mb-1">No forums found</p>
@@ -449,26 +505,26 @@ export function ForumListContainer({
       )}
 
       {/* Forum List/Grid */}
-      {filteredForums.length > 0 && (
+      {!isLoading && filteredForums.length > 0 && (
         <>
           {viewMode === "card" ? (
             <div className="flex flex-col gap-8">
               {currentItems.map((forum) => (
-                <ForumList key={forum.id} forum={forum} viewMode={viewMode} />
+                <ForumList key={forum.id} forum={forum} viewMode={viewMode} onEdit={onEditForum} />
               ))}
             </div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {currentItems.map((forum) => (
                 <div key={forum.id} className="h-[400px]">
-                  <ForumCard forum={forum} />
+                  <ForumCard forum={forum} onEdit={onEditForum} />
                 </div>
               ))}
             </div>
           ) : (
             <div className="flex flex-col gap-4">
               {currentItems.map((forum) => (
-                <ForumList key={forum.id} forum={forum} viewMode={viewMode} />
+                <ForumList key={forum.id} forum={forum} viewMode={viewMode} onEdit={onEditForum} />
               ))}
             </div>
           )}

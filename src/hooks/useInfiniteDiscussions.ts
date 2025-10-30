@@ -34,24 +34,30 @@ export const discussionsApi = {
     const { topicId, page = 1, limit = 2, sortBy = 'votes', discussionType = 'all' } = params;
 
     // Mock data - dalam production ini akan diganti dengan database query
-    const allMockDiscussions: Discussion[] = [
+    const allMockDiscussions = [
       // Direct replies (jawaban langsung ke topic)
       {
+        // API properties
         id: "d1",
+        idUser: "user-john-doe",
+        comment: "Saya juga mengalami hal yang sama. Solusi yang berhasil untuk saya adalah dengan menghapus folder node_modules dan package-lock.json, kemudian jalankan npm install kembali. Ini sering terjadi karena dependency conflicts.",
+        upvoteCount: 3,
+        downvoteCount: 0,
+        discussionType: "direct",
+        createdAt: "2025-10-30T14:00:00.000Z",
+
+        // Computed properties for UI
         author: "John Doe",
         time: "2 jam lalu",
         content: "Saya juga mengalami hal yang sama. Solusi yang berhasil untuk saya adalah dengan menghapus folder node_modules dan package-lock.json, kemudian jalankan npm install kembali. Ini sering terjadi karena dependency conflicts.",
-        upvotedBy: ["user1", "user2", "user3"],
-        downvotedBy: [],
-        discussionType: "direct",
       },
       {
         id: "d2",
         author: "Sarah Wilson",
         time: "1 jam lalu",
         content: "Coba cek versi Node.js yang kamu gunakan. Beberapa package membutuhkan versi tertentu. Saya sarankan menggunakan Node.js versi LTS terbaru. Saya pernah mengalami hal serupa dan upgrade Node.js solved the issue.",
-        upvotedBy: ["user4", "user5"],
-        downvotedBy: [],
+        upvoteCount: 2,
+        downvoteCount: 0,
         discussionType: "direct",
       },
       {
@@ -59,8 +65,8 @@ export const discussionsApi = {
         author: "Mike Johnson",
         time: "45 menit lalu",
         content: "Alternatif lain adalah menggunakan yarn instead of npm. Yarn memiliki dependency resolution yang lebih baik dan sering solve conflicts yang npm tidak bisa handle.",
-        upvotedBy: ["user6"],
-        downvotedBy: [],
+        upvoteCount: 1,
+        downvoteCount: 0,
         discussionType: "direct",
       },
       {
@@ -68,8 +74,8 @@ export const discussionsApi = {
         author: "Emily Davis",
         time: "30 menit lalu",
         content: "Saya punya pengalaman serupa. Ternyata masalahnya karena ada package yang tidak compatible dengan OS saya. Pastikan semua package compatible dengan environment kamu.",
-        upvotedBy: ["user7", "user8"],
-        downvotedBy: ["user9"],
+        upvoteCount: 2,
+        downvoteCount: 1,
         discussionType: "direct",
       },
       {
@@ -77,8 +83,8 @@ export const discussionsApi = {
         author: "Robert Chen",
         time: "15 menit lalu",
         content: "Kalau semua cara di atas tidak berhasil, coba clean install dengan cara: rm -rf node_modules package-lock.json, npm cache clean --force, lalu npm install. Ini extreme but usually works.",
-        upvotedBy: ["user10"],
-        downvotedBy: [],
+        upvoteCount: 1,
+        downvoteCount: 0,
         discussionType: "direct",
       },
       // Nested replies (jawaban ke jawaban lain)
@@ -87,55 +93,55 @@ export const discussionsApi = {
         author: "Lisa Anderson",
         time: "50 menit lalu",
         content: "Saran yang bagus! Saya juga akan coba cara ini. Apa ada impact lain yang perlu diperhatikan?",
-        upvotedBy: ["user11"],
-        downvotedBy: [],
+        upvoteCount: 1,
+        downvoteCount: 0,
         replyingToId: "d1",
         replyingToAuthor: "John Doe",
-        discussionType: "nested-first",
+        discussionType: "nestedFirst",
       },
       {
         id: "d7",
         author: "David Brown",
         time: "40 menit lalu",
         content: "Setuju, Node.js version sangat penting. Saya upgrade dari v16 ke v18 dan banyak issues yang solved.",
-        upvotedBy: ["user12"],
-        downvotedBy: [],
+        upvoteCount: 112,
+        downvoteCount: 0,
         replyingToId: "d2",
         replyingToAuthor: "Sarah Wilson",
-        discussionType: "nested-first",
+        discussionType: "nestedFirst",
       },
       {
         id: "d8",
         author: "Jennifer White",
         time: "25 menit lalu",
         content: "Thanks for the suggestion @Lisa Anderson! I'll try it and let you know the results.",
-        upvotedBy: ["user13"],
-        downvotedBy: [],
+        upvoteCount: 113,
+        downvoteCount: 0,
         replyingToId: "d6",
         replyingToAuthor: "Lisa Anderson",
-        discussionType: "nested-second",
+        discussionType: "nestedSecond",
       },
       {
         id: "d9",
         author: "Tom Harris",
         time: "20 menit lalu",
         content: "For macOS users, saya sarankan menggunakan Homebrew untuk Node.js installation. Lebih clean dan easy to manage versions.",
-        upvotedBy: ["user14"],
-        downvotedBy: [],
+        upvoteCount: 114,
+        downvoteCount: 0,
         replyingToId: "d2",
         replyingToAuthor: "Sarah Wilson",
-        discussionType: "nested-first",
+        discussionType: "nestedFirst",
       },
       {
         id: "d10",
         author: "Nancy Martinez",
         time: "10 menit lalu",
         content: "Good point about OS compatibility! I'm on Windows and some packages just don't work well.",
-        upvotedBy: ["user15"],
-        downvotedBy: [],
+        upvoteCount: 115,
+        downvoteCount: 0,
         replyingToId: "d4",
         replyingToAuthor: "Emily Davis",
-        discussionType: "nested-first",
+        discussionType: "nestedFirst",
       },
     ];
 
@@ -153,8 +159,8 @@ export const discussionsApi = {
     switch (sortBy) {
       case 'votes':
         filteredDiscussions.sort((a, b) => {
-          const scoreA = a.upvotedBy.length - a.downvotedBy.length;
-          const scoreB = b.upvotedBy.length - b.downvotedBy.length;
+          const scoreA = a.upvoteCount - a.downvoteCount;
+          const scoreB = b.upvoteCount - b.downvoteCount;
           return scoreB - scoreA;
         });
         break;
@@ -181,7 +187,7 @@ export const discussionsApi = {
     const hasMore = endIndex < filteredDiscussions.length;
 
     return {
-      discussions: paginatedDiscussions,
+      discussions: paginatedDiscussions as Discussion[],
       hasMore,
       totalCount: filteredDiscussions.length,
       currentPage: page,

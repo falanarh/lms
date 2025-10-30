@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsRight } from "lucide-react";
+import { ChevronsRight, Edit2, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Forum } from "./ForumList";
@@ -10,6 +10,7 @@ import { Forum } from "./ForumList";
 export interface ForumCardProps {
   forum: Forum;
   className?: string;
+  onEdit?: (forum: Forum) => void;
 }
 
 // Helper to format date difference
@@ -42,7 +43,7 @@ const TYPE_META: Record<Forum["type"], { label: string; bgColor: string; accent:
   },
 };
 
-export function ForumCard({ forum, className }: ForumCardProps) {
+export function ForumCard({ forum, className, onEdit }: ForumCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const router = useRouter();
   const meta = TYPE_META[forum.type];
@@ -151,6 +152,17 @@ export function ForumCard({ forum, className }: ForumCardProps) {
           >
             Lihat forum
           </Button>
+          {onEdit && (
+            <Button
+              leftIcon={<Edit2 className="w-4 h-4 text-gray-600" />}
+              variant="outline"
+              className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 ml-2 w-10 h-10 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(forum);
+              }}
+            />
+          )}
         </div>
       </div>
     </article>

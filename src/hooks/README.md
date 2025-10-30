@@ -42,7 +42,7 @@ const {
 
 **Features**:
 - ✅ Pagination dengan 2 discussions per load
-- ✅ Nested discussion support (direct, nested-first, nested-second)
+- ✅ Nested discussion support (direct, nestedFirst, nestedSecond)
 - ✅ Topic-specific data fetching
 - ✅ Vote-based sorting
 - ✅ Performance optimized untuk frequent interactions

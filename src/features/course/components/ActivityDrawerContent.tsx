@@ -283,16 +283,16 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
         <h4 className="mb-4">Pilih Sesi Kurikulum:</h4>
         <div className="space-y-3">
           {CURRICULUM_SESSIONS.map((session) => (
-            <SessionCard 
+            <SessionCard
               key={session.id}
               onClick={() => handleSessionSelect(session)}
               title={session.title}
               date={session.date}
-              status={session.status}
+              status={session.status as "upcoming" | "ongoing" | "completed"}
               topic={session.topic}
               duration={session.duration}
               instructor={session.instructor}
-              materials={session.materials}
+              materials={session.materials as Array<{type: "pdf" | "video" | "doc" | "ppt", title: string, size: string}>}
             />
           ))}
         </div>
@@ -399,7 +399,7 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
                        <ActivityCard
                         key={index}
                         title={material.title}
-                        type={material.type}
+                        type={material.type as "pdf" | "video" | "doc" | "ppt"}
                         size={material.size}
                         showAction
                         actionLabel="Download"
