@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
-import Badge from "@/components/ui/Badge";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronsRight } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Clock4, MessagesSquare, Users } from "lucide-react";
 import { Forum } from "./ForumList";
 
 export interface ForumCardProps {
@@ -26,116 +27,130 @@ function timeAgo(dateString: string): string {
   return `${days} hari lalu`;
 }
 
-const TYPE_META: Record<Forum["type"], { label: string; accent: string; tone: "primary" | "success" }> = {
+const TYPE_META: Record<Forum["type"], { label: string; bgColor: string; accent: string; image: string }> = {
   course: {
     label: "Course Forum",
+    bgColor: "bg-blue-50",
     accent: "var(--color-primary,#2563eb)",
-    tone: "primary",
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop&crop=center",
   },
   general: {
     label: "General Forum",
+    bgColor: "bg-green-50",
     accent: "var(--success,#16a34a)",
-    tone: "success",
+    image: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=400&h=200&fit=crop&crop=center",
   },
 };
 
 export function ForumCard({ forum, className }: ForumCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const router = useRouter();
   const meta = TYPE_META[forum.type];
-  const accentColor = meta.accent;
-  const isCourseForum = meta.tone === "primary";
+
+  const handleForumClick = () => {
+    router.push(`/forum/${forum.id}`);
+  };
 
   return (
     <article
       className={[
-        "relative w-full overflow-hidden",
-        "bg-white",
-        "border border-gray-100",
-        "rounded-xl",
-        "shadow-sm",
+        "bg-white overflow-hidden cursor-pointer",
         "transition-all duration-300 ease-out",
-        "hover:shadow-lg hover:border-gray-200 hover:-translate-y-1",
-        "group",
+        "hover:shadow-lg hover:-translate-y-1",
+        "rounded-2xl shadow-[0px_0px_1px_0px_rgba(12,26,75,0.24),0px_3px_8px_-1px_rgba(50,50,71,0.05)]",
+        "h-full flex flex-col",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={handleForumClick}
     >
-      {/* Top accent bar */}
-      <div 
-        className="absolute left-0 top-0 right-0 h-1" 
-        style={{ backgroundColor: accentColor }}
-      />
-      
-      <div className="flex flex-col h-full p-6">
-        {/* Card header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${accentColor}15` }}
-            >
-              {isCourseForum ? (
-                <Users className="w-5 h-5" style={{ color: accentColor }} />
-              ) : (
-                <MessagesSquare className="w-5 h-5" style={{ color: accentColor }} />
-              )}
-            </div>
-            <div>
-              <Badge 
-                size="sm" 
-                variant="secondary"
-                className="font-medium text-xs uppercase tracking-wider"
-              >
-                {isCourseForum ? "Course" : "General"}
-              </Badge>
-              <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
-                <Clock4 className="w-3 h-3" />
-                <span>{timeAgo(forum.lastActivity)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Card content */}
-        <div className="flex flex-col flex-grow">
-          {/* Title */}
-          <h3 className="text-xl font-bold text-gray-800 group-hover:text-[var(--color-primary,#2563eb)] transition-colors duration-200 leading-tight mb-3">
-            {forum.title}
-          </h3>
-          
-          {/* Description */}
-          {forum.description && (
-            <p className="text-sm leading-relaxed text-gray-600 mb-6 line-clamp-2">
+      {/* Card Image */}
+      <div className="relative h-[200px] overflow-hidden">
+        <img
+          src={meta.image}
+          alt={forum.title}
+          className={`w-full h-full object-cover rounded-t-2xl transition-transform duration-300 ease-out ${
+            isHovered ? 'scale-110' : 'scale-100'
+          }`}
+        />
+        {/* Type badge overlay on image */}
+        <Badge
+          className="absolute top-4 right-4 font-semibold"
+          style={{
+            backgroundColor: meta.accent,
+            color: 'white',
+            borderColor: 'transparent'
+          }}
+        >
+          {meta.label}
+        </Badge>
+      </div>
+
+      {/* Card Content */}
+      <div className="p-6 flex flex-col h-full">
+        {/* Title */}
+        <h3 className="font-semibold text-base leading-[1.36] overflow-hidden font-inter mb-4" style={{
+          color: "#16192C",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical"
+        }}>
+          {forum.title}
+        </h3>
+
+        {/* Description - Flexible height */}
+        {forum.description && (
+          <div className="flex-1 mb-4">
+            <p className="leading-relaxed text-sm font-inter overflow-hidden" style={{
+              color: "#425466",
+              lineHeight: "23px",
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical"
+            }}>
               {forum.description}
             </p>
-          )}
-
-          {/* Stats and action section */}
-          <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center gap-2">
-              <div 
-                className="px-3 py-1.5 rounded-full flex items-center gap-2"
-                style={{ backgroundColor: `${accentColor}10` }}
-              >
-                <span 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: accentColor }}
-                />
-                <span className="font-medium text-sm" style={{ color: accentColor }}>
-                  {forum.totalTopics} Topik
-                </span>
-              </div>
-            </div>
-            
-            <Button
-              rightIcon={<ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />}
-              size="sm"
-              variant="ghost"
-              className="group font-medium text-sm hover:bg-transparent hover:text-[var(--color-primary,#2563eb)]"
-            >
-              Lihat Forum
-            </Button>
           </div>
+        )}
+
+        {/* Spacer for cards without description */}
+        {!forum.description && (
+          <div className="flex-1 mb-4"></div>
+        )}
+
+        {/* Stats - Fixed position */}
+        <div className="flex items-center gap-6 text-sm mb-10">
+          <div className="flex items-center gap-2">
+            <span className="font-medium" style={{ color: "#16192C" }}>
+              {forum.totalTopics} topics
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={{ color: "#425466" }}>
+              {timeAgo(forum.lastActivity)}
+            </span>
+          </div>
+        </div>
+
+        {/* CTA Button - Fixed at bottom */}
+        <div className="flex justify-start mt-auto">
+          <Button
+            rightIcon={<ChevronsRight className="w-5 h-5 mt-1 -ml-1 group-hover:translate-x-1 transition-transform" />}
+            className="group font-medium"
+            style={{
+              backgroundColor: meta.accent,
+              borderColor: meta.accent
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleForumClick();
+            }}
+          >
+            Lihat forum
+          </Button>
         </div>
       </div>
     </article>

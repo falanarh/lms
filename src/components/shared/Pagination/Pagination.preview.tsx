@@ -30,6 +30,24 @@ export default function PaginationPreview() {
         <h2 className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)]">Disabled</h2>
         <Pagination totalPages={8} currentPage={4} onPageChange={() => {}} disabled />
       </section>
+
+      <section className="space-y-2">
+        <h2 className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)]">Alignment</h2>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-xs text-[var(--color-foreground-muted,#6b7280)]">Left</p>
+            <Pagination alignment="left" totalPages={10} currentPage={5} onPageChange={() => {}} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-[var(--color-foreground-muted,#6b7280)]">Center (default)</p>
+            <Pagination alignment="center" totalPages={10} currentPage={5} onPageChange={() => {}} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-[var(--color-foreground-muted,#6b7280)]">Right</p>
+            <Pagination alignment="right" totalPages={10} currentPage={5} onPageChange={() => {}} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

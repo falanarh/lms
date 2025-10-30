@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./provider";
-import { Navbar } from "@/components/layout/Navbar";
+import NavbarClient from "@/components/layout/Navbar/NavbarClient";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,17 +34,14 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistMono.variable} antialiased bg-zinc-50`}
       >
-        <Navbar
-          variant="solid"
-          size="lg"
+        <NavbarClient
           items={[
             { key: "home", label: "Home" },
             { key: "my-course", label: "My Course" },
-            { key: "management", label: "Management" }
+            { key: "forum", label: "Forum" },
+            { key: "management", label: "Management" },
           ]}
-          activeKey={"my-course"}
-          brandTitle="E-Warkop"
-          user={{ role: "Manager" }}
+          user={{ name: "John Doe", role: "Manager" }}
         />
       
         <div className="min-h-[calc(100vh-4rem)] mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 bg-zinc-50">
