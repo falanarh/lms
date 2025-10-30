@@ -6,6 +6,7 @@ export interface Course {
   categories: string;
   rating: number;
   teacher: string;
+  teacherAvatar?: string;
   totalStudents: number;
   image?: string;
   description?: string;
