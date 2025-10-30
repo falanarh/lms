@@ -44,7 +44,7 @@ export default function RootLayout({
           user={{ name: "John Doe", role: "Manager" }}
         />
       
-        <div className="min-h-[calc(100vh-4rem)] mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 bg-zinc-50">
+        <div className="min-h-[calc(100vh-4rem)] mx-auto  bg-zinc-50">
           <Providers>{children}</Providers>
         </div>
       </body>

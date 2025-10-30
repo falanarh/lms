@@ -1,22 +1,24 @@
-import { useQuery } from '@tanstack/react-query'
 
-type Post = {
-  id: number
-  title: string
-  body: string
+import { getPosts } from "@/api/posts";
+import { QueryConfig } from "@/lib/queryClient";
+import { queryOptions, useQuery } from "@tanstack/react-query";
+
+export const getPostQueryKey = () => ["posts"]
+
+export const getPostQueryOptions = () => {
+    return queryOptions({
+        queryKey: getPostQueryKey(),
+        queryFn: getPosts
+    })
 }
 
-const fetchPosts = async (limit = 10): Promise<Array<Post>> => {
-  const response = await fetch('https://jsonplaceholder.typicode.com/posts')
-  const data = await response.json()
-  return data.filter((x: Post) => x.id <= limit)
+type UsePostParams = {
+    queryConfig?: QueryConfig<typeof getPostQueryOptions>
 }
 
-const usePosts = (limit: number) => {
-  return useQuery({
-    queryKey: ['posts', limit],
-    queryFn: () => fetchPosts(limit),
-  })
+export const usePosts = (params: UsePostParams = {}) => {
+    return useQuery({
+        ...getPostQueryOptions(),
+        ...params.queryConfig,
+    })
 }
-
-export { usePosts, fetchPosts }
