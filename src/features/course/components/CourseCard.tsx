@@ -1,13 +1,14 @@
-import { Star, User, Users } from 'lucide-react';
-import { Badge } from '@/components/ui/Badge/Badge';
-import { Course, ViewModeValue } from '../types';
+import { Star, User, Users } from "lucide-react";
+import { Badge } from "@/components/ui/Badge/Badge";
+import { Course, ViewModeValue } from "../types";
+import { ArrowRight } from "lucide-react";
 
 interface CourseCardProps {
   course: Course;
   viewMode?: ViewModeValue;
 }
 
-export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
+export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
   const renderStars = () => {
     const stars = [];
     const fullStars = Math.floor(course.rating);
@@ -32,19 +33,25 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
     return stars;
   };
 
-  if (viewMode === 'grid-4') {
+  if (viewMode === "grid-4") {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:cursor-pointer group">
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300  hover:shadow-lg hover:cursor-pointer group">
         <div className="aspect-video relative overflow-hidden">
           <img
             src={
               course.image ||
-              'https://dummyimage.com/600x400/000/fff&text=Course'
+              "https://dummyimage.com/600x400/000/fff&text=Course"
             }
             alt={course.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+          {/* Overlay + CTA on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button className="bg-white text-gray-900 px-6 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-[background,transform,gap] duration-300 hover:bg-gray-100 hover:gap-3 shadow-lg">
+              Lihat Kelas
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-3">
@@ -52,7 +59,7 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
             {course.categories}
           </Badge>
 
-          <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+          <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
             {course.title}
           </h3>
 
@@ -70,25 +77,32 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
 
           <div className="flex items-center gap-2 text-sm text-zinc-600">
             <Users className="w-4 h-4" />
-            <span>{course.totalStudents.toLocaleString()} student(s)</span>
+            <span>{course.totalStudents.toLocaleString()} students</span>
           </div>
         </div>
       </div>
     );
   }
 
-  if (viewMode === 'grid-2') {
+  if (viewMode === "grid-2") {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
-        <div className="w-full md:w-48 flex-shrink-0">
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300  hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
+        <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
           <img
             src={
               course.image ||
-              'https://dummyimage.com/600x400/000/fff&text=Course'
+              "https://dummyimage.com/600x400/000/fff&text=Course"
             }
             alt={course.title}
-            className="w-full h-48 md:h-full object-cover"
+            className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
+          {/* Overlay + CTA on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button className="bg-white text-gray-900 px-4 py-2 rounded-full font-semibold text-xs flex items-center gap-2 transition-[background,transform,gap] duration-300 hover:bg-gray-100 hover:gap-3 shadow-md">
+              Lihat Kelas
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 p-6 flex flex-col justify-between">
@@ -96,7 +110,7 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
             <Badge variant="secondary" size="sm">
               {course.categories}
             </Badge>
-            <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+            <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
               {course.title}
             </h3>
           </div>
@@ -116,7 +130,7 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
 
             <div className="flex items-center gap-2 text-sm text-zinc-600">
               <Users className="w-4 h-4" />
-              <span>{course.totalStudents.toLocaleString()} student(s)</span>
+              <span>{course.totalStudents.toLocaleString()} students</span>
             </div>
           </div>
         </div>
@@ -124,18 +138,25 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
     );
   }
 
-  if (viewMode === 'list') {
+  if (viewMode === "list") {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:scale-105 hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
-        <div className="w-full md:w-48 flex-shrink-0">
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300  hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
+        <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
           <img
             src={
               course.image ||
-              'https://dummyimage.com/600x400/000/fff&text=Course'
+              "https://dummyimage.com/600x400/000/fff&text=Course"
             }
             alt={course.title}
-            className="w-full h-48 md:h-full object-cover"
+            className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
+          {/* Overlay + CTA on hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button className="bg-white text-gray-900 px-4 py-2 rounded-full font-semibold text-xs flex items-center gap-2 transition-[background,transform,gap] duration-300 hover:bg-gray-100 hover:gap-3 shadow-md">
+              Lihat Kelas
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 p-6 flex flex-col justify-between">
@@ -143,7 +164,7 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
             <Badge variant="secondary" size="sm">
               {course.categories}
             </Badge>
-            <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+            <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
               {course.title}
             </h3>
             {course.description && (
@@ -168,7 +189,7 @@ export function CourseCard({ course, viewMode = 'grid-4' }: CourseCardProps) {
 
             <div className="flex items-center gap-2 text-sm text-zinc-600">
               <Users className="w-4 h-4" />
-              <span>{course.totalStudents.toLocaleString()} student(s)</span>
+              <span>{course.totalStudents.toLocaleString()} students</span>
             </div>
           </div>
         </div>
