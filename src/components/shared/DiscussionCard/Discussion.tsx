@@ -17,6 +17,8 @@ export interface DiscussionProps {
   canEditDiscussion?: boolean;
   onEditDiscussion?: (discussionId: string, newContent: string) => void;
   onDeleteDiscussion?: (discussionId: string) => void;
+  // New: Voting state
+  userVote?: 'upvote' | 'downvote' | null;
 }
 
 // Helper untuk ambil inisial dari nama
@@ -48,6 +50,7 @@ export function Discussion({
   canEditDiscussion = false,
   onEditDiscussion,
   onDeleteDiscussion,
+  userVote,
 }: DiscussionProps) {
   const handleReplyToClick = () => {
     if (!discussion.replyingToId) return;
@@ -111,8 +114,8 @@ export function Discussion({
     setEditContent(discussion.content || discussion.comment || '');
   };
 
-  const isUpvoted = currentUserId;
-  const isDownvoted = currentUserId;
+  const isUpvoted = userVote === 'upvote';
+  const isDownvoted = userVote === 'downvote';
 
   // Tentukan class berdasarkan jenis discussion
   const getDiscussionClass = () => {
@@ -268,14 +271,14 @@ export function Discussion({
               {/* Upvote Button */}
               <button
                 onClick={onUpvote}
-                disabled={!currentUserId}
+                disabled={!currentUserId || (isUpvoted && !isDownvoted)}
                 className={`flex items-center gap-1.5 text-xs transition-colors ${
                   isUpvoted
                     ? 'text-[var(--success)]'
                     : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)]'
                 } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
-                aria-label={`${isUpvoted ? 'Batalkan' : 'Tambah'} upvote`}
-                // aria-pressed={isUpvoted || undefined}
+                aria-label={`${isUpvoted ? 'Batalkan upvote' : 'Tambah upvote'}`}
+                title={isUpvoted ? 'Batalkan upvote' : 'Tambah upvote'}
               >
                 <ThumbsUp
                   className={`size-4 ${isUpvoted ? 'fill-current' : ''}`}
@@ -287,14 +290,14 @@ export function Discussion({
               {/* Downvote Button */}
               <button
                 onClick={onDownvote}
-                disabled={!currentUserId}
+                disabled={!currentUserId || (isDownvoted && !isUpvoted)}
                 className={`flex items-center gap-1.5 text-xs transition-colors ${
                   isDownvoted
                     ? 'text-[var(--danger)]'
                     : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)]'
                 } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
-                aria-label={`${isDownvoted ? 'Batalkan' : 'Tambah'} downvote`}
-                // aria-pressed={isDownvoted || undefined}
+                aria-label={`${isDownvoted ? 'Batalkan downvote' : 'Tambah downvote'}`}
+                title={isDownvoted ? 'Batalkan downvote' : 'Tambah downvote'}
               >
                 <ThumbsDown
                   className={`size-4 ${isDownvoted ? 'fill-current' : ''}`}

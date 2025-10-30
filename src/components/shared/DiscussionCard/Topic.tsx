@@ -73,6 +73,8 @@ export interface TopicProps {
   onUpvoteTopic?: (topicId: string) => void;
   onDownvoteTopic?: (topicId: string) => void;
   topicVotes?: { upvotes: number; downvotes: number; userVote: 'up' | 'down' | null };
+  // New: User votes for discussions
+  userVotes?: Record<string, 'upvote' | 'downvote'>;
   // New: Topic edit/delete functionality
   canEditTopic?: boolean;
   onEditTopic?: (topicId: string, newTitle: string, newDescription?: string) => void;
@@ -117,6 +119,7 @@ export function Topic({
   onUpvoteTopic,
   onDownvoteTopic,
   topicVotes,
+  userVotes,
   canEditTopic = false,
   onEditTopic,
   onDeleteTopic,
@@ -160,61 +163,19 @@ export function Topic({
 
   // Vote handlers
   const handleUpvote = (discussionId: string) => {
+    console.log("Topic handleUpvote called:", { discussionId, currentUserId });
     if (!currentUserId) return;
 
-    // setDiscussions((currentDiscussions) => {
-    //   const updatedDiscussions = currentDiscussions.map((discussion) => {
-    //     if (discussion.id !== discussionId) return discussion;
-
-    //     const hasUpvoted = discussion.upvotedBy.includes(currentUserId);
-    //     const hasDownvoted = discussion.downvotedBy.includes(currentUserId);
-
-    //     let newUpvotedBy = [...discussion.upvotedBy];
-    //     let newDownvotedBy = [...discussion.downvotedBy];
-
-    //     if (hasUpvoted) {
-    //       newUpvotedBy = newUpvotedBy.filter((id) => id !== currentUserId);
-    //     } else {
-    //       newUpvotedBy.push(currentUserId);
-    //       if (hasDownvoted) {
-    //         newDownvotedBy = newDownvotedBy.filter((id) => id !== currentUserId);
-    //       }
-    //     }
-
-    //     return { ...discussion, upvotedBy: newUpvotedBy, downvotedBy: newDownvotedBy };
-    //   });
-    //   return sortDiscussionsByVote(updatedDiscussions);
-    // });
-    // onUpvoteReply?.(discussionId);
+    // Call parent handler to handle voting logic
+    onUpvoteReply?.(discussionId);
   };
 
   const handleDownvote = (discussionId: string) => {
+    console.log("Topic handleDownvote called:", { discussionId, currentUserId });
     if (!currentUserId) return;
 
-    // setDiscussions((currentDiscussions) => {
-    //   const updatedDiscussions = currentDiscussions.map((discussion) => {
-    //     if (discussion.id !== discussionId) return discussion;
-
-    //     const hasUpvoted = discussion.upvotedBy.includes(currentUserId);
-    //     const hasDownvoted = discussion.downvotedBy.includes(currentUserId);
-
-    //     let newUpvotedBy = [...discussion.upvotedBy];
-    //     let newDownvotedBy = [...discussion.downvotedBy];
-
-    //     if (hasDownvoted) {
-    //       newDownvotedBy = newDownvotedBy.filter((id) => id !== currentUserId);
-    //     } else {
-    //       newDownvotedBy.push(currentUserId);
-    //       if (hasUpvoted) {
-    //         newUpvotedBy = newUpvotedBy.filter((id) => id !== currentUserId);
-    //       }
-    //     }
-
-    //     return { ...discussion, upvotedBy: newUpvotedBy, downvotedBy: newDownvotedBy };
-    //   });
-    //   return sortDiscussionsByVote(updatedDiscussions);
-    // });
-    // onDownvoteReply?.(discussionId);
+    // Call parent handler to handle voting logic
+    onDownvoteReply?.(discussionId);
   };
 
   // Reply form handlers
@@ -598,6 +559,7 @@ export function Topic({
                   onDownvote={() => handleDownvote(discussion.id)}
                   onStartReply={() => handleStartReply(discussion)}
                   currentUserId={currentUserId}
+                  userVote={userVotes?.[discussion.id]}
                   canEditDiscussion={canEditDiscussion}
                   onEditDiscussion={handleEditDiscussion}
                   onDeleteDiscussion={handleDeleteDiscussion}
@@ -626,6 +588,7 @@ export function Topic({
                     onDownvote={() => handleDownvote(discussion.id)}
                     onStartReply={() => handleStartReply(discussion)}
                     currentUserId={currentUserId}
+                    userVote={userVotes?.[discussion.id]}
                     canEditDiscussion={canEditDiscussion}
                     onEditDiscussion={handleEditDiscussion}
                     onDeleteDiscussion={handleDeleteDiscussion}

@@ -13,7 +13,7 @@ import { createDiscussion, validateAllDiscussions } from "@/components/shared/Di
 import { InfiniteTopics } from "@/components/shared/InfiniteScroll/InfiniteTopics";
 import { useForums } from "@/hooks/useForums";
 import { useDiscussions } from "@/hooks/useDiscussions";
-import { useCreateTopic, useCreateDiscussion } from "@/api/topics";
+import { useCreateTopic, useCreateDiscussion, useVoteDiscussion } from "@/api/topics";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Forum } from "@/api/forums";
 
@@ -404,6 +404,87 @@ export default function ForumDetailPage() {
   // Create discussion mutation
   const createDiscussionMutation = useCreateDiscussion();
 
+  // Vote discussion mutation
+  const voteDiscussionMutation = useVoteDiscussion();
+
+  // State for tracking user votes
+  const [userVotes, setUserVotes] = useState<Record<string, 'upvote' | 'downvote'>>({});
+
+  // Handle voting
+  const handleVote = async (discussionId: string, voteType: 'upvote' | 'downvote') => {
+    console.log("handleVote called:", { discussionId, voteType, currentVote: userVotes[discussionId] });
+
+    try {
+      const currentVote = userVotes[discussionId];
+
+      // If user is trying to vote the same way, remove vote (unvote)
+      if (currentVote === voteType) {
+        console.log("Unvoting discussion:", discussionId);
+
+        // Call API to remove vote by sending the same vote type
+        await voteDiscussionMutation.mutateAsync({
+          discussionId,
+          voteData: { type: voteType }
+        });
+
+        // Update local state after API call
+        const newVotes = { ...userVotes };
+        delete newVotes[discussionId];
+        setUserVotes(newVotes);
+
+        // Invalidate discussions to update UI
+        queryClient.invalidateQueries({
+          queryKey: ["discussions", forumId],
+        });
+        return;
+      }
+
+      // If user is voting the opposite way, change vote
+      if (currentVote && currentVote !== voteType) {
+        console.log("Changing vote from", currentVote, "to", voteType, "for discussion:", discussionId);
+
+        const newVotes = { ...userVotes, [discussionId]: voteType };
+        setUserVotes(newVotes);
+
+        // Call API to change vote
+        await voteDiscussionMutation.mutateAsync({
+          discussionId,
+          voteData: { type: voteType }
+        });
+
+        // Invalidate discussions to update UI
+        queryClient.invalidateQueries({
+          queryKey: ["discussions", forumId],
+        });
+        return;
+      }
+
+      // New vote
+      console.log("New vote:", voteType, "for discussion:", discussionId);
+
+      const newVotes = { ...userVotes, [discussionId]: voteType };
+      setUserVotes(newVotes);
+
+      // Call API to vote
+      await voteDiscussionMutation.mutateAsync({
+        discussionId,
+        voteData: { type: voteType }
+      });
+
+      // Invalidate discussions to update UI
+      queryClient.invalidateQueries({
+        queryKey: ["discussions", forumId],
+      });
+
+    } catch (error) {
+      console.error("Failed to vote:", error);
+      // Revert state on error
+      const newVotes = { ...userVotes };
+      delete newVotes[discussionId];
+      setUserVotes(newVotes);
+    }
+  };
+
   // Handle discussion submission
   const handleSubmitReply = async (data: {
     topicId: string;
@@ -780,10 +861,10 @@ export default function ForumDetailPage() {
                           infiniteScroll={false} // Enable infinite scroll untuk replies
                           onSubmitReply={handleSubmitReply}
                           onUpvoteReply={(replyId: string) => {
-                            console.log("Upvote reply:", replyId);
+                            handleVote(replyId, 'upvote');
                           }}
                           onDownvoteReply={(replyId: string) => {
-                            console.log("Downvote reply:", replyId);
+                            handleVote(replyId, 'downvote');
                           }}
                           onLoadMoreDiscussions={() => {
                             console.log("Loading more discussions for topic:", topicMeta.id);
@@ -791,6 +872,7 @@ export default function ForumDetailPage() {
                           onUpvoteTopic={handleTopicUpvote}
                           onDownvoteTopic={handleTopicDownvote}
                           topicVotes={topicVotes[topicMeta.id] || { upvotes: 0, downvotes: 0, userVote: null }}
+                          userVotes={userVotes}
                           // Edit/Delete functionality
                           canEditTopic={true} // Hardcoded untuk contoh
                           onEditTopic={(topicId, newTitle, newDescription) => {

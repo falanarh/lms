@@ -38,6 +38,25 @@ export type CreateDiscussionRequest = {
   comment: string;
 };
 
+export type VoteRequest = {
+  type: 'upvote' | 'downvote';
+};
+
+export type VoteResponse = {
+  id: string;
+  idTopic: string;
+  idUser: string;
+  idParent?: string | null;
+  idRoot?: string | null;
+  comment: string;
+  upvoteCount: number;
+  downvoteCount: number;
+  discussionType: 'direct' | 'nestedFirst' | 'nestedSecond';
+  isUpdated: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TopicResponse = {
   data: Topic;
   status: number;
@@ -50,6 +69,16 @@ export type TopicResponse = {
 
 export type DiscussionAPIResponse = {
   data: DiscussionResponse;
+  status: number;
+  message: string;
+  success: boolean;
+  meta?: any;
+  links?: any;
+  requestId?: string;
+};
+
+export type VoteAPIResponse = {
+  data: VoteResponse;
   status: number;
   message: string;
   success: boolean;
@@ -158,6 +187,35 @@ export const createDiscussion = async (discussionData: CreateDiscussionRequest):
   }
 };
 
+export const voteDiscussion = async (discussionId: string, voteData: VoteRequest): Promise<VoteResponse> => {
+  try {
+    const response = await axios.patch<VoteAPIResponse>(
+      `https://api-lms-kappa.vercel.app/discussions/${discussionId}/vote`,
+      voteData,
+      {
+        withCredentials: false,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (response.data.status !== 200 && response.data.status !== 201) {
+      throw new Error(response.data.message || "Failed to vote discussion");
+    }
+
+    return response.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.message ||
+                          error.response?.data?.error ||
+                          "Failed to connect to discussion server";
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
 export const getTopicsQueryKey = (forumId?: string) => ["topics", forumId].filter(Boolean);
 
 export const getDiscussionsByForum = async (forumId: string): Promise<TopicWithDiscussions[]> => {
@@ -231,6 +289,19 @@ export const useCreateDiscussion = () => {
     },
     onError: (error) => {
       console.error("Failed to create discussion:", error);
+    },
+  });
+};
+
+export const useVoteDiscussion = () => {
+  return useMutation({
+    mutationFn: ({ discussionId, voteData }: { discussionId: string; voteData: VoteRequest }) =>
+      voteDiscussion(discussionId, voteData),
+    onSuccess: (data) => {
+      console.log("Vote successful:", data);
+    },
+    onError: (error) => {
+      console.error("Failed to vote:", error);
     },
   });
 };
