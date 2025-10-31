@@ -238,7 +238,7 @@ export function Dropdown({
           ref={buttonRef}
           type="button"
           className={[
-            "inline-flex items-center justify-between min-w-36",
+            "inline-flex items-center justify-between min-w-48",
             sz.button,
             sz.text,
             variantClasses(variant, error),

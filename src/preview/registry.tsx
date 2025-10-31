@@ -10,6 +10,9 @@ import TextareaPreview from "@/components/ui/Textarea/Textarea.preview";
 import FileUploadPreview from "@/components/ui/FileUpload/FileUpload.preview";
 import RadioButtonPreview from "@/components/ui/RadioButton/RadioButton.preview";
 import TabsPreview from "@/components/ui/Tabs/Tabs.preview";
+// import DiscussionCardPreview from "@/components/shared/DiscussionCard/DiscussionCard.preview";
+import ForumListPreview from "@/components/shared/ForumList/ForumList.preview";
+import ForumCardPreview from "@/components/shared/ForumList/ForumCard.preview";
 
 export type PreviewEntry = {
   slug: string;
@@ -67,6 +70,16 @@ export const PREVIEW_REGISTRY: PreviewEntry[] = [
     slug: "tabs",
     title: "Tabs",
     element: <TabsPreview />,
+  },
+    {
+    slug: "forum-list",
+    title: "ForumList",
+    element: <ForumListPreview />,
+  },
+  {
+    slug: "forum-card",
+    title: "ForumCard",
+    element: <ForumCardPreview />,
   },
 ];
 

@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/providers/QueryProvider";
 import { NavbarWrapper } from "@/components/layout/Navbar/NavbarWrapper";
 import { Footer } from "@/components/layout/Footer/Footer";
+import NavbarClient from "@/components/layout/Navbar/NavbarClient";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50`}
+        className={`${inter.variable} ${geistMono.variable} antialiased bg-zinc-50`}
       >
         <NavbarWrapper user={{ role: "Manager" }} />
       

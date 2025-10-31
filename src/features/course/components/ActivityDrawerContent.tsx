@@ -490,7 +490,7 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
         <h4 className="mb-4">Pilih Sesi Kurikulum:</h4>
         <div className="space-y-3">
           {CURRICULUM_SESSIONS.map((session) => (
-            <SessionCard 
+            <SessionCard
               key={session.id}
               onClick={() => handleSessionSelect(session)}
               title={session.title}

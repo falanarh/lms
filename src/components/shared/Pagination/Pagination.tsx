@@ -23,6 +23,7 @@
  * - showFirstLast?: boolean (default: false)
  * - disabled?: boolean
  * - size?: "sm" | "md" | "lg" (default: "md") — mempengaruhi tinggi/teks tombol
+ * - alignment?: "left" | "center" | "right" (default: "center") — posisi pagination
  * - className?: string
  * - ariaLabel?: string (default: "Pagination")
  *
@@ -38,6 +39,7 @@
 import React from "react";
 
 export type PaginationSize = "sm" | "md" | "lg";
+export type PaginationAlignment = "left" | "center" | "right";
 
 export interface PaginationProps {
   totalPages: number;
@@ -49,6 +51,7 @@ export interface PaginationProps {
   showFirstLast?: boolean;
   disabled?: boolean;
   size?: PaginationSize;
+  alignment?: PaginationAlignment;
   className?: string;
   ariaLabel?: string;
 }
@@ -99,6 +102,12 @@ const sizeMap: Record<PaginationSize, { button: string; text: string; gap: strin
   lg: { button: "h-11 min-w-11 px-3 text-[var(--font-md,1rem)]", text: "text-[var(--font-md,1rem)]", gap: "gap-[calc(var(--space-2,0.5rem)+2px)]" },
 };
 
+const alignmentMap: Record<PaginationAlignment, string> = {
+  left: "justify-start",
+  center: "justify-center",
+  right: "justify-end",
+};
+
 const baseBtn = [
   "inline-flex items-center justify-center",
   "rounded-[var(--radius-md,8px)]",
@@ -108,18 +117,18 @@ const baseBtn = [
 
 const btnGhost = [
   "text-[var(--color-foreground,#111827)]",
-  "hover:bg-[var(--color-primary-subtle,rgba(37,99,235,0.08))]",
   "border border-[var(--border,rgba(0,0,0,0.12))]",
-  "bg-[var(--surface,white)]",
+  // "bg-[var(--surface,white)]",
 ].join(" ");
 
 const btnActive = [
-  "bg-[var(--color-primary,#2563eb)]",
-  "text-[var(--color-on-primary,#ffffff)]",
+  "bg-[var(--color-primary,#1e3a8a)]",
+  "text-white",
+  "hover:bg-[#1d4ed8]",
   "border border-transparent",
 ].join(" ");
 
-function ChevronLeftIcon() {
+function ChevronLeftIcon() {  
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -155,11 +164,13 @@ export function Pagination({
   showFirstLast = false,
   disabled,
   size = "md",
+  alignment = "center",
   className,
   ariaLabel = "Pagination",
 }: PaginationProps) {
   const items = usePagination(totalPages, currentPage, siblingCount, boundaryCount);
   const sz = sizeMap[size];
+  const align = alignmentMap[alignment];
   const isDisabled = !!disabled;
 
   function goTo(page: number) {
@@ -170,7 +181,7 @@ export function Pagination({
   const commonBtn = `${baseBtn} ${sz.button} ${btnGhost}`;
 
   return (
-    <nav aria-label={ariaLabel} className={["mx-auto flex w-full justify-center", className].filter(Boolean).join(" ")}>
+    <nav aria-label={ariaLabel} className={["flex w-full", align, className].filter(Boolean).join(" ")}>
       <ul className={["flex flex-row items-center", sz.gap].join(" ")}>
         {showFirstLast && (
           <li>
