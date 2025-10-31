@@ -1,0 +1,470 @@
+"use client";
+/**
+ * Komponen: FileUpload
+ * Tujuan: Mengunggah file dengan dua varian (dropzone dan compact), validasi tipe/ukuran, dan progres simulasi.
+ *
+ * Ringkasan
+ * - Styling: Tailwind CSS + CSS variables (fallback aman) sesuai tokens.css.
+ * - Aksesibilitas: input file terhubung, tombol dapat dipicu keyboard, focus-visible ring jelas.
+ * - Varian: "dropzone" (drag & drop) dan "compact" (tombol pilih file sederhana).
+ *
+ * Import
+ * ```tsx
+ * import { FileUpload } from "@/components/FileUpload";
+ * ```
+ *
+ * Props
+ * - acceptedFileTypes?: Array<"video"|"document"|"scorm"> (default: semua)
+ * - maxFileSizeMB?: number (default: 100)
+ * - value?: File | null (opsional, controlled)
+ * - defaultValue?: File | null (opsional, uncontrolled)
+ * - onChange?: (file: File | null) => void
+ * - disabled?: boolean
+ * - variant?: "dropzone" | "compact" (default: "dropzone")
+ * - className?: string
+ */
+import React from "react";
+
+export type FileCategory = "video" | "document" | "scorm";
+
+export type UploadStatus = "idle" | "uploading" | "success" | "error";
+
+export interface FileUploadProps {
+  acceptedFileTypes?: FileCategory[];
+  maxFileSizeMB?: number;
+  value?: File | null;
+  defaultValue?: File | null;
+  onChange?: (file: File | null) => void;
+  disabled?: boolean;
+  variant?: "dropzone" | "compact";
+  multiple?: boolean;
+  className?: string;
+}
+
+type UploadedState = {
+  file: File;
+  progress: number;
+  status: UploadStatus;
+  errorMessage?: string;
+};
+
+const ACCEPT_MAP: Record<FileCategory, { accept: string; label: string }> = {
+  video: { accept: "video/*,.mp4,.avi,.mov,.wmv,.flv,.mkv,.webm,.m4v", label: "Video" },
+  document: { accept: ".pdf,.doc,.docx,.ppt,.pptx,.txt,.xls,.xlsx", label: "Dokumen" },
+  scorm: { accept: ".zip", label: "SCORM" },
+};
+
+// Teks ekstensi yang ditampilkan (ringkas) untuk baris kedua
+const VISIBLE_EXT: Record<FileCategory, string> = {
+  video: "MP4, AVI, MOV",
+  document: "PDF, DOC, PPT",
+  scorm: "ZIP",
+};
+
+function getFileExtension(filename: string): string {
+  return filename.slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2).toLowerCase();
+}
+
+function determineFileType(file: File): FileCategory | null {
+  const ext = getFileExtension(file.name);
+  if (["mp4", "avi", "mov", "wmv", "flv", "mkv", "webm", "m4v"].includes(ext)) return "video";
+  if (["pdf", "doc", "docx", "ppt", "pptx", "txt", "xls", "xlsx"].includes(ext)) return "document";
+  if (ext === "zip") return "scorm";
+  return null;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+}
+
+export function FileUpload({
+  acceptedFileTypes = ["video", "document", "scorm"],
+  maxFileSizeMB = 100,
+  value,
+  defaultValue = null,
+  onChange,
+  disabled,
+  variant = "dropzone",
+  multiple = false,
+  className,
+}: FileUploadProps) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [state, setState] = React.useState<UploadedState | null>(
+    defaultValue
+      ? { file: defaultValue, progress: 100, status: "success" }
+      : null
+  );
+  const [items, setItems] = React.useState<UploadedState[]>([]);
+
+  const isControlled = typeof value !== "undefined";
+  const file = isControlled ? value : state?.file ?? null;
+
+  const acceptString = acceptedFileTypes.map((t) => ACCEPT_MAP[t].accept).join(",");
+
+  const validate = React.useCallback(
+    (f: File): string | null => {
+      const sizeMB = f.size / (1024 * 1024);
+      if (sizeMB > maxFileSizeMB) {
+        return `File terlalu besar. Maksimal ${maxFileSizeMB}MB`;
+      }
+      const t = determineFileType(f);
+      if (!t || !acceptedFileTypes.includes(t)) {
+        return `Tipe file tidak didukung. Hanya ${acceptedFileTypes
+          .map((x) => ACCEPT_MAP[x].label)
+          .join(", ")}`;
+      }
+      return null;
+    },
+    [acceptedFileTypes, maxFileSizeMB]
+  );
+
+  React.useEffect(() => {
+    // Sinkronisasi nilai controlled ke state tampil (progress/status) bila perlu
+    if (isControlled) {
+      if (!value) {
+        setState(null);
+      } else {
+        setState((prev) => ({ file: value, progress: prev?.progress ?? 100, status: prev?.status ?? "success" }));
+      }
+    }
+  }, [isControlled, value]);
+
+  const simulateUpload = React.useCallback((f: File) => {
+    let progress = 0;
+    setState({ file: f, progress: 0, status: "uploading" });
+    const id = setInterval(() => {
+      progress += Math.random() * 30;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(id);
+        setState({ file: f, progress: 100, status: "success" });
+      } else {
+        setState({ file: f, progress: Math.round(progress), status: "uploading" });
+      }
+    }, 300);
+    return () => clearInterval(id);
+  }, []);
+
+  const simulateUploadMulti = React.useCallback((f: File) => {
+    // tambahkan item baru lalu animasikan progresnya
+    setItems((prev) => [...prev, { file: f, progress: 0, status: "uploading" }]);
+    let progress = 0;
+    const id = setInterval(() => {
+      progress += Math.random() * 30;
+      setItems((prev) =>
+        prev.map((it) =>
+          it.file === f
+            ? {
+                ...it,
+                progress: Math.min(100, Math.round(progress)),
+                status: progress >= 100 ? "success" : "uploading",
+              }
+            : it
+        )
+      );
+      if (progress >= 100) clearInterval(id);
+    }, 300);
+  }, []);
+
+  const handleSelect = React.useCallback(
+    (f: File) => {
+      setError(null);
+      const err = validate(f);
+      if (err) {
+        setState({ file: f, progress: 0, status: "error", errorMessage: err });
+        setError(err);
+        onChange?.(null);
+        return;
+      }
+      onChange?.(f);
+      simulateUpload(f);
+    },
+    [onChange, simulateUpload, validate]
+  );
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files ?? []);
+    if (multiple) {
+      list.forEach((f) => {
+        const err = validate(f);
+        if (err) {
+          setItems((prev) => [...prev, { file: f, progress: 0, status: "error", errorMessage: err }]);
+          onChange?.(null);
+        } else {
+          onChange?.(f);
+          simulateUploadMulti(f);
+        }
+      });
+    } else {
+      const f = list[0];
+      if (f) handleSelect(f);
+    }
+  };
+
+  const removeFile = () => {
+    setError(null);
+    if (!isControlled) setState(null);
+    onChange?.(null);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const removeItem = (target: File) => {
+    setItems((prev) => prev.filter((it) => it.file !== target));
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (disabled) return;
+    const list = Array.from(e.dataTransfer.files ?? []);
+    if (multiple) {
+      list.forEach((f) => {
+        const err = validate(f);
+        if (err) {
+          setItems((prev) => [...prev, { file: f, progress: 0, status: "error", errorMessage: err }]);
+          onChange?.(null);
+        } else {
+          onChange?.(f);
+          simulateUploadMulti(f);
+        }
+      });
+    } else {
+      const f = list[0];
+      if (f) handleSelect(f);
+    }
+  };
+
+  const onDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) setIsDragging(true);
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const typeLabel = (f: File | null) => {
+    if (!f) return "";
+    const t = determineFileType(f);
+    return t ? ACCEPT_MAP[t].label : "File";
+  };
+
+  const hasFile = !!file && !!state;
+  const uploadStatus: UploadStatus = state?.status ?? "idle";
+  const onlyType = acceptedFileTypes.length === 1 ? acceptedFileTypes[0] : undefined;
+  const ctaText = isDragging
+    ? "Lepaskan file di sini"
+    : onlyType
+    ? `Klik untuk upload ${ACCEPT_MAP[onlyType].label.toLowerCase()}`
+    : "Klik untuk upload file";
+  const extSummary = acceptedFileTypes.map((t) => VISIBLE_EXT[t]).join(", ");
+
+  function UploadedRow({ item, onRemove }: { item: UploadedState; onRemove: () => void }) {
+    return (
+      <div className="relative w-full rounded-[var(--radius-lg,12px)] border border-[color-mix(in_oklab,white_70%,var(--color-primary,#2563eb))] bg-[var(--color-primary-50,rgba(37,99,235,0.08))] px-3 py-2">
+        <div className="flex items-center gap-3">
+          <FileIcon className="size-5 text-[var(--color-foreground-muted,#6b7280)]" />
+          <button type="button" className="text-[var(--color-primary,#2563eb)] underline-offset-2 hover:underline text-[var(--font-sm,0.875rem)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] rounded-[var(--radius-sm,6px)]">
+            {item.file.name}
+          </button>
+          <span className="ml-1 px-2 py-1 rounded-full text-[12px] leading-none border border-[var(--border,rgba(0,0,0,0.12))] bg-transparent text-[var(--color-foreground-muted,#6b7280)]">
+            {formatFileSize(item.file.size)}
+          </span>
+          <div className="ml-auto">
+            <button type="button" onClick={onRemove} className="size-6 rounded-[var(--radius-sm,6px)] inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)]" aria-label="Remove">
+              <XIcon className="size-4 text-[var(--color-foreground,#111827)]" />
+            </button>
+          </div>
+        </div>
+        {item.status === "uploading" && (
+          <div className="absolute left-0 right-0 bottom-0 h-1 rounded-b-[var(--radius-lg,12px)] overflow-hidden">
+            <div className="h-full bg-[var(--color-primary,#2563eb)] transition-all duration-300" style={{ width: `${item.progress}%` }} />
+          </div>
+        )}
+        {item.status === "error" && item.errorMessage && (
+          <div className="mt-2 text-[var(--font-xs,0.75rem)] text-[var(--danger,#dc2626)]">{item.errorMessage}</div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={["w-full", className].filter(Boolean).join(" ")}>      
+      <input
+        ref={inputRef}
+        type="file"
+        accept={acceptString}
+        onChange={onInputChange}
+        className="hidden"
+        disabled={disabled}
+        multiple={multiple}
+      />
+
+      {variant === "dropzone" ? (
+        <>
+          {(!hasFile || multiple) ? (
+            <button
+              type="button"
+              onClick={() => !disabled && inputRef.current?.click()}
+              onDragEnter={onDragEnter}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              aria-disabled={disabled || undefined}
+              className={[
+                "relative w-full border-2 border-dashed rounded-[var(--radius-lg,12px)] p-8 transition",
+                "bg-[var(--surface,white)]",
+                "text-[var(--color-foreground,#111827)]",
+                "hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))]",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
+                isDragging
+                  ? "border-[var(--color-primary,#2563eb)] bg-[var(--color-primary-50,rgba(37,99,235,0.08))]"
+                  : "border-[var(--border,rgba(0,0,0,0.12))]",
+                disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+              ].join(" ")}
+            >
+              <div className="flex flex-col items-center justify-center gap-4">
+                <div className={["size-20 rounded-full flex items-center justify-center transition", isDragging ? "bg-[color-mix(in_oklab,white_70%,var(--color-primary,#2563eb))]" : "bg-[var(--surface-elevated,#f3f4f6)]"].join(" ")}
+                >
+                  <UploadIcon className={["size-10", isDragging ? "text-[var(--color-primary,#2563eb)]" : "text-[var(--color-foreground-muted,#6b7280)]"].join(" ")} />
+                </div>
+                <div className="text-center">
+                  <p className="font-[var(--font-body-bold,600)] text-[var(--color-foreground,#111827)] mb-1">
+                    {ctaText}
+                  </p>
+                  <p className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)]">
+                    {extSummary} (max {maxFileSizeMB}MB)
+                  </p>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mt-4 p-3 bg-[color-mix(in_oklab,white_88%,var(--danger,#dc2626))] border border-[var(--danger,#dc2626)] rounded-[var(--radius-md,8px)] flex items-start gap-2">
+                  <AlertIcon className="size-5 text-[var(--danger,#dc2626)]" />
+                  <p className="text-[var(--font-sm,0.875rem)] text-[var(--danger,#dc2626)]">{error}</p>
+                </div>
+              )}
+            </button>
+          ) : (
+            <UploadedRow item={state!} onRemove={removeFile} />
+          )}
+
+          {multiple && items.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              {items.map((it) => (
+                <UploadedRow key={`${it.file.name}-${it.file.size}-${it.status}`} item={it} onRemove={() => removeItem(it.file)} />
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div>
+          {!hasFile ? (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={disabled}
+              className={[
+                "w-full px-4 py-3 border-2 border-dashed rounded-[var(--radius-md,8px)]",
+                "flex items-center justify-center gap-2",
+                "transition",
+                disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-[var(--surface-elevated,#f3f4f6)]",
+                error ? "border-[var(--danger,#dc2626)] bg-[color-mix(in_oklab,white_90%,var(--danger,#dc2626))]" : "border-[var(--border,rgba(0,0,0,0.12))] bg-[var(--surface,white)]",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2",
+              ].join(" ")}
+            >
+              <UploadIcon className="size-5 text-[var(--color-foreground-muted,#6b7280)]" />
+              <span className="text-[var(--font-sm,0.875rem)] font-[var(--font-body-bold,600)] text-[var(--color-foreground,#111827)]">Pilih File</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 p-3 border rounded-[var(--radius-md,8px)] bg-[var(--surface-elevated,#f3f4f6)] border-[var(--border,rgba(0,0,0,0.12))]">
+              <div className="size-10 rounded-[var(--radius-md,8px)] flex items-center justify-center bg-[var(--surface,white)]">
+                <FileIcon className="size-5 text-[var(--color-primary,#2563eb)]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[var(--font-sm,0.875rem)] font-[var(--font-body-bold,600)] text-[var(--color-foreground,#111827)] truncate">{state?.file.name}</p>
+                <p className="text-[var(--font-xs,0.75rem)] text-[var(--color-foreground-muted,#6b7280)]">{formatFileSize(state?.file.size ?? 0)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={removeFile}
+                disabled={disabled}
+                className="flex-shrink-0 size-8 rounded-[var(--radius-md,8px)] hover:bg-[var(--surface,white)] transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)]"
+              >
+                <XIcon className="size-4 text-[var(--color-foreground-muted,#6b7280)]" />
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-2 p-2 bg-[color-mix(in_oklab,white_90%,var(--danger,#dc2626))] border border-[var(--danger,#dc2626)] rounded-[var(--radius-sm,6px)] flex items-start gap-2">
+              <AlertIcon className="size-4 text-[var(--danger,#dc2626)]" />
+              <p className="text-[var(--font-xs,0.75rem)] text-[var(--danger,#dc2626)]">{error}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Ikon inline untuk menghindari dependency eksternal
+function UploadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7 8l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AlertIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <path d="M12 9v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="17" r="1" fill="currentColor" />
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export default FileUpload;
