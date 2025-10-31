@@ -9,7 +9,6 @@ import InputPreview from "@/components/ui/Input/Input.preview";
 import TextareaPreview from "@/components/ui/Textarea/Textarea.preview";
 import FileUploadPreview from "@/components/ui/FileUpload/FileUpload.preview";
 import RadioButtonPreview from "@/components/ui/RadioButton/RadioButton.preview";
-import BadgePreview from "@/components/ui/Badge/Badge.preview";
 import TabsPreview from "@/components/ui/Tabs/Tabs.preview";
 
 export type PreviewEntry = {
@@ -63,11 +62,6 @@ export const PREVIEW_REGISTRY: PreviewEntry[] = [
     slug: "radio-button",
     title: "RadioButton",
     element: <RadioButtonPreview />,
-  },
-  {
-    slug: "badge",
-    title: "Badge",
-    element: <BadgePreview />,
   },
   {
     slug: "tabs",

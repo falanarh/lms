@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "./provider";
-import { Navbar } from "@/components/layout/Navbar/Navbar";
+import QueryProvider from "@/providers/QueryProvider";
+import { NavbarWrapper } from "@/components/layout/Navbar/NavbarWrapper";
+import { Footer } from "@/components/layout/Footer/Footer";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,26 +26,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50`}
       >
-        <Navbar
-          variant="solid"
-          size="lg"
-          items={[
-            { key: "home", label: "Home" },
-            { key: "my-course", label: "My Course" },
-            { key: "management", label: "Management" }
-          ]}
-          activeKey={"my-course"}
-          brandTitle="E-Warkop"
-          user={{ role: "Manager" }}
-        />
+        <NavbarWrapper user={{ role: "Manager" }} />
       
-        <div className="min-h-[calc(100vh-4rem)] mx-auto  bg-zinc-50">
-          <Providers>{children}</Providers>
+        <div className="min-h-[calc(100vh-4rem)] bg-zinc-50">
+          <QueryProvider>{children}</QueryProvider>
         </div>
+
+        <Footer />
       </body>
     </html>
   );

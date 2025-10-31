@@ -30,7 +30,7 @@ export default function TextareaPreview() {
 
       <section className="space-y-2">
         <h2 className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)]">Loading</h2>
-        <Textarea label="Loading" placeholder="Fetching..." isLoading />
+        <Textarea label="Loading" placeholder="Fetching..." />
       </section>
     </div>
   );
