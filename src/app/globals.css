@@ -1,5 +1,142 @@
 @import "tailwindcss";
 
+/* Voting Transitions untuk mencegah flickering */
+.vote-button {
+  transition: all 0.2s ease-in-out;
+  transform-origin: center;
+}
+
+.vote-button:hover {
+  transform: scale(1.05);
+}
+
+.vote-button:active {
+  transform: scale(0.95);
+}
+
+.vote-count {
+  transition: all 0.15s ease-out;
+  display: inline-block;
+}
+
+.vote-count.updating {
+  animation: voteUpdate 0.3s ease-in-out;
+}
+
+@keyframes voteUpdate {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    color: var(--color-primary);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Smooth transition untuk vote state changes */
+.vote-active {
+  transition: background-color 0.2s ease-in-out,
+              color 0.2s ease-in-out,
+              transform 0.15s ease-out,
+              border-color 0.2s ease-in-out;
+}
+
+/* Topic vote arrow background styling */
+.topic-vote-arrow {
+  transition: all 0.2s ease-in-out;
+  border-radius: 0.5rem;
+}
+
+.topic-vote-arrow.active-upvote {
+  background-color: var(--success);
+  color: white;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+}
+
+.topic-vote-arrow.active-downvote {
+  background-color: var(--danger);
+  color: white;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.topic-vote-arrow:hover:not(.active-upvote):not(.active-downvote) {
+  background-color: rgba(107, 114, 128, 0.1);
+}
+
+/* Loading state untuk vote buttons */
+.vote-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.vote-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: voteLoading 1.5s infinite;
+}
+
+@keyframes voteLoading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Prevent layout shift during vote updates */
+.vote-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem; /* Prevent width changes */
+  min-height: 2rem; /* Prevent height changes */
+}
+
+/* Smooth transitions untuk disabled state */
+.vote-button:disabled {
+  transition: all 0.2s ease-in-out;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.vote-button:disabled:hover {
+  transform: none;
+}
+
+/* Additional animation for topic vote background */
+@keyframes voteBackgroundPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+  }
+}
+
+.topic-vote-arrow.voted {
+  animation: voteBackgroundPulse 0.3s ease-in-out;
+}
+
 :root {
   /* Base */
   --background: #ffffff;

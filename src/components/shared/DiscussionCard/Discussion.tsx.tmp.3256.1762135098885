@@ -49,7 +49,6 @@ export function Discussion({
   onDeleteDiscussion,
   isEditingDiscussion = false,
   userVote,
-  isVoting = false,
 }: DiscussionProps) {
   const handleReplyToClick = () => {
     if (!discussion.replyingToId) return;
@@ -270,12 +269,12 @@ export function Discussion({
               {/* Upvote Button */}
               <button
                 onClick={onUpvote}
-                disabled={!currentUserId || (isUpvoted && !isDownvoted) || isVoting}
-                className={`vote-button vote-container flex items-center gap-1.5 text-xs transition-colors ${isVoting ? 'vote-loading' : ''} ${
+                disabled={!currentUserId || (isUpvoted && !isDownvoted)}
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
                   isUpvoted
-                    ? 'text-[var(--success)] vote-active'
-                    : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)] vote-active'
-                } ${!currentUserId || isVoting ? 'cursor-not-allowed opacity-50' : ''}`}
+                    ? 'text-[var(--success)]'
+                    : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)]'
+                } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
                 aria-label={`${isUpvoted ? 'Batalkan upvote' : 'Tambah upvote'}`}
                 title={isUpvoted ? 'Batalkan upvote' : 'Tambah upvote'}
               >
@@ -283,18 +282,18 @@ export function Discussion({
                   className={`size-4 ${isUpvoted ? 'fill-current' : ''}`}
                   aria-hidden="true"
                 />
-                <span className="vote-count">{discussion.upvoteCount}</span>
+                <span>{discussion.upvoteCount}</span>
               </button>
 
               {/* Downvote Button */}
               <button
                 onClick={onDownvote}
-                disabled={!currentUserId || (isDownvoted && !isUpvoted) || isVoting}
-                className={`vote-button vote-container flex items-center gap-1.5 text-xs transition-colors ${isVoting ? 'vote-loading' : ''} ${
+                disabled={!currentUserId || (isDownvoted && !isUpvoted)}
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
                   isDownvoted
-                    ? 'text-[var(--danger)] vote-active'
-                    : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)] vote-active'
-                } ${!currentUserId || isVoting ? 'cursor-not-allowed opacity-50' : ''}`}
+                    ? 'text-[var(--danger)]'
+                    : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)]'
+                } ${!currentUserId ? 'cursor-not-allowed opacity-50' : ''}`}
                 aria-label={`${isDownvoted ? 'Batalkan downvote' : 'Tambah downvote'}`}
                 title={isDownvoted ? 'Batalkan downvote' : 'Tambah downvote'}
               >
@@ -302,7 +301,7 @@ export function Discussion({
                   className={`size-4 ${isDownvoted ? 'fill-current' : ''}`}
                   aria-hidden="true"
                 />
-                <span className="vote-count">{discussion.downvoteCount}</span>
+                <span>{discussion.downvoteCount}</span>
               </button>
 
               {/* Reply Button */}

@@ -235,7 +235,7 @@ export function Topic({
     }
   }, [meta.id]);
 
-    useEffect(() => {
+  useEffect(() => {
     // Simplified state management - langsung gunakan server data
     // React Query optimistic updates akan handle UI updates
     setLocalTopicVotes(topicVotes);
@@ -590,8 +590,10 @@ export function Topic({
 
   const handleTopicVote = async (voteType: VoteType) => {
     if (!localTopicVotes || localIsVotingTopic) return;
+
     // Prevent multiple rapid clicks
     setLocalIsVotingTopic(true);
+
     try {
       await onVoteTopic?.(meta.id, voteType);
     } catch (error) {
@@ -766,7 +768,7 @@ export function Topic({
                   disabled={localIsVotingTopic}
                   className={`vote-button vote-container ${localIsVotingTopic ? 'vote-loading' : ''} ${
                     localTopicVotes.userVote === VoteTypeEnum.UPVOTE
-                      ? 'text-white vote-active'
+                      ? 'text-[var(--success)] vote-active'
                       : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)] vote-active'
                   } ${localIsVotingTopic ? 'opacity-50 cursor-not-allowed' : ''}`}
                   aria-label={`Upvote topic, ${localTopicVotes.upvotes} upvotes`}
@@ -774,13 +776,7 @@ export function Topic({
                   {localIsVotingTopic && votingType === 'upvote' ? (
                     <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-500"></div>
                   ) : (
-                    <div className={`topic-vote-arrow ${
-                      localTopicVotes.userVote === VoteTypeEnum.UPVOTE
-                        ? 'active-upvote'
-                        : ''
-                    }`}>
-                      <ArrowBigUp className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.UPVOTE ? 'fill-current' : ''}`} />
-                    </div>
+                    <ArrowBigUp className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.UPVOTE ? 'fill-current' : ''}`} />
                   )}
                 </button>
 
@@ -804,21 +800,15 @@ export function Topic({
                   disabled={localIsVotingTopic}
                   className={`vote-button vote-container ${localIsVotingTopic ? 'vote-loading' : ''} ${
                     localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
-                      ? 'text-white vote-active'
-                      : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)] vote-active'
+                      ? 'bg-[var(--color-error,#dc2626)] text-white shadow-sm vote-active'
+                      : 'bg-[var(--color-gray-100,#f3f4f6)] text-[var(--color-foreground-muted,#6b7280)] hover:text-[var(--color-error,#dc2626)] hover:bg-[var(--color-error,#dc2626)/10] vote-active'
                   } ${localIsVotingTopic ? 'opacity-50 cursor-not-allowed' : ''}`}
                   aria-label={`Downvote topic, ${localTopicVotes.downvotes} downvotes`}
                 >
                   {localIsVotingTopic && votingType === 'downvote' ? (
                     <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-red-500"></div>
                   ) : (
-                    <div className={`topic-vote-arrow ${
-                      localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
-                        ? 'active-downvote'
-                        : ''
-                    }`}>
-                      <ArrowBigDown className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE ? 'fill-current' : ''}`} />
-                    </div>
+                    <ArrowBigDown className="size-4" />
                   )}
                 </button>
               </div>

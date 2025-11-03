@@ -213,9 +213,6 @@ export function useDiscussionActions(forumId?: string, sortBy: 'latest' | 'most-
     mutationFn: ({ discussionId, voteType }: { discussionId: string; voteType: VoteType }) =>
       discussionsApi.voteDiscussion(discussionId, { type: voteType }),
     onMutate: async ({ discussionId, voteType }) => {
-      // Guard against undefined forumId
-      if (!forumId) return;
-
       // Cancel ongoing queries to prevent race conditions
       await queryClient.cancelQueries({
         queryKey: getDiscussionsQueryKey(forumId, sortBy),
@@ -338,7 +335,7 @@ export function useDiscussionActions(forumId?: string, sortBy: 'latest' | 'most-
       console.error('🗳️ [VOTE DISCUSSION] Error:', error);
 
       // Rollback on error
-      if (context?.previousData && forumId) {
+      if (context?.previousData) {
         console.log('🔄 [ROLLBACK] Rolling back vote update:', {
           discussionId: variables.discussionId,
           timestamp: new Date().toISOString()

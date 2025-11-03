@@ -235,7 +235,7 @@ export function Topic({
     }
   }, [meta.id]);
 
-    useEffect(() => {
+  useEffect(() => {
     // Simplified state management - langsung gunakan server data
     // React Query optimistic updates akan handle UI updates
     setLocalTopicVotes(topicVotes);
@@ -590,8 +590,10 @@ export function Topic({
 
   const handleTopicVote = async (voteType: VoteType) => {
     if (!localTopicVotes || localIsVotingTopic) return;
+
     // Prevent multiple rapid clicks
     setLocalIsVotingTopic(true);
+
     try {
       await onVoteTopic?.(meta.id, voteType);
     } catch (error) {
@@ -774,10 +776,10 @@ export function Topic({
                   {localIsVotingTopic && votingType === 'upvote' ? (
                     <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-500"></div>
                   ) : (
-                    <div className={`topic-vote-arrow ${
+                    <div className={`relative inline-flex items-center justify-center ${
                       localTopicVotes.userVote === VoteTypeEnum.UPVOTE
-                        ? 'active-upvote'
-                        : ''
+                        ? 'bg-[var(--success)] rounded-lg p-1.5'
+                        : 'p-1.5'
                     }`}>
                       <ArrowBigUp className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.UPVOTE ? 'fill-current' : ''}`} />
                     </div>
@@ -804,7 +806,7 @@ export function Topic({
                   disabled={localIsVotingTopic}
                   className={`vote-button vote-container ${localIsVotingTopic ? 'vote-loading' : ''} ${
                     localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
-                      ? 'text-white vote-active'
+                      ? 'text-[var(--danger)] vote-active'
                       : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)] vote-active'
                   } ${localIsVotingTopic ? 'opacity-50 cursor-not-allowed' : ''}`}
                   aria-label={`Downvote topic, ${localTopicVotes.downvotes} downvotes`}
@@ -812,13 +814,7 @@ export function Topic({
                   {localIsVotingTopic && votingType === 'downvote' ? (
                     <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-red-500"></div>
                   ) : (
-                    <div className={`topic-vote-arrow ${
-                      localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
-                        ? 'active-downvote'
-                        : ''
-                    }`}>
-                      <ArrowBigDown className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE ? 'fill-current' : ''}`} />
-                    </div>
+                    <ArrowBigDown className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE ? 'fill-current' : ''}`} />
                   )}
                 </button>
               </div>
