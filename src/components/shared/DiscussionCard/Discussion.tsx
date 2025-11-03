@@ -5,6 +5,8 @@ import { ThumbsUp, ThumbsDown, Edit2, MoreVertical, Trash2, X, Check } from "luc
 import type { Discussion as DiscussionType } from "./Topic";
 import { Button } from "../../ui/Button";
 import { Textarea } from "../../ui/Textarea";
+import { getInitials, getCurrentUserId } from "@/utils/userUtils";
+import type { VoteType } from "@/types/voting";
 
 export interface DiscussionProps {
   discussion: DiscussionType;
@@ -17,17 +19,11 @@ export interface DiscussionProps {
   canEditDiscussion?: boolean;
   onEditDiscussion?: (discussionId: string, newContent: string) => void;
   onDeleteDiscussion?: (discussionId: string) => void;
+  isEditingDiscussion?: boolean;
   // New: Voting state
-  userVote?: 'upvote' | 'downvote' | null;
+  userVote?: VoteType | null;
 }
 
-// Helper untuk ambil inisial dari nama
-function getInitials(name: string): string {
-  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 /**
  * Discussion - Individual discussion/reply component
@@ -50,6 +46,7 @@ export function Discussion({
   canEditDiscussion = false,
   onEditDiscussion,
   onDeleteDiscussion,
+  isEditingDiscussion = false,
   userVote,
 }: DiscussionProps) {
   const handleReplyToClick = () => {
@@ -67,8 +64,7 @@ export function Discussion({
   const [showDiscussionMenu, setShowDiscussionMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(discussion.content || discussion.comment || '');
-  const [isSaving, setIsSaving] = useState(false);
-
+  
   const handleEditDiscussion = () => {
     setShowDiscussionMenu(false);
     setIsEditing(true);
@@ -90,22 +86,17 @@ export function Discussion({
       return;
     }
 
-    setIsSaving(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Call parent handler with updated content
+      // Call parent handler with updated content (parent will handle API call)
       onEditDiscussion?.(discussion.id, trimmedContent);
 
-      // Reset editing state
+      // Reset editing state immediately after calling parent
+      // Parent will handle the async operation and show appropriate feedback
       setIsEditing(false);
       setShowDiscussionMenu(false);
     } catch (error) {
       console.error('Failed to update discussion:', error);
       // Could show error toast here
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -144,10 +135,10 @@ export function Discussion({
       {/* Avatar */}
       <div
         className="shrink-0 size-10 rounded-full bg-[color-mix(in_oklab,var(--color-primary,#2563eb)_85%,white_15%)] text-[var(--color-on-primary,#ffffff)] flex items-center justify-center shadow-sm"
-        aria-label={`${discussion.author || `User ${discussion.idUser.slice(-6)}`} avatar`}
+        aria-label={`${discussion.author || getCurrentUserId()} avatar`}
       >
         <span className="px-[var(--space-2,0.25rem)] py-[1px] text-[var(--font-2xs,0.6875rem)] font-[var(--font-body-bold,600)]" role="img">
-          {(discussion.avatar && discussion.avatar.trim().toUpperCase()) || getInitials(discussion.author || `User ${discussion.idUser.slice(-6)}`)}
+          {(discussion.avatar && discussion.avatar.trim().toUpperCase()) || getInitials(discussion.author || getCurrentUserId())}
         </span>
       </div>
 
@@ -157,7 +148,7 @@ export function Discussion({
         <div className="flex items-center gap-2 mb-1 flex-wrap justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-[var(--font-body-bold,600)] text-sm leading-5 text-[var(--color-foreground,#111827)]">
-              {discussion.author || `User ${discussion.idUser.slice(-6)}`}
+              {discussion.author || getCurrentUserId()}
             </span>
 
             {/* Reply To Link - Hanya untuk nestedSecond */}
@@ -173,6 +164,11 @@ export function Discussion({
 
             <span className="text-sm leading-4 text-[var(--color-foreground-muted)]">
               {discussion.time || 'Baru saja'}
+              {discussion.isUpdated && (
+                <span className="ml-2 inline-flex items-center px-2">
+                  <span className="mr-1.5">•</span>Diedit
+                </span>
+              )}
             </span>
           </div>
 
@@ -180,12 +176,13 @@ export function Discussion({
           {canEditDiscussion && (
             <div className="relative">
               <Button
-                leftIcon={<MoreVertical className="w-3 h-3 text-gray-500" />}
-                variant="outline"
-                className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 w-7 h-7 p-0"
+                variant="ghost"
+                className="w-8 h-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center"
                 onClick={() => setShowDiscussionMenu(!showDiscussionMenu)}
                 aria-label="Menu komentar"
-              />
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
 
               {/* Dropdown Menu */}
               {showDiscussionMenu && (
@@ -234,7 +231,7 @@ export function Discussion({
                   rows={3}
                   className="text-sm resize-none"
                   autoFocus
-                  disabled={isSaving}
+                  disabled={isEditingDiscussion}
                 />
               </div>
             </div>
@@ -245,17 +242,17 @@ export function Discussion({
                 variant="outline"
                 size="sm"
                 onClick={handleCancelEdit}
-                disabled={isSaving}
+                disabled={isEditingDiscussion}
               >
                 Batal
               </Button>
               <Button
                 size="sm"
                 onClick={handleSaveEdit}
-                disabled={!editContent.trim() || editContent.trim() === (discussion.content || discussion.comment || '') || isSaving}
-                isLoading={isSaving}
+                disabled={!editContent.trim() || editContent.trim() === (discussion.content || discussion.comment || '') || isEditingDiscussion}
+                isLoading={isEditingDiscussion}
               >
-                {isSaving ? "Menyimpan..." : "Simpan"}
+                {isEditingDiscussion ? "Menyimpan..." : "Simpan"}
               </Button>
             </div>
           </div>

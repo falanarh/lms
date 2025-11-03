@@ -201,7 +201,6 @@ export function SectionActivities({ onAddActivity }: SectionActivitiesProps) {
   //   setSections([...sections, newSection]);
   //   showToastMessage("success", `Section ${newSectionId} berhasil ditambahkan!`);
   //   const element = document.querySelector(`[data-id="${newSectionId}"]`);
-  //   console.log(element);
   //   if (element) {
   //     element.scrollIntoView({ behavior: "smooth" });
   //   }

@@ -405,7 +405,6 @@ export function ActivityDrawerContent({ onClose, onSave }: ActivityDrawerContent
                         actionLabel="Download"
                         onAction={() => {
                         // Handle view/download material
-                        console.log('View material:', material);
                       }}
                     />
                     );
