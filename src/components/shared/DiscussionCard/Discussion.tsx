@@ -270,7 +270,7 @@ export function Discussion({
               {/* Upvote Button */}
               <button
                 onClick={onUpvote}
-                disabled={!currentUserId || (isUpvoted && !isDownvoted) || isVoting}
+                disabled={!currentUserId || isVoting}
                 className={`vote-button vote-container flex items-center gap-1.5 text-xs transition-colors ${isVoting ? 'vote-loading' : ''} ${
                   isUpvoted
                     ? 'text-[var(--success)] vote-active'
@@ -289,7 +289,7 @@ export function Discussion({
               {/* Downvote Button */}
               <button
                 onClick={onDownvote}
-                disabled={!currentUserId || (isDownvoted && !isUpvoted) || isVoting}
+                disabled={!currentUserId || isVoting}
                 className={`vote-button vote-container flex items-center gap-1.5 text-xs transition-colors ${isVoting ? 'vote-loading' : ''} ${
                   isDownvoted
                     ? 'text-[var(--danger)] vote-active'

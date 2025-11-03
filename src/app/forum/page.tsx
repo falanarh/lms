@@ -11,36 +11,8 @@ import { useForums } from "@/hooks/useForums";
 import { createToastState } from "@/utils/toastUtils";
 import type { Forum } from "@/api/forums";
 
-// Fallback data jika API gagal
-const fallbackForums: Forum[] = [
-  {
-    id: "1",
-    title: "Pengembangan Web Fundamental",
-    description: "Diskusi tentang konsep dasar pengembangan web, HTML, CSS, dan JavaScript.",
-    type: "course",
-    lastActivity: "2023-10-28T10:30:00Z",
-    totalTopics: 42,
-  },
-  {
-    id: "2",
-    title: "React dan Next.js",
-    description: "Berbagi pengetahuan tentang React, Next.js, dan ekosistemnya.",
-    type: "course",
-    lastActivity: "2023-10-27T15:45:00Z",
-    totalTopics: 38,
-  },
-  {
-    id: "3",
-    title: "Umum",
-    description: "Diskusi umum tentang topik teknologi dan pengembangan perangkat lunak.",
-    type: "general",
-    lastActivity: "2023-10-28T08:15:00Z",
-    totalTopics: 67,
-  },
-];
-
 export default function ForumPage() {
-  const { data: forums = fallbackForums, isLoading, error, refetch } = useForums();
+  const { data: forums = [], isLoading, error, refetch } = useForums();
   const toastState = createToastState();
 
   const breadcrumbItems = [

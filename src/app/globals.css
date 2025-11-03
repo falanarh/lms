@@ -117,6 +117,12 @@
   transform: none;
 }
 
+/* Voted buttons should maintain active appearance even if disabled */
+.vote-button.vote-active:disabled {
+  opacity: 1;
+  cursor: pointer;
+}
+
 /* Additional animation for topic vote background */
 @keyframes voteBackgroundPulse {
   0% {
@@ -258,4 +264,16 @@ body {
 
 .highlight-on-scroll {
   animation: highlight-bg 1.5s ease-out;
+}
+
+/* Forum sidebar animations */
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
