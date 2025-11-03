@@ -189,7 +189,7 @@ export interface WebinarSchedule {
   title: string;
   tgl_zoom: string;
   link_zoom?: string;
-  status: 'upcoming' | 'ongoing' | 'ended';
+  status: 'upcoming' | 'ongoing' | 'ended' | 'live';
   participants_count?: number;
 }
 

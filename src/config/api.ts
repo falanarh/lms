@@ -25,6 +25,28 @@ export const API_ENDPOINTS = {
   DISCUSSION_BY_ID: (id: string) => `${API_BASE_URL}/discussions/${id}`,
   DISCUSSION_VOTE: (id: string) => `${API_BASE_URL}/discussions/${id}/vote`,
   DISCUSSION_REPLIES: (forumId: string) => `${API_BASE_URL}/discussions/${forumId}/replies`,
+
+  // Knowledge Center endpoints
+  KNOWLEDGE: `${API_BASE_URL}/knowledge`,
+  KNOWLEDGE_BY_ID: (id: string) => `${API_BASE_URL}/knowledge/${id}`,
+  KNOWLEDGE_LIKE: (id: string) => `${API_BASE_URL}/knowledge/${id}/like`,
+  KNOWLEDGE_DISLIKE: (id: string) => `${API_BASE_URL}/knowledge/${id}/dislike`,
+  KNOWLEDGE_VIEW: (id: string) => `${API_BASE_URL}/knowledge/${id}/view`,
+  KNOWLEDGE_UPLOAD: `${API_BASE_URL}/knowledge/upload`,
+
+  // Taxonomy endpoints
+  SUBJECTS: `${API_BASE_URL}/knowledge/subjects`,
+  PENYELENGGARA: `${API_BASE_URL}/knowledge/penyelenggara`,
+  TAGS: `${API_BASE_URL}/knowledge/tags`,
+
+  // Analytics endpoint
+  KNOWLEDGE_ANALYTICS: `${API_BASE_URL}/knowledge/analytics`,
+
+  // Schedule endpoint
+  WEBINAR_SCHEDULE: `${API_BASE_URL}/knowledge/webinar/schedule`,
+
+  // Settings endpoint
+  KNOWLEDGE_SETTINGS: `${API_BASE_URL}/knowledge/settings`,
 } as const;
 
 // API Configuration
