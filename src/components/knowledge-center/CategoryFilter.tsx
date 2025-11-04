@@ -134,16 +134,16 @@ export default function CategoryFilter({
   return (
     <div className="group relative overflow-hidden bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 p-8 rounded-3xl border border-gray-200/60 shadow-sm hover:shadow-xl transition-all duration-500">
       {/* Decorative Elements */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-100/20 to-purple-100/20 rounded-full blur-3xl -mr-32 -mt-32 transition-all duration-700 group-hover:scale-150 group-hover:opacity-50"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-100/20 to-blue-200/20 rounded-full blur-3xl -mr-32 -mt-32 transition-all duration-700 group-hover:scale-150 group-hover:opacity-50"></div>
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-green-100/20 to-blue-100/20 rounded-full blur-3xl -ml-24 -mb-24 transition-all duration-700 group-hover:scale-125"></div>
 
       {/* Accent Line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 opacity-60"></div>
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 opacity-60"></div>
 
       <div className="relative">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
+            <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
             <h3 className="text-base font-bold text-gray-800 tracking-tight">
               Browse by Category
             </h3>
@@ -205,13 +205,13 @@ export default function CategoryFilter({
         {/* Tombol Tampilkan Semua / Lebih Sedikit */}
         {filteredCategories.length > 0 && (
           <div className="mt-6 pt-5 border-t border-gray-200/50 relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400"></div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-0.5 bg-gradient-to-r from-blue-400 to-blue-500"></div>
             <button
               onClick={onToggleExpand}
               className={`group/toggle flex items-center justify-center gap-2 w-full py-2.5 px-4 text-sm font-semibold transition-all duration-300 rounded-xl ${
                 isExpanded && !canCollapse
                   ? 'text-gray-400 cursor-not-allowed bg-gray-50'
-                  : 'text-blue-600 hover:text-blue-700 bg-gradient-to-r from-blue-50/50 to-purple-50/50 hover:from-blue-100 hover:to-purple-100 border border-blue-200/50 hover:border-blue-300 hover:shadow-md'
+                  : 'text-blue-600 hover:text-blue-700 bg-gradient-to-r from-blue-50/50 to-blue-50/70 hover:from-blue-100 hover:to-blue-100 border border-blue-200/50 hover:border-blue-300 hover:shadow-md'
               }`}
               disabled={isExpanded && !canCollapse}
             >
@@ -234,7 +234,7 @@ export default function CategoryFilter({
         {filteredCategories.length === 0 && (
           <div className="text-center text-gray-500 py-12 px-4">
             <div className="relative inline-block mb-4">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full blur-xl opacity-40"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full blur-xl opacity-40"></div>
               <SearchX className="relative w-14 h-14 mx-auto text-gray-400" />
             </div>
             <p className="font-semibold text-gray-700 mb-1">No Categories Found</p>

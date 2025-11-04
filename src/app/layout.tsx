@@ -39,6 +39,7 @@ export default function RootLayout({
             { key: "home", label: "Home" },
             { key: "my-course", label: "My Course" },
             { key: "forum", label: "Forum" },
+            { key: "knowledge-center", label: "Knowledge Center" },
             { key: "management", label: "Management" },
           ]}
           user={{ name: "John Doe", role: "Manager" }}

@@ -23,12 +23,13 @@ export default function NavbarClient({ items, user }: NavbarClientProps) {
     if (pathname === "/") return "home";
     if (pathname.startsWith("/course")) return "my-course";
     if (pathname.startsWith("/forum")) return "forum";
+    if (pathname.startsWith("/knowledge-center")) return "knowledge-center";
     if (pathname.startsWith("/management")) return "management";
     return "";
   };
-  
+
   const activeKey = getActiveKey();
-  
+
   // Handle navigation when an item is selected
   const handleItemSelect = (key: string) => {
     switch (key) {
@@ -40,6 +41,9 @@ export default function NavbarClient({ items, user }: NavbarClientProps) {
         break;
       case "forum":
         router.push("/forum");
+        break;
+      case "knowledge-center":
+        router.push("/knowledge-center");
         break;
       case "management":
         router.push("/management");

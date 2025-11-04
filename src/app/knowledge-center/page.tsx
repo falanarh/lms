@@ -139,19 +139,19 @@ export default function KnowledgeCenterPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section with Full Screen Search - Modern Design */}
-      <section className="relative bg-gradient-to-br from-slate-50 via-blue-50/40 to-purple-50/30 border-b border-gray-200/50 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-slate-50 via-blue-50/40 to-blue-50/30 border-b border-gray-200/50 overflow-hidden">
         {/* Animated Background Decorations */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Large blur circles */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/30 via-purple-200/20 to-transparent rounded-full blur-3xl -mr-48 -mt-48 animate-pulse"></div>
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/30 via-blue-200/20 to-transparent rounded-full blur-3xl -mr-48 -mt-48 animate-pulse"></div>
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-green-200/20 via-blue-200/20 to-transparent rounded-full blur-3xl -ml-32 -mb-32"></div>
 
           {/* Grid pattern overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)] opacity-20"></div>
 
           {/* Floating decorative elements */}
-          <div className="absolute top-20 left-20 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-2xl rotate-12 backdrop-blur-sm border border-white/20"></div>
-          <div className="absolute top-40 right-32 w-16 h-16 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full backdrop-blur-sm border border-white/20"></div>
+          <div className="absolute top-20 left-20 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-blue-500/10 rounded-2xl rotate-12 backdrop-blur-sm border border-white/20"></div>
+          <div className="absolute top-40 right-32 w-16 h-16 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-full backdrop-blur-sm border border-white/20"></div>
           <div className="absolute bottom-32 right-20 w-24 h-24 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-3xl -rotate-6 backdrop-blur-sm border border-white/20"></div>
         </div>
 
@@ -163,7 +163,7 @@ export default function KnowledgeCenterPage() {
               <span>Welcome to Knowledge Hub</span>
             </div>
 
-            <h1 className="text-5xl sm:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent leading-snug">
+            <h1 className="text-5xl sm:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent leading-snug">
               Knowledge Center
             </h1>
 
@@ -180,8 +180,8 @@ export default function KnowledgeCenterPage() {
                 <span className="font-bold text-gray-900">{analytics?.total_knowledge || 0}+</span>
                 <span className="text-gray-600">Resources</span>
               </div>
-              <div className="group flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm text-gray-700 font-medium shadow-sm hover:shadow-md hover:border-purple-300/50 transition-all duration-300">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <div className="group flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm text-gray-700 font-medium shadow-sm hover:shadow-md hover:border-green-300/50 transition-all duration-300">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <Users className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-bold text-gray-900">{(analytics?.total_views || 0).toLocaleString()}+</span>
@@ -193,7 +193,7 @@ export default function KnowledgeCenterPage() {
           {/* Search Section */}
           <div className="max-w-4xl mx-auto">
             <div className="relative mb-6 group">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
               <div className="relative flex items-center bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200/50 overflow-hidden">
                 <Search className="absolute left-6 text-gray-400 w-6 h-6 transition-colors duration-300 group-hover:text-blue-500" />
                 <input
@@ -246,8 +246,8 @@ export default function KnowledgeCenterPage() {
                 onClick={() => setSelectedType("konten")}
                 className={`group px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
                   selectedType === "konten"
-                    ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/30 scale-105"
-                    : "bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white border border-gray-200/50 hover:border-purple-300 hover:shadow-md"
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-400/30 scale-105"
+                    : "bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white border border-gray-200/50 hover:border-blue-300 hover:shadow-md"
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -530,18 +530,18 @@ export default function KnowledgeCenterPage() {
       </div>
 
       {/* Popular Knowledge Carousel Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/20 relative overflow-hidden border-y border-gray-200/50">
+      <section className="py-20 bg-gradient-to-br from-blue-50/50 via-blue-50/30 to-green-50/20 relative overflow-hidden border-y border-gray-200/50">
         {/* Background decorations */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-200/20 via-purple-200/20 to-transparent rounded-full blur-3xl -ml-32 -mt-32"></div>
-          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-purple-200/20 via-pink-200/20 to-transparent rounded-full blur-3xl -mr-48 -mb-48"></div>
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-200/20 via-blue-200/20 to-transparent rounded-full blur-3xl -ml-32 -mt-32"></div>
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-green-200/20 via-blue-200/20 to-transparent rounded-full blur-3xl -mr-48 -mb-48"></div>
 
           {/* Grid pattern overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30"></div>
 
           {/* Floating decorative shapes */}
-          <div className="absolute top-32 right-32 w-16 h-16 bg-gradient-to-br from-blue-300/20 to-purple-300/20 rounded-2xl rotate-45 backdrop-blur-sm"></div>
-          <div className="absolute bottom-40 left-40 w-20 h-20 bg-gradient-to-br from-purple-300/20 to-pink-300/20 rounded-full backdrop-blur-sm"></div>
+          <div className="absolute top-32 right-32 w-16 h-16 bg-gradient-to-br from-blue-300/20 to-blue-400/20 rounded-2xl rotate-45 backdrop-blur-sm"></div>
+          <div className="absolute bottom-40 left-40 w-20 h-20 bg-gradient-to-br from-green-300/20 to-blue-300/20 rounded-full backdrop-blur-sm"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -551,7 +551,7 @@ export default function KnowledgeCenterPage() {
               <TrendingUp className="w-4 h-4" />
               <span>Most Popular</span>
             </div>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent leading-snug">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent leading-snug">
               Trending Knowledge
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -598,7 +598,7 @@ export default function KnowledgeCenterPage() {
           <div className="text-center mt-12">
             <Link
               href="/knowledge-center"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
             >
               <span>Explore All Knowledge</span>
               <TrendingUp className="w-5 h-5" />
