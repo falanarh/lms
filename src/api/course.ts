@@ -49,3 +49,10 @@ export const getCourses = async (): Promise<CourseResponse[]> => {
   const course = response.data.data;
   return course;
 };
+
+export const getCourseById = async (id: string): Promise<CourseResponse[]> => {
+  const response = await axios.get(`${API_BASE_URL}/courses/${id}`);
+  const course = response.data.data;
+  return course;
+};
+

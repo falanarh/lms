@@ -1,37 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import { mockCourseDetail, mockReviews } from "@/features/detail-course/constants";
+import { use, useState } from "react";
 import {
   CourseHeader,
   CourseThumbnail,
   CourseInfoCard,
-  EnrollButton,
   CourseTabNavigation,
   CourseInformationTab,
   CourseContentsTab,
   DiscussionForumTab,
   RatingsReviewsTab,
 } from "@/features/detail-course/components";
+import { useCourse } from "@/hooks/useCourse";
+import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
+import { CourseLayout } from "@/features/course/components";
 
 interface DetailCoursePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function DetailCoursePage({ params }: DetailCoursePageProps) {
-  const course = mockCourseDetail;
-  const [activeTab, setActiveTab] = useState("information");
-  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const { id } = use(params);
+  const { data: courseDetail, isLoading, error } = useCourse(id);
+  const { activeTab, setActiveTab } = useCourseTab(id);
   const [isEnrolled, setIsEnrolled] = useState(false);
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) =>
-      prev.includes(sectionId)
-        ? prev.filter((id) => id !== sectionId)
-        : [...prev, sectionId]
-    );
+  if (isLoading || !courseDetail) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  const course = courseDetail[0];
+
+  const handleEnrollToggle = () => {
+    setIsEnrolled(!isEnrolled);
   };
 
   const breadcrumbItems = [
@@ -41,8 +48,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   ];
 
   return (
-    <div className="min-h-screen">
-      <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
+    <CourseLayout>
         {/* Header */}
         <CourseHeader title={course.title} breadcrumbItems={breadcrumbItems} />
 
@@ -56,16 +62,12 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
           {/* Course Info */}
           <div className="space-y-4">
             <CourseInfoCard
-              category={course.category}
-              rating={course.rating}
-              totalRatings={course.totalRatings}
-              teacher={course.teacher}
-              enrolled={course.enrolled}
-              type={course.type}
-            />
-            <EnrollButton
+              category={course.description.category}
+              rating={course.averageRating}
+              totalRatings={course.totalUsers}
               isEnrolled={isEnrolled}
-              onToggle={() => setIsEnrolled(!isEnrolled)}
+              type={course.typeCourse}
+              onToggle={handleEnrollToggle}
             />
           </div>
         </div>
@@ -74,41 +76,36 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         <div className="space-y-6 pb-8">
           <CourseTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Tab Content - Information */}
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.method}
-              syllabusFile={course.syllabusFile}
-              zoomLink={course.zoomLink}
-              quota={course.quota}
-              description={course.description}
+              method={course.description.method}
+              syllabusFile=""
+              zoomLink=""
+              quota={course.description.quota}
+              description={course.description.description}
             />
           )}
 
-          {/* Tab Content - Course Contents */}
           {activeTab === "course_contents" && (
             <CourseContentsTab
-              sections={course.sections}
+              sections={[]}
               isEnrolled={isEnrolled}
-              expandedSections={expandedSections}
-              onToggleSection={toggleSection}
+              expandedSections={[]}
+              onToggleSection={() => {}}
             />
           )}
 
-          {/* Tab Content - Discussion Forum */}
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
 
-          {/* Tab Content - Ratings & Reviews */}
           {activeTab === "ratings_reviews" && (
             <RatingsReviewsTab
-              averageRating={course.rating}
-              totalRatings={course.totalRatings}
-              ratingDistribution={course.ratingDistribution}
-              reviews={mockReviews}
+              averageRating={course.averageRating}
+              totalRatings={course.totalUsers}
+              ratingDistribution={{ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }}
+              reviews={[]}
             />
           )}
         </div>
-      </div>
-    </div>
-  );
+      </CourseLayout>
+    );
 }

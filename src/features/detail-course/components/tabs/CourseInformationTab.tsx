@@ -1,5 +1,5 @@
-import { CourseInfoCards } from "./CourseInfoCards";
-import { CourseDescription } from "./CourseDescription";
+import { CourseInfoCards } from "../CourseInfoCards";
+import { CourseDescription } from "../CourseDescription";
 
 interface CourseInformationTabProps {
   method: string;

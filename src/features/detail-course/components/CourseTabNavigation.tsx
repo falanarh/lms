@@ -1,28 +1,29 @@
 import { Info, List, MessageSquare, Star, ChevronDown } from "lucide-react";
+import { CourseTabType, TabConfig } from "../types/tab";
 
 interface CourseTabNavigationProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: CourseTabType;
+  onTabChange: (tab: CourseTabType) => void;
 }
 
-const tabs = [
+const tabs: TabConfig[] = [
   {
-    key: "information",
+    key: "information" as CourseTabType,
     label: "Information",
     icon: <Info className="w-4 h-4" />,
   },
   {
-    key: "course_contents",
+    key: "course_contents" as CourseTabType,
     label: "Course Contents",
     icon: <List className="w-4 h-4" />,
   },
   {
-    key: "discussion_forum",
+    key: "discussion_forum" as CourseTabType,
     label: "Discussion Forum",
     icon: <MessageSquare className="w-4 h-4" />,
   },
   {
-    key: "ratings_reviews",
+    key: "ratings_reviews" as CourseTabType,
     label: "Ratings & Reviews",
     icon: <Star className="w-4 h-4" />,
   },
@@ -39,7 +40,7 @@ export const CourseTabNavigation = ({
         <div className="relative">
           <select
             value={activeTab}
-            onChange={(e) => onTabChange(e.target.value)}
+            onChange={(e) => onTabChange(e.target.value as CourseTabType)}
             className="w-full h-[48px] px-4 pr-10 bg-white border-2 border-gray-200 rounded-xl appearance-none text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
           >
             <option value="information">Information</option>

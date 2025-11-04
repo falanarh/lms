@@ -10,7 +10,7 @@ import {
   CourseHeader,
   CourseLayout,
 } from "@/features/course/components";
-import { useCourses } from "@/hooks/useCourse";
+import { useCourses } from "@/hooks/useCourses";
 
 const COURSES_PER_PAGE = 4;
 

@@ -1,5 +1,5 @@
 import { BookOpen } from "lucide-react";
-import { CourseSectionItem } from "./CourseSectionItem";
+import { CourseSectionItem } from "../CourseSectionItem";
 
 interface Activity {
   id: string;

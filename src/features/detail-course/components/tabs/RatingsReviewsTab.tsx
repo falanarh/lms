@@ -1,5 +1,5 @@
 import { RatingSummaryCard } from "@/features/course/components/RatingSummaryCard";
-import { ReviewCard } from "./ReviewCard";
+import { ReviewCard } from "../ReviewCard";
 
 interface Review {
   id: string;
