@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search,
   Plus,
@@ -10,6 +10,8 @@ import {
   Users,
   BookOpen,
   LayoutGrid,
+  TrendingUp,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -78,6 +80,35 @@ export default function KnowledgeCenterPage() {
       })
       .slice(0, 3);
   }, [upcomingWebinars]);
+
+  // Get popular knowledge for carousel
+  const { data: popularKnowledge } = useKnowledge({
+    sort: "most_liked",
+    limit: 10,
+  });
+
+  // Auto-scroll carousel state
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Auto-scroll effect
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel || isPaused) return;
+
+    const scrollSpeed = 1; // pixels per interval
+    const intervalTime = 30; // milliseconds
+
+    const interval = setInterval(() => {
+      if (carousel.scrollLeft >= carousel.scrollWidth - carousel.clientWidth) {
+        carousel.scrollLeft = 0;
+      } else {
+        carousel.scrollLeft += scrollSpeed;
+      }
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
 
   // Get unique categories/subjects from all knowledge data (not just current page)
   const categories = useMemo(() => {
@@ -498,30 +529,118 @@ export default function KnowledgeCenterPage() {
         </div>
       </div>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">
-            Contribute to Our Knowledge Center
-          </h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Share your expertise and help build the most comprehensive resource
-            for statistical learning.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/knowledge-center/create"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-white text-blue-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+      {/* Popular Knowledge Carousel Section */}
+      <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm text-white font-medium mb-4">
+              <TrendingUp className="w-4 h-4" />
+              <span>Most Popular</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+              Trending Knowledge
+            </h2>
+            <p className="text-xl text-blue-200 max-w-2xl mx-auto">
+              Discover the most loved resources by our community
+            </p>
+          </div>
+
+          {/* Carousel Container */}
+          <div className="relative">
+            <div
+              ref={carouselRef}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+              className="flex gap-6 overflow-x-hidden py-4 scrollbar-hide"
+              style={{ scrollBehavior: "smooth" }}
             >
-              <Plus className="w-5 h-5" />
-              Create New Content
-            </Link>
+              {/* Duplicate items for infinite scroll effect */}
+              {popularKnowledge && popularKnowledge.length > 0 && (
+                <>
+                  {[...popularKnowledge, ...popularKnowledge].map((knowledge, index) => (
+                    <Link
+                      key={`${knowledge.id}-${index}`}
+                      href={`/knowledge-center/${knowledge.id}`}
+                      className="group flex-shrink-0 w-80 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20"
+                    >
+                      {/* Thumbnail */}
+                      <div className="relative h-48 bg-gradient-to-br from-blue-600 to-purple-600 overflow-hidden">
+                        {knowledge.thumbnail ? (
+                          <Image
+                            src={knowledge.thumbnail}
+                            alt={knowledge.title}
+                            fill
+                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <BookOpen className="w-16 h-16 text-white/40" />
+                          </div>
+                        )}
+                        {/* Overlay gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+                        {/* Popular Badge */}
+                        <div className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1 bg-yellow-500 rounded-full text-xs font-bold text-white shadow-lg">
+                          <Star className="w-3 h-3 fill-white" />
+                          <span>Popular</span>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-5">
+                        <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-blue-300 transition-colors">
+                          {knowledge.title}
+                        </h3>
+                        <p className="text-sm text-blue-200/80 mb-4 line-clamp-2">
+                          {knowledge.description}
+                        </p>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 text-xs text-white/60">
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp className="w-3 h-3" />
+                            <span>{knowledge.like_count || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            <span>{knowledge.view_count || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <BookOpen className="w-3 h-3" />
+                            <span className="capitalize">{knowledge.knowledge_type}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Pause indicator */}
+            {isPaused && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full text-white text-sm font-medium pointer-events-none">
+                Paused
+              </div>
+            )}
+          </div>
+
+          {/* View All Button */}
+          <div className="text-center mt-12">
             <Link
-              href="/knowledge-center/manage"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors font-medium"
+              href="/knowledge-center"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-white text-blue-900 rounded-xl hover:bg-blue-50 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
             >
-              <BookOpen className="w-5 h-5" />
-              Manage Resources
+              <span>Explore All Knowledge</span>
+              <TrendingUp className="w-5 h-5" />
             </Link>
           </div>
         </div>
