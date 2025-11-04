@@ -28,7 +28,7 @@ export type CourseGroup = {
   updatedAt: string;
 };
 
-export type Course = {
+export type CourseResponse = {
   id: string;
   title: string;
   idManager: string;
@@ -44,7 +44,7 @@ export type Course = {
   totalUsers: number;
 };
 
-export const getCourses = async (): Promise<Course[]> => {
+export const getCourses = async (): Promise<CourseResponse[]> => {
   const response = await axios.get(`${API_BASE_URL}/courses`);
   const course = response.data;
   return course;

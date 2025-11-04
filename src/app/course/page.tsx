@@ -33,7 +33,7 @@ export default function CoursePage() {
         .includes(debouncedSearchQuery.toLowerCase());
       const matchesCategory =
         selectedCategory === "All Categories" ||
-        course.categories === selectedCategory;
+        course.description.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
 
@@ -44,9 +44,9 @@ export default function CoursePage() {
         case "title-desc":
           return b.title.localeCompare(a.title);
         case "rating-desc":
-          return b.rating - a.rating;
+          return b.averageRating - a.averageRating;
         case "students-desc":
-          return b.totalStudents - a.totalStudents;
+          return b.totalUsers - a.totalUsers;
         default:
           return 0;
       }
