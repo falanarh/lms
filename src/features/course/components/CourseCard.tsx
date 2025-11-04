@@ -1,8 +1,10 @@
-import { Star, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { Badge } from "@/components/ui/Badge/Badge";
 import { Course, ViewModeValue } from "../types";
 import { ArrowRight } from "lucide-react";
 import { TeacherAvatar } from "./TeacherAvatar";
+import { renderStars } from "../hooks/stars";
+import Link from "next/link";
 
 interface CourseCardProps {
   course: Course;
@@ -10,33 +12,10 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
-  const renderStars = () => {
-    const stars = [];
-    const fullStars = Math.floor(course.averageRating);
-    const hasHalfStar = course.averageRating % 1 !== 0;
-
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push(
-          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-        );
-      } else if (i === fullStars && hasHalfStar) {
-        stars.push(
-          <Star
-            key={i}
-            className="w-4 h-4 fill-yellow-400/50 text-yellow-400"
-          />
-        );
-      } else {
-        stars.push(<Star key={i} className="w-4 h-4 text-gray-300" />);
-      }
-    }
-    return stars;
-  };
-
   if (viewMode === "grid-4") {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:shadow-lg hover:cursor-pointer group">
+      <Link href={`/course/${course.id}`}>
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:shadow-lg hover:cursor-pointer group">
         <div className="aspect-video relative overflow-hidden">
           <img
             src={
@@ -68,7 +47,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
 
           <div className="mt-3 space-y-2">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">{renderStars()}</div>
+              <div className="flex items-center gap-1">{renderStars(course.averageRating)}</div>
               <span className="text-sm font-medium text-zinc-700">
                 {course.averageRating}/5.00
               </span>
@@ -90,13 +69,15 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </Link>
     );
   }
 
   if (viewMode === "grid-2") {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
+      <Link href={`/course/${course.id}`}>
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300 hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
         <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
           <img
             src={
@@ -128,7 +109,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
 
           <div className="mt-3 space-y-2">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">{renderStars()}</div>
+              <div className="flex items-center gap-1">{renderStars(course.averageRating)}</div>
               <span className="text-sm font-medium text-zinc-700">
                 {course.averageRating}/5.00
               </span>
@@ -150,13 +131,15 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </Link>
     );
   }
 
   if (viewMode === "list") {
     return (
-      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300  hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
+      <Link href={`/course/${course.id}`}>
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden transition-transform duration-300  hover:shadow-lg group hover:cursor-pointer flex flex-col md:flex-row">
         <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
           <img
             src={
@@ -191,7 +174,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
 
           <div className="mt-3 space-y-2">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">{renderStars()}</div>
+              <div className="flex items-center gap-1">{renderStars(course.averageRating)}</div>
               <span className="text-sm font-medium text-zinc-700">
                 {course.averageRating}/5.00
               </span>
@@ -213,7 +196,8 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </Link>
     );
   }
 
