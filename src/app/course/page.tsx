@@ -1,81 +1,114 @@
-"use client"
+"use client";
 
-import { useState } from "react";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import Tabs, { TabItem } from "@/components/ui/Tabs";
-import { SectionActivities } from "@/features/course/components/SectionActivities";
-import { Drawer } from "@/components/ui/Drawer";
-import { ActivityDrawerContent } from "@/features/course/components/ActivityDrawerContent";
+import { useState, useEffect, useMemo } from "react";
+import { ViewModeValue } from "@/features/course/types";
+import { useDebounce } from "@/hooks/useDebounce";
+import { Pagination } from "@/components/shared/Pagination/Pagination";
+import {
+  CourseFilters,
+  CourseGrid,
+  CourseHeader,
+  CourseLayout,
+} from "@/features/course/components";
+import { useCourses } from "@/hooks/useCourse";
+
+const COURSES_PER_PAGE = 4;
 
 export default function CoursePage() {
-  const [activeTab, setActiveTab] = useState("section_activities");
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [sortBy, setSortBy] = useState("title-asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<ViewModeValue>("grid-4");
 
-  const baseItems: TabItem[] = [
-    { key: "section_activities", label: "Section & Aktivitas" },
-    { key: "peserta", label: "Peserta", counter: 12 },
-    { key: "penilaian", label: "Penilaian" },
-  ];
+  const { data, isPending, isFetching } = useCourses();
+  const courses = data ?? [];
 
-  const panels = {
-    section_activities: <SectionActivities onAddActivity={() => setIsDrawerOpen(true)} />,
-    peserta: <div>Peserta Content</div>,
-    penilaian: <div>Penilaian Content</div>,
-  } as const;
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  const filteredAndSortedCourses = useMemo(() => {
+    let filtered = courses.filter((course) => {
+      const matchesSearch = course.title
+        .toLowerCase()
+        .includes(debouncedSearchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "All Categories" ||
+        course.categories === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "title-asc":
+          return a.title.localeCompare(b.title);
+        case "title-desc":
+          return b.title.localeCompare(a.title);
+        case "rating-desc":
+          return b.rating - a.rating;
+        case "students-desc":
+          return b.totalStudents - a.totalStudents;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [courses, debouncedSearchQuery, selectedCategory, sortBy]);
+
+  const totalPages = Math.ceil(
+    filteredAndSortedCourses.length / COURSES_PER_PAGE
+  );
+
+  const paginatedCourses = useMemo(() => {
+    const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
+    const endIndex = startIndex + COURSES_PER_PAGE;
+    return filteredAndSortedCourses.slice(startIndex, endIndex);
+  }, [filteredAndSortedCourses, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, selectedCategory, sortBy]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <div className="min-h-screen">
-      {/* Container with max-width for better readability on large screens */}
-        {/* Content wrapper with consistent horizontal padding */}
-        <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
-          {/* Top section with breadcrumb and header */}
-          <div className="py-6 space-y-6">
+    <CourseLayout>
+      <CourseHeader
+        title="All Course"
+        subtitle="Explore our comprehensive collection of professional courses"
+      />
 
-            {/* Breadcrumb */}
-          {/* Desktop & Tablet */}
-          <div className="pt-2 hidden md:block">
-            <Breadcrumb separator="chevron" items={baseItems} />
-          </div>
+      <CourseFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
-          {/* Mobile */}
-          <div className="pt-2 block md:hidden">
-            <Breadcrumb separator="slash" items={baseItems} size="sm" />
-          </div>
-         
-            {/* Page header with improved spacing */}
-            <div className="space-y-2">
-              <h1 className="font-bold text-3xl lg:text-4xl text-zinc-900 tracking-tight">
-                Manage Course
-              </h1>
-              <p className="text-base text-zinc-600 leading-relaxed">
-                Kelola course, peserta, dan penilaian
-              </p>
-            </div>
-          </div>
+      <CourseGrid
+        courses={paginatedCourses}
+        viewMode={viewMode}
+        isLoading={isPending || isFetching}
+      />
 
-          {/* Tabs section with proper spacing */}
-          <div className="pb-8">
-            <Tabs 
-              items={baseItems} 
-              panels={panels} 
-              activeKey={activeTab} 
-              onChange={setActiveTab} 
-              variant="underline" 
-              size="lg" 
-            />
-          </div>
-      </div>
-
-      {/* Drawer */}
-      <Drawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        title="Tambah Aktivitas"
-        size="xl"
-        showFooter={false}
-      >
-        <ActivityDrawerContent onClose={() => setIsDrawerOpen(false)} />
-      </Drawer>
-    </div>
+      {totalPages > 1 && (
+        <Pagination
+          totalPages={totalPages}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          size="md"
+          showPrevNext={true}
+          siblingCount={1}
+          boundaryCount={1}
+        />
+      )}
+    </CourseLayout>
   );
 }

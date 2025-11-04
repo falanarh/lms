@@ -2,7 +2,8 @@
 
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Navbar, NavItem } from "./Navbar";
+
+import { Navbar, NavItem } from '@/components/layout/Navbar/Navbar';
 
 interface NavbarClientProps {
   items: NavItem[];

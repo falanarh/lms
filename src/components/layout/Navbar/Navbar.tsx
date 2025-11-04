@@ -1,5 +1,6 @@
 "use client";
 import { Bell, User2, Menu, X } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 
 export type NavbarVariant = "solid" | "outline" | "ghost";
@@ -24,7 +25,10 @@ export type NavbarProps = {
   brandTitle?: string;
   brandIcon?: React.ReactNode;
   showNotifications?: boolean;
+  onNotificationClick?: () => void;
+  notificationBadge?: React.ReactNode;
   user?: { name?: string; role?: string; avatarUrl?: string };
+  rightAction?: React.ReactNode;
   className?: string;
   "aria-label"?: string;
 };
@@ -74,15 +78,21 @@ export function Navbar({
   activeKey = "my-course",
   onItemSelect,
   brandTitle = "E-Warkop",
-  brandIcon,
-  showNotifications = true,
-  user = { name: "", role: "Manager", avatarUrl: "" },
+  brandIcon = <LogoEwarkop />,
+  showNotifications = false,
+  onNotificationClick,
+  notificationBadge,
+  user,
+  rightAction,
   className,
   "aria-label": ariaLabel = "Main Navigation",
 }: NavbarProps) {
   const isDisabled = !!disabled || !!isLoading;
   const sz = sizeMap[size];
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  // Only show user section if user is provided
+  const showUserSection = !!user;
 
   return (
     <>
@@ -94,16 +104,16 @@ export function Navbar({
         <div className={`mx-auto ${sz.container} ${sz.height} flex items-center justify-between`}>
           {/* Brand */}
           <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-            <div className="flex-shrink-0">
+            <Link href={"/"} className="flex-shrink-0">
               {brandIcon || <DefaultBrandIcon />}
-            </div>
-            <span className="font-semibold text-lg text-gray-900 truncate">
+            </Link>
+            {/* <span className="font-semibold text-lg text-gray-900 truncate">
               {brandTitle}
-            </span>
+            </span> */}
           </div>
 
-          {/* Desktop Menu */}
-          <ul className={`hidden lg:flex items-center justify-center ${sz.gap}`}>
+          {/* Desktop Menu - Centered */}
+          <ul className={`hidden lg:flex items-center justify-center ${sz.gap} absolute left-1/2 -translate-x-1/2`}>
             {items.map((item) => {
               const active = item.key === activeKey;
               const isItemDisabled = isDisabled || item.disabled;
@@ -125,41 +135,47 @@ export function Navbar({
             })}
           </ul>
 
-          {/* Desktop Actions */}
+          {/* Desktop Right Actions */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
-            {isLoading ? (
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
-                <div className="h-6 w-24 rounded-full bg-gray-200 animate-pulse" />
-              </div>
-            ) : (
-              <>
-                {showNotifications && (
-                  <button
-                    type="button"
-                    className="size-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 hover:scale-105 active:scale-95"
-                    aria-label="Notifications"
-                    disabled={isDisabled}
-                  >
-                    <Bell size={18} />
-                  </button>
-                )}
-                <button
-                  className="size-10 rounded-full flex items-center justify-center overflow-hidden bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 hover:scale-105 active:scale-95"
-                  aria-label="User profile"
-                >
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="size-full object-cover" />
-                  ) : (
-                    <User2 size={20} />
+            {showUserSection ? (
+              isLoading ? (
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="h-6 w-24 rounded-full bg-gray-200 animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  {showNotifications && (
+                    <button
+                      type="button"
+                      className="relative size-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 hover:scale-105 active:scale-95"
+                      aria-label="Notifications"
+                      disabled={isDisabled}
+                      onClick={onNotificationClick}
+                    >
+                      <Bell size={18} />
+                      {notificationBadge}
+                    </button>
                   )}
-                </button>
-                {user?.role && (
-                  <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-900">
-                    {user.role}
-                  </span>
-                )}
-              </>
+                  <button
+                    className="size-10 rounded-full flex items-center justify-center overflow-hidden bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 hover:scale-105 active:scale-95"
+                    aria-label="User profile"
+                  >
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                    ) : (
+                      <User2 size={20} />
+                    )}
+                  </button>
+                  {user?.role && (
+                    <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-900">
+                      {user.role}
+                    </span>
+                  )}
+                </>
+              )
+            ) : (
+              rightAction
             )}
           </div>
 
@@ -187,7 +203,7 @@ export function Navbar({
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="lg:hidden fixed inset-0 g-white/30 backdrop-invert backdrop-opacity-20 z-40 transition-opacity duration-300"
+          className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -209,37 +225,46 @@ export function Navbar({
             </button>
           </div>
 
-          {/* User Section */}
-          {!isLoading && (
-            <div className="flex items-center gap-3 p-4 rounded-2xl bg-gray-50">
-              <button
-                className="size-12 rounded-full flex items-center justify-center overflow-hidden bg-white text-gray-600 flex-shrink-0"
-              >
-                {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="size-full object-cover" />
-                ) : (
-                  <User2 size={24} />
-                )}
-              </button>
-              <div className="flex-1 min-w-0">
-                {user?.name && (
-                  <p className="font-semibold text-sm text-gray-900 truncate">
-                    {user.name}
-                  </p>
-                )}
-                {user?.role && (
-                  <p className="text-xs text-gray-600 mt-0.5">{user.role}</p>
+          {/* User Section or Right Action - Only show if user exists or rightAction provided */}
+          {showUserSection ? (
+            !isLoading && (
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-gray-50">
+                <button
+                  className="size-12 rounded-full flex items-center justify-center overflow-hidden bg-white text-gray-600 flex-shrink-0"
+                >
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <User2 size={24} />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  {user?.name && (
+                    <p className="font-semibold text-sm text-gray-900 truncate">
+                      {user.name}
+                    </p>
+                  )}
+                  {user?.role && (
+                    <p className="text-xs text-gray-600 mt-0.5">{user.role}</p>
+                  )}
+                </div>
+                {showNotifications && (
+                  <button
+                    className="relative size-10 rounded-full flex items-center justify-center bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
+                    aria-label="Notifications"
+                    onClick={() => {
+                      onNotificationClick?.();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <Bell size={18} />
+                    {notificationBadge}
+                  </button>
                 )}
               </div>
-              {showNotifications && (
-                <button
-                  className="size-10 rounded-full flex items-center justify-center bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-all"
-                  aria-label="Notifications"
-                >
-                  <Bell size={18} />
-                </button>
-              )}
-            </div>
+            )
+          ) : (
+            rightAction && <div className="flex justify-center">{rightAction}</div>
           )}
 
           {/* Menu Items */}
@@ -303,5 +328,17 @@ function DefaultBrandIcon() {
       <circle cx="16" cy="16" r="16" fill="#2563eb" />
       <path d="M10 17l4 4 8-8" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function LogoEwarkop() {
+  return (
+    <img 
+      src="/logo_ewarkop.webp" 
+      alt="E-Warkop Logo" 
+      width={128} 
+      height={128}
+      className="object-contain"
+    />
   );
 }

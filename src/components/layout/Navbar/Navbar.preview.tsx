@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Navbar } from "@/components/layout/Navbar";
+import { Navbar } from "./Navbar";
 
 export default function NavbarPreview() {
   const [active, setActive] = React.useState("my-course");
