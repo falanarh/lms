@@ -516,7 +516,7 @@ export default function KnowledgeSettingsPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

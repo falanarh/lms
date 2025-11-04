@@ -241,11 +241,36 @@ export default function MediaViewer({
     </div>
   );
 
+  const renderArticleViewer = () => (
+    <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+      <div className="bg-gray-50 border-b border-gray-200 p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <FileText className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            {title && (
+              <h3 className="font-semibold text-gray-900">{title}</h3>
+            )}
+            <p className="text-sm text-gray-600">Article</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-8 prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900">
+        <div className="text-gray-700">
+          <p>This is an article type content. The full article content should be displayed in the detail page using the content_richtext field.</p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className={`relative ${className}`}>
       {type === 'video' && renderVideoPlayer()}
       {type === 'audio' && renderAudioPlayer()}
       {type === 'pdf' && renderPDFViewer()}
+      {type === 'article' && renderArticleViewer()}
 
       {onClose && type !== 'pdf' && (
         <button

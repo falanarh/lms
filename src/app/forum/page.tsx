@@ -53,7 +53,7 @@ export default function ForumPage() {
         <Button
           onClick={handleCreateForum}
           leftIcon={<Plus className="w-4 h-4" />}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+          className="bg-[var(--color-primary,#2563eb)] hover:bg-[var(--color-primary-hover,#1d4ed8)] text-white shadow-sm hover:shadow-md transition-all duration-200"
         >
           Buat Forum
         </Button>

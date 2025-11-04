@@ -3,11 +3,11 @@
 
 export type KnowledgeType = 'webinar' | 'konten';
 
-export type MediaType = 'video' | 'pdf' | 'audio';
+export type MediaType = 'video' | 'pdf' | 'audio' | 'article';
 
 export type KnowledgeStatus = 'draft' | 'scheduled' | 'published' | 'archived';
 
-export type SortOption = 'newest' | 'most_liked' | 'most_viewed' | 'upcoming_webinar';
+export type SortOption = 'newest' | 'oldest' | 'most_liked' | 'most_viewed' | 'upcoming_webinar' | 'popular' | 'likes' | 'title';
 
 export interface KnowledgeCommon {
   id?: string;

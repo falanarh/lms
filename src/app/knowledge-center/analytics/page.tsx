@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-900 transition-colors"
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary,#2563eb)] focus:border-[var(--color-primary,#2563eb)] transition-all"
               >
                 {timeRanges.map(range => (
                   <option key={range.value} value={range.value}>
@@ -221,14 +221,14 @@ export default function AnalyticsPage() {
 
               <button
                 onClick={() => refetch()}
-                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="p-2 border border-gray-200 rounded-lg hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:border-[var(--color-primary,#2563eb)] transition-all"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4 text-gray-600" />
               </button>
 
               <button
                 onClick={exportData}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary,#2563eb)] text-white rounded-lg hover:bg-[var(--color-primary-hover,#1d4ed8)] transition-colors shadow-sm hover:shadow-md"
               >
                 <Download className="w-4 h-4" />
                 Export
@@ -242,12 +242,12 @@ export default function AnalyticsPage() {
         {/* Overview Cards */}
         {analytics && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <BookOpen className="w-6 h-6 text-gray-700" />
+                <div className="p-3 bg-white rounded-lg border border-blue-200 shadow-sm">
+                  <BookOpen className="w-6 h-6 text-[var(--color-primary,#2563eb)]" />
                 </div>
-                <div className="flex items-center text-gray-600 text-sm">
+                <div className="flex items-center text-green-600 text-sm">
                   <TrendingUp className="w-4 h-4 mr-1" />
                   <span>12%</span>
                 </div>
@@ -256,12 +256,12 @@ export default function AnalyticsPage() {
               <p className="text-gray-600 text-sm">Total Knowledge</p>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <Calendar className="w-6 h-6 text-gray-700" />
+                <div className="p-3 bg-white rounded-lg border border-purple-200 shadow-sm">
+                  <Calendar className="w-6 h-6 text-purple-600" />
                 </div>
-                <div className="flex items-center text-gray-600 text-sm">
+                <div className="flex items-center text-green-600 text-sm">
                   <TrendingUp className="w-4 h-4 mr-1" />
                   <span>8%</span>
                 </div>
@@ -270,12 +270,12 @@ export default function AnalyticsPage() {
               <p className="text-gray-600 text-sm">Total Webinars</p>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-100 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <Eye className="w-6 h-6 text-gray-700" />
+                <div className="p-3 bg-white rounded-lg border border-teal-200 shadow-sm">
+                  <Eye className="w-6 h-6 text-teal-600" />
                 </div>
-                <div className="flex items-center text-gray-600 text-sm">
+                <div className="flex items-center text-green-600 text-sm">
                   <TrendingUp className="w-4 h-4 mr-1" />
                   <span>23%</span>
                 </div>
@@ -286,12 +286,12 @@ export default function AnalyticsPage() {
               <p className="text-gray-600 text-sm">Total Views</p>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <ThumbsUp className="w-6 h-6 text-gray-700" />
+                <div className="p-3 bg-white rounded-lg border border-orange-200 shadow-sm">
+                  <ThumbsUp className="w-6 h-6 text-orange-600" />
                 </div>
-                <div className="flex items-center text-gray-600 text-sm">
+                <div className="flex items-center text-red-600 text-sm">
                   <TrendingDown className="w-4 h-4 mr-1" />
                   <span>5%</span>
                 </div>
@@ -315,10 +315,10 @@ export default function AnalyticsPage() {
                     <button
                       key={metric.value}
                       onClick={() => setSelectedMetric(metric.value as any)}
-                      className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm transition-all ${
                         selectedMetric === metric.value
-                          ? 'bg-gray-900 text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-[var(--color-primary,#2563eb)] text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:text-[var(--color-primary,#2563eb)]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -339,8 +339,10 @@ export default function AnalyticsPage() {
                 <Line
                   type="monotone"
                   dataKey={selectedMetric}
-                  stroke={selectedMetric === 'views' ? '#3B82F6' : selectedMetric === 'likes' ? '#10B981' : '#8B5CF6'}
+                  stroke={selectedMetric === 'views' ? 'var(--color-primary,#2563eb)' : selectedMetric === 'likes' ? '#10B981' : '#8B5CF6'}
                   strokeWidth={2}
+                  dot={{ fill: selectedMetric === 'views' ? 'var(--color-primary,#2563eb)' : selectedMetric === 'likes' ? '#10B981' : '#8B5CF6', r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -388,7 +390,7 @@ export default function AnalyticsPage() {
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="count" fill="#3B82F6" />
+              <Bar dataKey="count" fill="var(--color-primary,#2563eb)" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -455,7 +457,7 @@ export default function AnalyticsPage() {
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-blue-600 h-2 rounded-full"
+                            className="bg-[var(--color-primary,#2563eb)] h-2 rounded-full transition-all duration-300"
                             style={{ width: `${Math.min(item.engagementRate, 100)}%` }}
                           ></div>
                         </div>
@@ -480,7 +482,7 @@ export default function AnalyticsPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

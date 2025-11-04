@@ -78,13 +78,13 @@ function usePagination(
   }
 
   const startPages = range(1, Math.min(boundaryCount, totalPages));
-  const endPages = range(Math.max(totalPages - boundaryCount + 1, boundaryCount + 1), totalPages);
+  const endPages = range(Math.max(totalPages - boundaryCount + 1, 1), totalPages);
 
-  const leftSibling = Math.max(currentPage - siblingCount, boundaryCount + 2);
-  const rightSibling = Math.min(currentPage + siblingCount, totalPages - boundaryCount - 1);
+  const leftSibling = Math.max(currentPage - siblingCount, boundaryCount + 1);
+  const rightSibling = Math.min(currentPage + siblingCount, totalPages - boundaryCount);
 
-  const showLeftEllipsis = leftSibling > boundaryCount + 2;
-  const showRightEllipsis = rightSibling < totalPages - boundaryCount - 1;
+  const showLeftEllipsis = leftSibling > boundaryCount + 1;
+  const showRightEllipsis = rightSibling < totalPages - boundaryCount;
 
   const middle = range(leftSibling, rightSibling);
 

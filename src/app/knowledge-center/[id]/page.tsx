@@ -26,6 +26,7 @@ import {
   Heart,
   X,
   Headphones,
+  BookOpen,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -207,7 +208,7 @@ export default function KnowledgeDetailPage() {
       {/* Article Content */}
       <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Article Header */}
-        <header className="mb-12">
+        <header className="mb-4">
           {/* Meta Information */}
           <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-gray-600">
             <span className="font-medium text-gray-900">
@@ -249,6 +250,67 @@ export default function KnowledgeDetailPage() {
           <p className="text-xl text-gray-700 leading-relaxed mt-6">
             {knowledge.description}
           </p>
+
+          {/* Metadata Grid - All Required Fields */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Knowledge Type */}
+            <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="mt-0.5">
+                {getMediaIcon()}
+              </div>
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 mb-1">Knowledge Type</div>
+                <div className="font-medium text-gray-900">
+                  {isWebinar ? 'Webinar' : `Content - ${(knowledge as any).media_type || 'Article'}`}
+                </div>
+              </div>
+            </div>
+
+            {/* Subject */}
+            {knowledge.subject && (
+              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="mt-0.5">
+                  <BookOpen className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 mb-1">Subject</div>
+                  <div className="font-medium text-gray-900 capitalize">{knowledge.subject}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Penyelenggara */}
+            {knowledge.penyelenggara && (
+              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="mt-0.5">
+                  <Users className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 mb-1">Organizer</div>
+                  <div className="font-medium text-gray-900">{knowledge.penyelenggara}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Published Date */}
+            {knowledge.published_at && (
+              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="mt-0.5">
+                  <Calendar className="w-5 h-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 mb-1">Published</div>
+                  <div className="font-medium text-gray-900">
+                    {new Date(knowledge.published_at).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </header>
 
       {/* Action Bar */}
@@ -286,15 +348,8 @@ export default function KnowledgeDetailPage() {
           )}
         </div>
 
-        {/* Content */}
-        {knowledge.content_richtext && (
-          <div className="prose prose-lg max-w-none mb-12">
-            <div dangerouslySetInnerHTML={{ __html: knowledge.content_richtext }} />
-          </div>
-        )}
-
-        {/* Media Content */}
-        {(knowledge as any).media_resource && (
+        {/* Media Content for Video, Audio, PDF */}
+        {!isWebinar && (knowledge as any).media_type && ['video', 'audio', 'pdf'].includes((knowledge as any).media_type) && (knowledge as any).media_resource && (
           <div className="mb-12">
             <MediaViewer
               src={(knowledge as any).media_resource}
@@ -302,6 +357,27 @@ export default function KnowledgeDetailPage() {
               title={knowledge.title}
               className="w-full rounded-lg"
             />
+          </div>
+        )}
+
+        {/* Article Content - Full Rich Text */}
+        {!isWebinar && (knowledge as any).media_type === 'article' && knowledge.content_richtext && (
+          <div className="mb-12">
+            <article className="article-content">
+              <div dangerouslySetInnerHTML={{ __html: knowledge.content_richtext }} />
+            </article>
+          </div>
+        )}
+
+        {/* Webinar Content Preview */}
+        {isWebinar && knowledge.content_richtext && (
+          <div className="mb-12">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">About This Webinar</h3>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700">
+                <div dangerouslySetInnerHTML={{ __html: knowledge.content_richtext }} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -389,16 +465,17 @@ export default function KnowledgeDetailPage() {
         {relatedKnowledge && relatedKnowledge.length > 0 && (
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-6">Related Content</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
               {relatedKnowledge
                 .filter(item => item.id !== knowledge.id)
                 .slice(0, 4)
                 .map((item) => (
-                  <KnowledgeCard
-                    key={item.id}
-                    knowledge={item}
-                    className="h-full"
-                  />
+                  <div key={item.id} className="h-full min-h-[500px]">
+                    <KnowledgeCard
+                      knowledge={item}
+                      className="h-full w-full"
+                    />
+                  </div>
                 ))}
             </div>
           </div>

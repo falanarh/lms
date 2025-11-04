@@ -238,7 +238,7 @@ export default function TaxonomyManagerPage() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-900 transition-colors"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary,#2563eb)] focus:border-[var(--color-primary,#2563eb)] transition-all"
                 placeholder={`Enter ${activeTab.slice(0, -1)} name`}
                 required
               />
@@ -252,7 +252,7 @@ export default function TaxonomyManagerPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-900 transition-colors"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary,#2563eb)] focus:border-[var(--color-primary,#2563eb)] transition-all"
                 placeholder={`Enter ${activeTab.slice(0, -1)} description`}
               />
             </div>
@@ -273,7 +273,7 @@ export default function TaxonomyManagerPage() {
                     type="text"
                     value={formData.color}
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary,#2563eb)] focus:border-[var(--color-primary,#2563eb)] transition-all"
                     placeholder="#3B82F6"
                   />
                 </div>
@@ -284,14 +284,14 @@ export default function TaxonomyManagerPage() {
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading || !formData.name.trim()}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 bg-[var(--color-primary,#2563eb)] text-white rounded-lg hover:bg-[var(--color-primary-hover,#1d4ed8)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow-md"
               >
                 {isLoading ? 'Saving...' : (editingItem ? 'Update' : 'Create')}
               </button>
@@ -367,14 +367,14 @@ export default function TaxonomyManagerPage() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleEdit(item)}
-                        className="p-1 text-gray-600 hover:text-blue-600"
+                        className="p-1 text-gray-600 hover:text-[var(--color-primary,#2563eb)] transition-colors"
                         title="Edit"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="p-1 text-gray-600 hover:text-red-600"
+                        className="p-1 text-gray-600 hover:text-red-500 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -400,7 +400,7 @@ export default function TaxonomyManagerPage() {
             </p>
             <button
               onClick={handleCreate}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-primary,#2563eb)] text-white rounded-lg hover:bg-[var(--color-primary-hover,#1d4ed8)] transition-colors shadow-sm hover:shadow-md"
             >
               <Plus className="w-5 h-5" />
               Create {activeTab.slice(0, -1)}
@@ -427,23 +427,23 @@ export default function TaxonomyManagerPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleImportCSV}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:border-[var(--color-primary,#2563eb)] transition-all"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="w-4 h-4 text-gray-600" />
                 Import CSV
               </button>
 
               <button
                 onClick={handleExportCSV}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))] hover:border-[var(--color-primary,#2563eb)] transition-all"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4 text-gray-600" />
                 Export CSV
               </button>
 
               <button
                 onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary,#2563eb)] text-white rounded-lg hover:bg-[var(--color-primary-hover,#1d4ed8)] transition-colors shadow-sm hover:shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 Create {activeTab.slice(0, -1)}
@@ -459,15 +459,19 @@ export default function TaxonomyManagerPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                      : 'text-gray-600 hover:text-[var(--color-primary,#2563eb)] hover:bg-white/50'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
-                  <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">
+                  <span className={`${
+                    activeTab === tab.id
+                      ? 'bg-[var(--color-primary,#2563eb)] text-white'
+                      : 'bg-gray-200 text-gray-700'
+                  } px-2 py-0.5 rounded-full text-xs transition-colors`}>
                     {tab.count}
                   </span>
                 </button>
@@ -488,7 +492,7 @@ export default function TaxonomyManagerPage() {
               placeholder={`Search ${activeTab}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-900 transition-colors"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary,#2563eb)] focus:border-[var(--color-primary,#2563eb)] transition-all"
             />
           </div>
         </div>
@@ -541,7 +545,7 @@ export default function TaxonomyManagerPage() {
 
         {/* Table */}
         {renderTable()}
-      </div>
+      </main>
 
       {/* Create/Edit Modal */}
       {renderCreateModal()}

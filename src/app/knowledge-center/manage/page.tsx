@@ -521,7 +521,7 @@ export default function ManageKnowledgePage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

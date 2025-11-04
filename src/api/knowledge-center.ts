@@ -19,6 +19,7 @@ import {
   KnowledgeAnalytics,
   WebinarSchedule,
   KnowledgeCenterSettings,
+  MediaType,
 } from '@/types/knowledge-center';
 
 // Configure axios instance
@@ -41,6 +42,229 @@ const handleApiError = (error: any, fallbackMessage: string) => {
   throw new Error(fallbackMessage);
 };
 
+// Data generation helper for consistent dummy data
+const generateDummyKnowledgeData = (): Knowledge[] => {
+  const subjects = [
+    'Ekonomi', 'Demografi', 'Statistik', 'Keuangan', 'Tenaga Kerja',
+    'Inflasi', 'Perdagangan', 'Industri', 'Pertanian', 'Teknologi',
+    'Kesehatan', 'Pendidikan', 'Lingkungan', 'Transportasi', 'Komunikasi',
+    'Energi', 'Pariwisata', 'Kebudayaan', 'Hukum', 'Politik'
+  ];
+
+  const penyelenggaraList = [
+    'Pusdiklat BPS', 'BPS Sumatera Barat', 'BPS Jawa Tengah', 'BPS DKI Jakarta',
+    'BPS Bali', 'BPS Sumatera Utara', 'BPS Jawa Timur', 'BPS Kalimantan',
+    'BPS Sulawesi', 'BPS Papua'
+  ];
+
+  // Titles for different content types
+  const webinarTitles = [
+    'Workshop: Teknik Sampling dalam Survei Kependudukan',
+    'Seminar: Big Data dan Machine Learning di BPS',
+    'Pelatihan: Metodologi Survei Sosial Ekonomi',
+    'Workshop: Data Visualization untuk Laporan',
+    'Webinar: Quality Control dalam Pengumpulan Data',
+  ];
+
+  const videoTitles = [
+    'Tutorial: Analisis Data dengan Python untuk Pemula',
+    'Video Series: Excel untuk Analisis Data Statistik',
+    'Screencast: Geospasial untuk Statistik Regional',
+    'Tutorial: Power BI untuk Dashboard Interaktif',
+    'Video Course: Digital Transformation di BPS',
+  ];
+
+  const podcastTitles = [
+    'Podcast: Statistik dalam Kehidupan Sehari-hari',
+    'Audio Series: Wawancara dengan Ahli Statistik Indonesia',
+    'Podcast BPS: Memahami Data Ekonomi Terkini',
+    'Talk Show: Karir di Bidang Statistik',
+    'Diskusi: Tantangan Survei di Era Digital',
+  ];
+
+  const pdfTitles = [
+    'Panduan Lengkap: Standar Statistik Internasional',
+    'E-Book: Pengenalan Statistik Ekonomi Indonesia',
+    'Modul: Teknik Pengolahan Data Survei',
+    'Guideline: Best Practice Quality Control Data',
+    'Handbook: Metodologi Sensus Penduduk',
+  ];
+
+  const articleTitles = [
+    'Artikel: Tren Inflasi dan Dampaknya terhadap Ekonomi',
+    'Studi Kasus: Implementasi Big Data di BPS Daerah',
+    'Paper: Analisis Pertumbuhan Ekonomi Regional',
+    'Laporan: Kondisi Ketenagakerjaan Indonesia 2024',
+    'Review: Perkembangan Statistik Digital di ASEAN',
+  ];
+
+  // Picsum Photos IDs for variety (high quality placeholder images)
+  const picsumIds = [
+    1, 10, 20, 30, 40, 50, 60, 70, 80, 90,
+    100, 110, 120, 130, 140, 150, 160, 170, 180, 190
+  ];
+
+  // Generate 150 knowledge items (50 webinars + 100 content)
+  return Array.from({ length: 150 }, (_, index) => {
+    const id = (index + 1).toString();
+    const subjectIndex = index % subjects.length;
+    const penyelenggaraIndex = index % penyelenggaraList.length;
+    const picsumIndex = index % picsumIds.length;
+
+    // Distribute: 1/3 webinars, 2/3 content (video, podcast, pdf, article)
+    const isWebinar = index % 3 === 0;
+    const knowledgeType: 'webinar' | 'konten' = isWebinar ? 'webinar' : 'konten';
+
+    // For content, cycle through media types
+    const contentIndex = Math.floor(index / 3) * 2 + (index % 3) - 1;
+    const mediaTypeIndex = contentIndex % 4;
+    const mediaType: MediaType = ['video', 'audio', 'pdf', 'article'][mediaTypeIndex];
+
+    const imageId = picsumIds[picsumIndex] + index;
+
+    // Get appropriate title based on type
+    let title: string;
+    if (isWebinar) {
+      const webinarIndex = Math.floor(index / 3) % webinarTitles.length;
+      title = `${webinarTitles[webinarIndex]} - Sesi ${Math.floor(index / (webinarTitles.length * 3)) + 1}`;
+    } else {
+      const contentTitleIndex = Math.floor(contentIndex / 4) + 1;
+      switch(mediaType) {
+        case 'video':
+          title = `${videoTitles[Math.floor(contentIndex / 4) % videoTitles.length]} - Part ${contentTitleIndex}`;
+          break;
+        case 'audio':
+          title = `${podcastTitles[Math.floor(contentIndex / 4) % podcastTitles.length]} - Episode ${contentTitleIndex}`;
+          break;
+        case 'pdf':
+          title = `${pdfTitles[Math.floor(contentIndex / 4) % pdfTitles.length]} - Edisi ${contentTitleIndex}`;
+          break;
+        case 'article':
+          title = `${articleTitles[Math.floor(contentIndex / 4) % articleTitles.length]} - Vol ${contentTitleIndex}`;
+          break;
+        default:
+          title = 'Konten Pembelajaran';
+      }
+    }
+
+    // Generate descriptions based on type
+    const getDescription = () => {
+      if (isWebinar) {
+        return `Webinar interaktif yang membahas topik ${subjects[subjectIndex].toLowerCase()} dengan pendekatan praktis dan diskusi langsung. Peserta akan mendapatkan sertifikat dan materi lengkap setelah mengikuti sesi ini.`;
+      }
+
+      switch(mediaType) {
+        case 'video':
+          return `Video pembelajaran step-by-step dengan visualisasi yang jelas dan mudah dipahami. Cocok untuk pemula hingga tingkat menengah. Durasi: ${Math.floor(Math.random() * 40) + 10} menit. Dilengkapi dengan subtitle dan materi pendukung.`;
+        case 'audio':
+          return `Podcast edukatif dengan diskusi mendalam bersama praktisi dan ahli statistik. Format santai namun informatif, cocok untuk didengarkan saat bepergian. Durasi: ${Math.floor(Math.random() * 50) + 20} menit.`;
+        case 'pdf':
+          return `Dokumen komprehensif berisi teori, metodologi, dan studi kasus terkini. Dilengkapi dengan ilustrasi, diagram, dan referensi. Total ${Math.floor(Math.random() * 50) + 20} halaman. Format: PDF, dapat diunduh dan dicetak.`;
+        case 'article':
+          return `Artikel analisis mendalam tentang ${subjects[subjectIndex].toLowerCase()} dengan data dan insight terbaru. Ditulis oleh praktisi berpengalaman dengan referensi dari sumber terpercaya. Waktu baca: ${Math.floor(Math.random() * 10) + 5} menit.`;
+        default:
+          return 'Konten pembelajaran berkualitas untuk meningkatkan pemahaman Anda.';
+      }
+    };
+
+    return {
+      id,
+      title,
+      description: getDescription(),
+      subject: subjects[subjectIndex],
+      knowledge_type: knowledgeType,
+      penyelenggara: penyelenggaraList[penyelenggaraIndex],
+      thumbnail: `https://picsum.photos/id/${imageId}/1200/675`,
+      author: `Dr. Ahmad Wijaya (${Math.floor(index / 10) + 1})`,
+      like_count: Math.floor(Math.random() * 100) + 10,
+      dislike_count: Math.floor(Math.random() * 10) + 1,
+      view_count: Math.floor(Math.random() * 2000) + 100,
+      tags: ['statistik', 'data', 'analisis', 'indonesia'].slice(0, Math.floor(Math.random() * 3) + 2),
+      published_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'published',
+      created_at: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+      ...(isWebinar ? {
+        // Generate mix of past and upcoming webinars (60% past, 40% upcoming)
+        tgl_zoom: (Math.floor(index / 3) % 5) < 3
+          ? new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString() // Past: 0-60 days ago (60%)
+          : new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Future: 0-30 days ahead (40%)
+        link_zoom: `https://zoom.us/j/${123456789 + index}`,
+        link_record: `https://youtube.com/watch?v=example${index}`,
+        link_youtube: `https://youtube.com/watch?v=example${index}`,
+        link_vb: `https://videobuilder.com/example${index}`,
+        file_notulensi_pdf: `https://example.com/notulensi${index}.pdf`,
+        content_richtext: `<p>Konten webinar tentang ${subjects[subjectIndex].toLowerCase()}. Materi komprehensif dengan studi kasus dan diskusi interaktif.</p>`,
+        jumlah_jp: Math.floor(Math.random() * 16) + 4,
+        gojags_ref: `GOJAGS-2024-${String(index + 1).padStart(3, '0')}`
+      } : {
+        media_type: mediaType,
+        // Use real sample URLs for testing
+        media_resource: mediaType === 'video'
+          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+          : mediaType === 'audio'
+          ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+          : mediaType === 'pdf'
+          ? 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+          : undefined,
+        content_richtext: mediaType === 'article'
+          ? `
+            <h2>Pendahuluan</h2>
+            <p>Artikel ini membahas secara mendalam tentang ${subjects[subjectIndex].toLowerCase()} dengan pendekatan yang komprehensif dan mudah dipahami. Materi disusun berdasarkan praktik terbaik dan pengalaman dari para ahli di bidangnya.</p>
+
+            <p>Dalam era digital dan transformasi data saat ini, pemahaman yang mendalam tentang konsep-konsep statistik menjadi semakin penting. Artikel ini dirancang untuk memberikan wawasan yang komprehensif bagi para praktisi, akademisi, dan pemangku kepentingan yang berkecimpung dalam dunia data dan statistik.</p>
+
+            <h2>Latar Belakang</h2>
+            <p>Dalam konteks statistik Indonesia, ${subjects[subjectIndex].toLowerCase()} memiliki peran yang sangat penting dalam mendukung pengambilan keputusan berbasis data. Badan Pusat Statistik (BPS) sebagai lembaga penyedia data statistik resmi terus berupaya meningkatkan kualitas dan aksesibilitas informasi statistik.</p>
+
+            <p>Perkembangan teknologi informasi dan meningkatnya kebutuhan akan data yang akurat dan tepat waktu menuntut para pengelola data untuk terus meningkatkan kompetensi dan pemahaman mereka. Oleh karena itu, topik yang dibahas dalam artikel ini menjadi sangat relevan dengan kondisi dan kebutuhan saat ini.</p>
+
+            <h2>Pembahasan Utama</h2>
+            <p>Beberapa poin penting yang akan dibahas dalam artikel ini meliputi:</p>
+            <ul>
+              <li>Konsep dasar dan terminologi yang digunakan dalam ${subjects[subjectIndex].toLowerCase()}</li>
+              <li>Metodologi pengumpulan dan pengolahan data yang sesuai standar internasional</li>
+              <li>Penerapan praktis dalam konteks pekerjaan statistik sehari-hari</li>
+              <li>Studi kasus implementasi di berbagai daerah di Indonesia</li>
+              <li>Tantangan dan solusi yang dihadapi dalam praktik lapangan</li>
+              <li>Best practices dan lessons learned dari implementasi sebelumnya</li>
+            </ul>
+
+            <h3>Konsep dan Definisi</h3>
+            <p>Memahami konsep dasar adalah fondasi penting dalam menguasai ${subjects[subjectIndex].toLowerCase()}. Setiap istilah dan terminologi memiliki makna spesifik yang perlu dipahami dengan baik untuk menghindari kesalahan interpretasi dalam analisis dan pelaporan data.</p>
+
+            <h3>Metodologi dan Standar</h3>
+            <p>Penerapan metodologi yang tepat dan konsisten sangat penting untuk memastikan kualitas data yang dihasilkan. BPS telah mengadopsi berbagai standar internasional yang disesuaikan dengan kondisi dan kebutuhan Indonesia.</p>
+
+            <h2>Metodologi</h2>
+            <p>Pendekatan yang digunakan dalam pembahasan ini mengacu pada standar metodologi statistik yang telah ditetapkan oleh BPS. Setiap konsep dijelaskan dengan bahasa yang mudah dipahami namun tetap mempertahankan akurasi teknis yang diperlukan.</p>
+
+            <p>Metodologi yang digunakan mencakup kombinasi antara pendekatan teoritis dan praktis, dengan penekanan pada aplikasi nyata dalam konteks pekerjaan statistik di Indonesia. Setiap langkah dijelaskan secara sistematis dengan contoh-contoh yang relevan.</p>
+
+            <h2>Studi Kasus dan Implementasi</h2>
+            <p>Untuk memberikan gambaran yang lebih konkret, artikel ini dilengkapi dengan beberapa studi kasus nyata dari implementasi di lapangan. Contoh-contoh ini diambil dari berbagai daerah dan situasi yang berbeda untuk memberikan perspektif yang luas.</p>
+
+            <p>Setiap studi kasus dilengkapi dengan analisis mendalam tentang faktor-faktor keberhasilan, tantangan yang dihadapi, dan solusi yang diterapkan. Pembelajaran dari kasus-kasus ini dapat menjadi referensi berharga untuk implementasi di lokasi lain.</p>
+
+            <h2>Tantangan dan Solusi</h2>
+            <p>Dalam praktik lapangan, berbagai tantangan sering muncul dalam implementasi ${subjects[subjectIndex].toLowerCase()}. Artikel ini mengidentifikasi tantangan-tantangan umum yang dihadapi dan menyajikan berbagai solusi praktis yang telah terbukti efektif.</p>
+
+            <p>Beberapa tantangan utama meliputi keterbatasan sumber daya, kompleksitas data, koordinasi antar instansi, dan adaptasi terhadap perubahan teknologi. Setiap tantangan dibahas dengan pendekatan problem-solving yang sistematis.</p>
+
+            <h2>Kesimpulan</h2>
+            <p>Pemahaman yang baik tentang ${subjects[subjectIndex].toLowerCase()} sangat penting bagi para pegawai BPS dan pemangku kepentingan lainnya. Dengan menguasai konsep dan praktik yang dijelaskan dalam artikel ini, diharapkan dapat meningkatkan kualitas kerja dan kontribusi dalam penyediaan data statistik yang akurat dan tepat waktu.</p>
+
+            <p>Pembelajaran berkelanjutan dan adaptasi terhadap perkembangan terbaru dalam metodologi dan teknologi statistik menjadi kunci keberhasilan dalam menghadapi tantangan masa depan. Mari terus meningkatkan kompetensi dan berkontribusi dalam penyediaan data berkualitas untuk pembangunan Indonesia.</p>
+
+            <h2>Referensi</h2>
+            <p>Artikel ini disusun berdasarkan berbagai sumber terpercaya termasuk publikasi resmi BPS, jurnal statistik internasional, dan pengalaman praktis dari para ahli di bidang statistik. Untuk informasi lebih lanjut, pembaca dapat merujuk pada dokumentasi resmi BPS dan publikasi terkait.</p>
+          `
+          : `<p>Konten pembelajaran ${mediaType === 'video' ? 'video' : mediaType === 'audio' ? 'audio' : 'artikel'} tentang ${subjects[subjectIndex].toLowerCase()} yang informatif dan mudah dipahami.</p>`
+      })
+    } as Knowledge;
+  });
+};
+
 // Knowledge CRUD operations
 export const knowledgeApi = {
   // Get all knowledge items with filters and pagination
@@ -51,128 +275,11 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Generate dummy knowledge data
-    const dummyKnowledge: Knowledge[] = [
-      {
-        id: '1',
-        title: 'Pengenalan Statistik Ekonomi Indonesia',
-        description: 'Webinar dasar pengenalan konsep statistik ekonomi yang digunakan oleh BPS untuk mengukur pertumbuhan ekonomi nasional.',
-        subject: 'Ekonomi',
-        knowledge_type: 'webinar',
-        penyelenggara: 'Pusdiklat BPS',
-        thumbnail: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=800&h=450&fit=crop',
-        author: 'Dr. Ahmad Wijaya',
-        like_count: 45,
-        dislike_count: 2,
-        view_count: 1234,
-        tags: ['statistik', 'ekonomi', 'dasar'],
-        published_at: '2024-11-01T10:00:00Z',
-        status: 'published',
-        created_at: '2024-11-01T09:30:00Z',
-        updated_at: '2024-11-01T09:30:00Z',
-        tgl_zoom: '2024-11-15T10:00:00Z',
-        link_zoom: 'https://zoom.us/j/123456789',
-        link_record: 'https://youtube.com/watch?v=example1',
-        link_youtube: 'https://youtube.com/watch?v=example1',
-        link_vb: 'https://videobuilder.com/example1',
-        file_notulensi_pdf: 'https://example.com/notulensi1.pdf',
-        content_richtext: '<p>Konten webinar tentang statistik ekonomi...</p>',
-        jumlah_jp: 8,
-        gojags_ref: 'GOJAGS-2024-001'
-      },
-      {
-        id: '2',
-        title: 'Teknik Sampling dalam Survei Kependudukan',
-        description: 'Panduan lengkap teknik sampling yang digunakan dalam survei kependudukan BPS, mencakup probability sampling dan non-probability sampling.',
-        subject: 'Demografi',
-        knowledge_type: 'konten',
-        penyelenggara: 'BPS Sumatera Barat',
-        thumbnail: 'https://images.unsplash.com/photo-1554224155-6af6b8037f7c?w=800&h=450&fit=crop',
-        author: 'Ir. Siti Nurhaliza',
-        like_count: 32,
-        dislike_count: 1,
-        view_count: 892,
-        tags: ['sampling', 'survei', 'kependudukan'],
-        published_at: '2024-10-28T14:00:00Z',
-        status: 'published',
-        created_at: '2024-10-28T13:30:00Z',
-        updated_at: '2024-10-28T13:30:00Z',
-        media_resource: 'https://example.com/video2.mp4',
-        media_type: 'video',
-        content_richtext: '<p>Panduan lengkap teknik sampling...</p>'
-      },
-      {
-        id: '3',
-        title: 'Analisis Indeks Harga Konsumen (IHK)',
-        description: 'Podcast membahas metodologi perhitungan IHK, interpretasi data, dan dampaknya terhadap kebijakan moneter.',
-        subject: 'Ekonomi',
-        knowledge_type: 'konten',
-        penyelenggara: 'Pusdiklat BPS',
-        thumbnail: 'https://images.unsplash.com/photo-1590602827861-800964f4b2b1?w=800&h=450&fit=crop',
-        author: 'Prof. Budi Santoso',
-        like_count: 28,
-        dislike_count: 3,
-        view_count: 654,
-        tags: ['IHK', 'inflasi', 'harga konsumen'],
-        published_at: '2024-10-25T09:00:00Z',
-        status: 'published',
-        created_at: '2024-10-25T08:30:00Z',
-        updated_at: '2024-10-25T08:30:00Z',
-        media_resource: 'https://example.com/podcast3.mp3',
-        media_type: 'audio',
-        content_richtext: '<p>Podcast analisis IHK...</p>'
-      },
-      {
-        id: '4',
-        title: 'Panduan Pengisian Survei Sosial Ekonomi (Susenas)',
-        description: 'Modul pelatihan lengkap untuk petugas lapangan dalam melakukan pengisian kuesioner Susenas dengan standar BPS.',
-        subject: 'Sosial',
-        knowledge_type: 'konten',
-        penyelenggara: 'BPS Jawa Tengah',
-        thumbnail: 'https://images.unsplash.com/photo-1565079973934-7155e6d4b7d8?w=800&h=450&fit=crop',
-        author: 'Drs. Ratna Sari',
-        like_count: 56,
-        dislike_count: 4,
-        view_count: 1567,
-        tags: ['susenas', 'survei sosial', 'pelatihan'],
-        published_at: '2024-10-20T11:00:00Z',
-        status: 'published',
-        created_at: '2024-10-20T10:30:00Z',
-        updated_at: '2024-10-20T10:30:00Z',
-        media_resource: 'https://example.com/modul4.pdf',
-        media_type: 'pdf',
-        content_richtext: '<p>Panduan lengkap pengisian Susenas...</p>'
-      },
-      {
-        id: '5',
-        title: 'Big Data dan Machine Learning di Statistik Modern',
-        description: 'Webinar mendalam tentang penerapan big data dan machine learning dalam analisis statistik modern di era digital.',
-        subject: 'Teknologi',
-        knowledge_type: 'webinar',
-        penyelenggara: 'Pusdiklat BPS',
-        thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=450&fit=crop',
-        author: 'Dr. Andi Pratama',
-        like_count: 89,
-        dislike_count: 5,
-        view_count: 2341,
-        tags: ['big data', 'machine learning', 'teknologi'],
-        published_at: '2024-11-05T13:00:00Z',
-        status: 'published',
-        created_at: '2024-11-05T12:30:00Z',
-        updated_at: '2024-11-05T12:30:00Z',
-        tgl_zoom: '2024-11-20T13:00:00Z',
-        link_zoom: 'https://zoom.us/j/987654321',
-        link_record: 'https://youtube.com/watch?v=example5',
-        link_youtube: 'https://youtube.com/watch?v=example5',
-        content_richtext: '<p>Webinar tentang big data dan ML...</p>',
-        jumlah_jp: 12,
-        gojags_ref: 'GOJAGS-2024-005'
-      }
-    ];
+    // Generate dummy knowledge data using the shared function
+    const dummyKnowledge = generateDummyKnowledgeData();
 
     // Apply filters to dummy data
     let filteredData = dummyKnowledge;
-
     if (params.search) {
       const searchLower = params.search.toLowerCase();
       filteredData = filteredData.filter(item =>
@@ -182,28 +289,25 @@ export const knowledgeApi = {
       );
     }
 
-    if (params.subject?.length) {
-      filteredData = filteredData.filter(item => params.subject!.includes(item.subject));
+    if (params.subject) {
+      filteredData = filteredData.filter(item =>
+        params.subject!.includes(item.subject)
+      );
     }
 
-    if (params.penyelenggara?.length) {
-      filteredData = filteredData.filter(item => params.penyelenggara!.includes(item.penyelenggara));
+    if (params.knowledge_type) {
+      filteredData = filteredData.filter(item =>
+        params.knowledge_type!.includes(item.knowledge_type)
+      );
     }
 
-    if (params.knowledge_type?.length) {
-      filteredData = filteredData.filter(item => params.knowledge_type!.includes(item.knowledge_type));
+    if (params.penyelenggara) {
+      filteredData = filteredData.filter(item =>
+        params.penyelenggara!.includes(item.penyelenggara)
+      );
     }
 
-    if (params.media_type?.length) {
-      filteredData = filteredData.filter(item => {
-        if (item.knowledge_type === 'konten') {
-          return params.media_type!.includes((item as any).media_type);
-        }
-        return true;
-      });
-    }
-
-    if (params.tags?.length) {
+    if (params.tags) {
       filteredData = filteredData.filter(item =>
         params.tags!.some(tag => item.tags.includes(tag))
       );
@@ -213,27 +317,29 @@ export const knowledgeApi = {
     if (params.sort) {
       switch (params.sort) {
         case 'newest':
-          filteredData.sort((a, b) => new Date(b.published_at || b.created_at || '').getTime() - new Date(a.published_at || a.created_at || '').getTime());
+          filteredData.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
           break;
-        case 'most_liked':
-          filteredData.sort((a, b) => b.like_count - a.like_count);
+        case 'oldest':
+          filteredData.sort((a, b) => new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime());
           break;
-        case 'most_viewed':
+        case 'popular':
           filteredData.sort((a, b) => b.view_count - a.view_count);
           break;
-        case 'upcoming_webinar':
-          filteredData.sort((a, b) => {
-            if (a.knowledge_type === 'webinar' && b.knowledge_type !== 'webinar') return -1;
-            if (a.knowledge_type !== 'webinar' && b.knowledge_type === 'webinar') return 1;
-            return 0;
-          });
+        case 'likes':
+          filteredData.sort((a, b) => b.like_count - a.like_count);
+          break;
+        case 'title':
+          filteredData.sort((a, b) => a.title.localeCompare(b.title));
           break;
       }
+    } else {
+      // Default sort: newest first
+      filteredData.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
     }
 
     // Apply pagination
     const page = params.page || 1;
-    const limit = params.limit || 10;
+    const limit = params.limit || 12;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const paginatedData = filteredData.slice(startIndex, endIndex);
@@ -241,13 +347,13 @@ export const knowledgeApi = {
     return {
       data: paginatedData,
       total: filteredData.length,
-      page: page,
-      limit: limit,
-      total_pages: Math.ceil(filteredData.length / limit)
+      page,
+      limit,
+      total_pages: Math.ceil(filteredData.length / limit),
     };
   },
 
-  // Get single knowledge item by ID
+  // Get knowledge by ID
   async getKnowledgeById(id: string): Promise<KnowledgeDetailResponse> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getKnowledgeById with id:', id);
@@ -255,9 +361,9 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    // Get the knowledge from dummy data
-    const knowledgeData = await this.getKnowledge();
-    const knowledge = knowledgeData.data.find(item => item.id === id);
+    // Get the knowledge from the same data generation function
+    const knowledgeData = generateDummyKnowledgeData();
+    const knowledge = knowledgeData.find(item => item.id === id);
 
     if (!knowledge) {
       throw new Error('Knowledge item not found');
@@ -271,7 +377,7 @@ export const knowledgeApi = {
     };
   },
 
-  // Create new knowledge item
+  // Create new knowledge
   async createKnowledge(data: CreateKnowledgeFormData): Promise<Knowledge> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: createKnowledge with data:', data);
@@ -279,49 +385,42 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Generate new knowledge item
+    // Convert File objects to strings for storage (in real app, would upload to cloud storage)
+    const processedData = {
+      ...data,
+      thumbnail: data.thumbnail instanceof File
+        ? URL.createObjectURL(data.thumbnail)
+        : data.thumbnail || 'https://images.unsplash.com/photo-1580000000000-default?w=800&h=450&fit=crop',
+      media_resource: (data as any).media_resource instanceof File
+        ? URL.createObjectURL((data as any).media_resource)
+        : (data as any).media_resource,
+      file_notulensi_pdf: (data as any).file_notulensi_pdf instanceof File
+        ? URL.createObjectURL((data as any).file_notulensi_pdf)
+        : (data as any).file_notulensi_pdf,
+    };
+
     const newKnowledge: Knowledge = {
-      id: Date.now().toString(), // Generate unique ID
-      title: data.title,
-      description: data.description,
-      subject: data.subject,
-      knowledge_type: data.knowledge_type!,
-      penyelenggara: data.penyelenggara,
-      thumbnail: data.thumbnail instanceof File ? URL.createObjectURL(data.thumbnail) : data.thumbnail || 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=800&h=450&fit=crop',
-      author: data.author,
+      ...processedData,
+      id: Date.now().toString(),
+      knowledge_type: processedData.knowledge_type || 'konten',
+      subject: processedData.subject || '',
+      description: processedData.description || '',
+      penyelenggara: processedData.penyelenggara || '',
+      author: processedData.author || '',
+      tags: processedData.tags || [],
       like_count: 0,
       dislike_count: 0,
       view_count: 0,
-      tags: data.tags,
-      published_at: data.published_at,
-      status: data.status,
+      status: 'published',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      // Webinar specific fields
-      ...(data.knowledge_type === 'webinar' && {
-        tgl_zoom: data.tgl_zoom,
-        link_zoom: data.link_zoom,
-        link_record: data.link_record,
-        link_youtube: data.link_youtube,
-        link_vb: data.link_vb,
-        file_notulensi_pdf: data.file_notulensi_pdf instanceof File ? URL.createObjectURL(data.file_notulensi_pdf) : data.file_notulensi_pdf,
-        content_richtext: data.content_richtext,
-        jumlah_jp: data.jumlah_jp,
-        gojags_ref: data.gojags_ref,
-      }),
-      // Konten specific fields
-      ...(data.knowledge_type === 'konten' && {
-        media_resource: data.media_resource instanceof File ? URL.createObjectURL(data.media_resource) : data.media_resource,
-        media_type: data.media_type,
-        content_richtext: data.content_richtext,
-      }),
+      published_at: new Date().toISOString(),
     };
 
-    console.log('✅ DUMMY API: Created knowledge:', newKnowledge);
     return newKnowledge;
   },
 
-  // Update knowledge item
+  // Update knowledge
   async updateKnowledge(id: string, data: Partial<CreateKnowledgeFormData>): Promise<Knowledge> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: updateKnowledge with id:', id, 'data:', data);
@@ -329,26 +428,37 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    // Get existing knowledge and update it
-    const existingData = await this.getKnowledge();
-    const knowledge = existingData.data.find(item => item.id === id);
+    const knowledgeData = generateDummyKnowledgeData();
+    const existingKnowledge = knowledgeData.find(item => item.id === id);
 
-    if (!knowledge) {
+    if (!existingKnowledge) {
       throw new Error('Knowledge item not found');
     }
 
-    // Update the knowledge with new data
-    const updatedKnowledge: Knowledge = {
-      ...knowledge,
+    // Convert File objects to strings for storage
+    const processedData = {
       ...data,
-      updated_at: new Date().toISOString(),
-    } as Knowledge;
+      thumbnail: data.thumbnail instanceof File
+        ? URL.createObjectURL(data.thumbnail)
+        : data.thumbnail || existingKnowledge.thumbnail,
+      media_resource: (data as any).media_resource instanceof File
+        ? URL.createObjectURL((data as any).media_resource)
+        : (data as any).media_resource,
+      file_notulensi_pdf: (data as any).file_notulensi_pdf instanceof File
+        ? URL.createObjectURL((data as any).file_notulensi_pdf)
+        : (data as any).file_notulensi_pdf,
+    };
 
-    console.log('✅ DUMMY API: Updated knowledge:', updatedKnowledge);
+    const updatedKnowledge: Knowledge = {
+      ...existingKnowledge,
+      ...processedData,
+      updated_at: new Date().toISOString(),
+    };
+
     return updatedKnowledge;
   },
 
-  // Delete knowledge item
+  // Delete knowledge
   async deleteKnowledge(id: string): Promise<void> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: deleteKnowledge with id:', id);
@@ -356,10 +466,11 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    console.log('✅ DUMMY API: Deleted knowledge with id:', id);
+    // In a real implementation, this would make a DELETE request to the API
+    return;
   },
 
-  // Like knowledge item
+  // Like knowledge
   async likeKnowledge(id: string): Promise<void> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: likeKnowledge with id:', id);
@@ -367,10 +478,10 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 200));
 
-    console.log('✅ DUMMY API: Liked knowledge with id:', id);
+    return;
   },
 
-  // Dislike knowledge item
+  // Dislike knowledge
   async dislikeKnowledge(id: string): Promise<void> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: dislikeKnowledge with id:', id);
@@ -378,107 +489,30 @@ export const knowledgeApi = {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 200));
 
-    console.log('✅ DUMMY API: Disliked knowledge with id:', id);
-  },
-
-  // Increment view count
-  async incrementViewCount(id: string): Promise<void> {
-    // DUMMY DATA - Replace with actual API call when backend is ready
-    console.log('🔄 DUMMY API: incrementViewCount with id:', id);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    console.log('✅ DUMMY API: Incremented view count for id:', id);
-  },
-
-  // Upload file (thumbnail, media, PDF)
-  async uploadFile(file: File, type: 'thumbnail' | 'media' | 'pdf'): Promise<{ url: string }> {
-    // DUMMY DATA - Replace with actual API call when backend is ready
-    console.log('🔄 DUMMY API: uploadFile with file:', file.name, 'type:', type);
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Return dummy URL
-    const dummyUrl = `https://example.com/uploads/${Date.now()}_${file.name}`;
-
-    console.log('✅ DUMMY API: Uploaded file to:', dummyUrl);
-    return { url: dummyUrl };
+    return;
   },
 };
 
-// Taxonomy management
+// Taxonomy API operations
 export const taxonomyApi = {
   // Subjects
   async getSubjects(): Promise<Subject[]> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getSubjects');
 
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const dummySubjects: Subject[] = [
-      {
-        id: '1',
-        name: 'Ekonomi',
-        description: 'Statistik ekonomi nasional, inflasi, IHK, PDB, dan indikator makroekonomi lainnya',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        name: 'Demografi',
-        description: 'Statistik kependudukan, migrasi, fertilitas, mortalitas, dan proyeksi penduduk',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '3',
-        name: 'Sosial',
-        description: 'Statistik sosial, pendidikan, kesehatan, kemiskinan, dan kesejahteraan sosial',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '4',
-        name: 'Pertanian',
-        description: 'Statistik pertanian, perkebunan, peternakan, perikanan, dan ketahanan pangan',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '5',
-        name: 'Industri',
-        description: 'Statistik industri manufaktur, konstruksi, pertambangan, dan jasa',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '6',
-        name: 'Perdagangan',
-        description: 'Statistik ekspor-impor, neraca perdagangan, harga perdagangan, dan indeks perdagangan',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '7',
-        name: 'Teknologi',
-        description: 'Statistik teknologi informasi, komunikasi, dan inovasi digital',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '8',
-        name: 'Transportasi',
-        description: 'Statistik transportasi darat, laut, udara, dan infrastruktur transportasi',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '9',
-        name: 'Keuangan',
-        description: 'Statistik perbankan, moneter, investasi, dan pasar modal',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '10',
-        name: 'Tenaga Kerja',
-        description: 'Statistik ketenagakerjaan, pengangguran, upah, dan kondisi kerja',
-        created_at: '2024-01-01T00:00:00Z'
-      }
+      { id: '1', name: 'Ekonomi', description: 'Statistik ekonomi, inflasi, PDB, indeks harga', created_at: '2024-01-01T00:00:00Z' },
+      { id: '2', name: 'Demografi', description: 'Statistik kependudukan, kelahiran, kematian, migrasi', created_at: '2024-01-01T00:00:00Z' },
+      { id: '3', name: 'Statistik', description: 'Metodologi statistik, sampling, survei', created_at: '2024-01-01T00:00:00Z' },
+      { id: '4', name: 'Keuangan', description: 'Statistik perbankan, moneter, investasi, dan pasar modal', created_at: '2024-01-01T00:00:00Z' },
+      { id: '5', name: 'Tenaga Kerja', description: 'Statistik ketenagakerjaan, pengangguran, upah, dan kondisi kerja', created_at: '2024-01-01T00:00:00Z' },
+      { id: '6', name: 'Perdagangan', description: 'Statistik ekspor, impor, neraca perdagangan', created_at: '2024-01-01T00:00:00Z' },
+      { id: '7', name: 'Industri', description: 'Statistik industri manufaktur dan jasa', created_at: '2024-01-01T00:00:00Z' },
+      { id: '8', name: 'Pertanian', description: 'Statistik pertanian, perkebunan, peternakan', created_at: '2024-01-01T00:00:00Z' },
+      { id: '9', name: 'Teknologi', description: 'Statistik TIK, digitalisasi, e-commerce', created_at: '2024-01-01T00:00:00Z' },
+      { id: '10', name: 'Kesehatan', description: 'Statistik kesehatan, fasilitas kesehatan', created_at: '2024-01-01T00:00:00Z' }
     ];
 
     return dummySubjects;
@@ -486,98 +520,49 @@ export const taxonomyApi = {
 
   async createSubject(data: Omit<Subject, 'id' | 'created_at'>): Promise<Subject> {
     console.log('🔄 DUMMY API: createSubject with data:', data);
-
     await new Promise(resolve => setTimeout(resolve, 500));
-
     const newSubject: Subject = {
       id: Date.now().toString(),
       ...data,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
-
-    console.log('✅ DUMMY API: Created subject:', newSubject);
     return newSubject;
   },
 
-  async updateSubject(id: string, data: Partial<Subject>): Promise<Subject> {
+  async updateSubject(id: string, data: Partial<Omit<Subject, 'id' | 'created_at'>>): Promise<Subject> {
     console.log('🔄 DUMMY API: updateSubject with id:', id, 'data:', data);
-
     await new Promise(resolve => setTimeout(resolve, 400));
-
     const updatedSubject: Subject = {
       id,
-      name: data.name || 'Updated Subject',
-      description: data.description || 'Updated Description',
-      created_at: '2024-01-01T00:00:00Z'
+      name: data.name || 'Unnamed Subject',
+      description: data.description || '',
+      created_at: '2024-01-01T00:00:00Z', // This would normally come from the existing record
     };
-
-    console.log('✅ DUMMY API: Updated subject:', updatedSubject);
     return updatedSubject;
   },
 
   async deleteSubject(id: string): Promise<void> {
     console.log('🔄 DUMMY API: deleteSubject with id:', id);
-
     await new Promise(resolve => setTimeout(resolve, 300));
-
-    console.log('✅ DUMMY API: Deleted subject with id:', id);
+    return;
   },
 
-  // Penyelenggara
+  // Penyelenggara (Organizers)
   async getPenyelenggara(): Promise<Penyelenggara[]> {
+    // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getPenyelenggara');
 
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const dummyPenyelenggara: Penyelenggara[] = [
-      {
-        id: '1',
-        name: 'Pusdiklat BPS',
-        description: 'Pusat Pendidikan dan Pelatihan Badan Pusat Statistik',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        name: 'BPS Sumatera Barat',
-        description: 'Badan Pusat Statistik Provinsi Sumatera Barat',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '3',
-        name: 'BPS Jawa Tengah',
-        description: 'Badan Pusat Statistik Provinsi Jawa Tengah',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '4',
-        name: 'BPS Jawa Timur',
-        description: 'Badan Pusat Statistik Provinsi Jawa Timur',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '5',
-        name: 'BPS DKI Jakarta',
-        description: 'Badan Pusat Statistik Provinsi Daerah Khusus Ibukota Jakarta',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '6',
-        name: 'BPS DI Yogyakarta',
-        description: 'Badan Pusat Statistik Daerah Istimewa Yogyakarta',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '7',
-        name: 'BPS Bali',
-        description: 'Badan Pusat Statistik Provinsi Bali',
-        created_at: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '8',
-        name: 'BPS Sumatera Utara',
-        description: 'Badan Pusat Statistik Provinsi Sumatera Utara',
-        created_at: '2024-01-01T00:00:00Z'
-      }
+      { id: '1', name: 'Pusdiklat BPS', description: 'Pusat Pendidikan dan Pelatihan Badan Pusat Statistik', created_at: '2024-01-01T00:00:00Z' },
+      { id: '2', name: 'BPS Sumatera Barat', description: 'Badan Pusat Statistik Provinsi Sumatera Barat', created_at: '2024-01-01T00:00:00Z' },
+      { id: '3', name: 'BPS Jawa Tengah', description: 'Badan Pusat Statistik Provinsi Jawa Tengah', created_at: '2024-01-01T00:00:00Z' },
+      { id: '4', name: 'BPS DKI Jakarta', description: 'Badan Pusat Statistik Provinsi DKI Jakarta', created_at: '2024-01-01T00:00:00Z' },
+      { id: '5', name: 'BPS Bali', description: 'Badan Pusat Statistik Provinsi Bali', created_at: '2024-01-01T00:00:00Z' },
+      { id: '6', name: 'BPS Sumatera Utara', description: 'Badan Pusat Statistik Provinsi Sumatera Utara', created_at: '2024-01-01T00:00:00Z' },
+      { id: '7', name: 'BPS Jawa Timur', description: 'Badan Pusat Statistik Provinsi Jawa Timur', created_at: '2024-01-01T00:00:00Z' },
+      { id: '8', name: 'BPS Kalimantan', description: 'Badan Pusat Statistik Provinsi Kalimantan', created_at: '2024-01-01T00:00:00Z' }
     ];
 
     return dummyPenyelenggara;
@@ -585,65 +570,51 @@ export const taxonomyApi = {
 
   async createPenyelenggara(data: Omit<Penyelenggara, 'id' | 'created_at'>): Promise<Penyelenggara> {
     console.log('🔄 DUMMY API: createPenyelenggara with data:', data);
-
     await new Promise(resolve => setTimeout(resolve, 500));
-
     const newPenyelenggara: Penyelenggara = {
       id: Date.now().toString(),
       ...data,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
-
-    console.log('✅ DUMMY API: Created penyelenggara:', newPenyelenggara);
     return newPenyelenggara;
   },
 
-  async updatePenyelenggara(id: string, data: Partial<Penyelenggara>): Promise<Penyelenggara> {
+  async updatePenyelenggara(id: string, data: Partial<Omit<Penyelenggara, 'id' | 'created_at'>>): Promise<Penyelenggara> {
     console.log('🔄 DUMMY API: updatePenyelenggara with id:', id, 'data:', data);
-
     await new Promise(resolve => setTimeout(resolve, 400));
-
     const updatedPenyelenggara: Penyelenggara = {
       id,
-      name: data.name || 'Updated Penyelenggara',
-      description: data.description || 'Updated Description',
-      created_at: '2024-01-01T00:00:00Z'
+      name: data.name || 'Unnamed Penyelenggara',
+      description: data.description || '',
+      created_at: '2024-01-01T00:00:00Z',
     };
-
-    console.log('✅ DUMMY API: Updated penyelenggara:', updatedPenyelenggara);
     return updatedPenyelenggara;
   },
 
   async deletePenyelenggara(id: string): Promise<void> {
     console.log('🔄 DUMMY API: deletePenyelenggara with id:', id);
-
     await new Promise(resolve => setTimeout(resolve, 300));
-
-    console.log('✅ DUMMY API: Deleted penyelenggara with id:', id);
+    return;
   },
 
   // Tags
   async getTags(): Promise<Tag[]> {
+    // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getTags');
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     const dummyTags: Tag[] = [
       { id: '1', name: 'statistik', color: '#3B82F6', created_at: '2024-01-01T00:00:00Z' },
       { id: '2', name: 'ekonomi', color: '#10B981', created_at: '2024-01-01T00:00:00Z' },
-      { id: '3', name: 'survei', color: '#F59E0B', created_at: '2024-01-01T00:00:00Z' },
-      { id: '4', name: 'data', color: '#EF4444', created_at: '2024-01-01T00:00:00Z' },
-      { id: '5', name: 'analisis', color: '#8B5CF6', created_at: '2024-01-01T00:00:00Z' },
+      { id: '3', name: 'data', color: '#F59E0B', created_at: '2024-01-01T00:00:00Z' },
+      { id: '4', name: 'survei', color: '#EF4444', created_at: '2024-01-01T00:00:00Z' },
+      { id: '5', name: 'sampling', color: '#8B5CF6', created_at: '2024-01-01T00:00:00Z' },
       { id: '6', name: 'pelatihan', color: '#EC4899', created_at: '2024-01-01T00:00:00Z' },
       { id: '7', name: 'metodologi', color: '#14B8A6', created_at: '2024-01-01T00:00:00Z' },
-      { id: '8', name: 'sampling', color: '#F97316', created_at: '2024-01-01T00:00:00Z' },
-      { id: '9', name: 'kependudukan', color: '#06B6D4', created_at: '2024-01-01T00:00:00Z' },
-      { id: '10', name: 'inflasi', color: '#84CC16', created_at: '2024-01-01T00:00:00Z' },
-      { id: '11', name: 'IHK', color: '#A855F7', created_at: '2024-01-01T00:00:00Z' },
-      { id: '12', name: 'susenas', color: '#0EA5E9', created_at: '2024-01-01T00:00:00Z' },
-      { id: '13', name: 'teknologi', color: '#22C55E', created_at: '2024-01-01T00:00:00Z' },
-      { id: '14', name: 'big data', color: '#E11D48', created_at: '2024-01-01T00:00:00Z' },
-      { id: '15', name: 'machine learning', color: '#7C3AED', created_at: '2024-01-01T00:00:00Z' }
+      { id: '8', name: 'analisis', color: '#F97316', created_at: '2024-01-01T00:00:00Z' },
+      { id: '9', name: 'indonesia', color: '#06B6D4', created_at: '2024-01-01T00:00:00Z' },
+      { id: '10', name: 'digital', color: '#84CC16', created_at: '2024-01-01T00:00:00Z' }
     ];
 
     return dummyTags;
@@ -651,331 +622,195 @@ export const taxonomyApi = {
 
   async createTag(data: Omit<Tag, 'id' | 'created_at'>): Promise<Tag> {
     console.log('🔄 DUMMY API: createTag with data:', data);
-
     await new Promise(resolve => setTimeout(resolve, 400));
-
     const newTag: Tag = {
       id: Date.now().toString(),
       ...data,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
-
-    console.log('✅ DUMMY API: Created tag:', newTag);
     return newTag;
   },
 
-  async updateTag(id: string, data: Partial<Tag>): Promise<Tag> {
+  async updateTag(id: string, data: Partial<Omit<Tag, 'id' | 'created_at'>>): Promise<Tag> {
     console.log('🔄 DUMMY API: updateTag with id:', id, 'data:', data);
-
     await new Promise(resolve => setTimeout(resolve, 300));
-
     const updatedTag: Tag = {
       id,
-      name: data.name || 'Updated Tag',
-      color: data.color || '#6B7280',
-      created_at: '2024-01-01T00:00:00Z'
+      name: data.name || 'Unnamed Tag',
+      color: data.color || '#000000',
+      created_at: '2024-01-01T00:00:00Z',
     };
-
-    console.log('✅ DUMMY API: Updated tag:', updatedTag);
     return updatedTag;
   },
 
   async deleteTag(id: string): Promise<void> {
     console.log('🔄 DUMMY API: deleteTag with id:', id);
-
     await new Promise(resolve => setTimeout(resolve, 200));
-
-    console.log('✅ DUMMY API: Deleted tag with id:', id);
+    return;
   },
 };
 
-// Analytics
+// Analytics API operations
 export const analyticsApi = {
   async getKnowledgeAnalytics(): Promise<KnowledgeAnalytics> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getKnowledgeAnalytics');
 
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 600));
 
     const dummyAnalytics: KnowledgeAnalytics = {
-      total_knowledge: 25,
-      total_webinars: 8,
-      total_published: 22,
-      total_likes: 342,
-      total_dislikes: 15,
-      total_views: 8756,
-      upcoming_webinars: 3,
+      total_knowledge: 150,
+      total_webinars: 75,
+      total_published: 120,
+      total_likes: 1234,
+      total_dislikes: 45,
+      total_views: 45678,
+      upcoming_webinars: 8,
       top_subjects: [
-        { subject: 'Ekonomi', count: 8 },
-        { subject: 'Teknologi', count: 5 },
-        { subject: 'Sosial', count: 4 },
-        { subject: 'Demografi', count: 3 },
-        { subject: 'Pertanian', count: 2 }
+        { subject: 'Ekonomi', count: 25 },
+        { subject: 'Statistik', count: 20 },
+        { subject: 'Teknologi', count: 18 },
+        { subject: 'Demografi', count: 15 },
+        { subject: 'Keuangan', count: 12 }
       ],
-      popular_knowledge: [
-        {
-          id: '5',
-          title: 'Big Data dan Machine Learning di Statistik Modern',
-          description: 'Webinar mendalam tentang penerapan big data dan machine learning dalam statistik modern untuk meningkatkan akurasi dan efisiensi analisis data.',
-          subject: 'Teknologi',
-          like_count: 89,
-          dislike_count: 5,
-          view_count: 2341,
-          published_at: '2024-11-05T13:00:00Z',
-          knowledge_type: 'webinar',
-          penyelenggara: 'Pusdiklat BPS',
-          author: 'Dr. Andi Pratama',
-          tags: ['big data', 'machine learning', 'teknologi'],
-          thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=450&fit=crop'
-        },
-        {
-          id: '4',
-          title: 'Panduan Pengisian Survei Sosial Ekonomi (Susenas)',
-          description: 'Panduan lengkap untuk petugas lapangan dalam melakukan pengisian kuesioner Survei Sosial Ekonomi Nasional dengan standar dan prosedur yang benar.',
-          subject: 'Sosial',
-          like_count: 56,
-          dislike_count: 4,
-          view_count: 1567,
-          published_at: '2024-10-20T11:00:00Z',
-          knowledge_type: 'konten',
-          penyelenggara: 'BPS Jawa Tengah',
-          author: 'Drs. Ratna Sari',
-          tags: ['susenas', 'survei sosial', 'pelatihan'],
-          thumbnail: 'https://images.unsplash.com/photo-1565079973934-7155e6d4b7d8?w=800&h=450&fit=crop'
-        },
-        {
-          id: '1',
-          title: 'Pengenalan Statistik Ekonomi Indonesia',
-          description: 'Webinar pengenalan konsep dasar statistik ekonomi di Indonesia, mencakup metodologi, indikator utama, dan penerapan dalam perencanaan pembangunan.',
-          subject: 'Ekonomi',
-          like_count: 45,
-          dislike_count: 2,
-          view_count: 1234,
-          published_at: '2024-11-01T10:00:00Z',
-          knowledge_type: 'webinar',
-          penyelenggara: 'Pusdiklat BPS',
-          author: 'Dr. Ahmad Wijaya',
-          tags: ['statistik', 'ekonomi', 'dasar'],
-          thumbnail: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=800&h=450&fit=crop'
-        },
-        {
-          id: '2',
-          title: 'Teknik Sampling dalam Survei Kependudukan',
-          description: 'Panduan lengkap teknik sampling dalam survei kependudukan, mencakup berbagai metode dan best practices untuk hasil yang akurat.',
-          subject: 'Demografi',
-          like_count: 32,
-          dislike_count: 1,
-          view_count: 892,
-          published_at: '2024-10-28T14:00:00Z',
-          knowledge_type: 'konten',
-          penyelenggara: 'BPS Sumatera Barat',
-          author: 'Ir. Siti Nurhaliza',
-          tags: ['sampling', 'survei', 'kependudukan'],
-          thumbnail: 'https://images.unsplash.com/photo-1554224155-6af6b8037f7c?w=800&h=450&fit=crop'
-        }
-      ]
+      popular_knowledge: []
     };
 
     return dummyAnalytics;
   },
 };
 
-// Webinar Schedule
+// Schedule API operations
 export const scheduleApi = {
   async getWebinarSchedule(): Promise<WebinarSchedule[]> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getWebinarSchedule');
 
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 400));
 
-    const now = new Date();
     const dummySchedule: WebinarSchedule[] = [
       {
         id: '1',
         webinar_id: '1',
-        title: 'Pengenalan Statistik Ekonomi Indonesia',
+        title: 'Webinar: Pengenalan Statistik Ekonomi',
         tgl_zoom: '2024-11-15T10:00:00Z',
         link_zoom: 'https://zoom.us/j/123456789',
-        status: new Date('2024-11-15T10:00:00Z') > now ? 'upcoming' : 'ended',
-        participants_count: 45
+        status: 'upcoming',
+        participants_count: 0
       },
       {
         id: '2',
-        webinar_id: '5',
-        title: 'Big Data dan Machine Learning di Statistik Modern',
-        tgl_zoom: '2024-11-20T13:00:00Z',
+        webinar_id: '2',
+        title: 'Workshop: Analisis Data dengan Python',
+        tgl_zoom: '2024-11-18T14:00:00Z',
         link_zoom: 'https://zoom.us/j/987654321',
-        status: new Date('2024-11-20T13:00:00Z') > now ? 'upcoming' : 'ended',
-        participants_count: 128
+        status: 'upcoming',
+        participants_count: 0
       },
       {
         id: '3',
-        webinar_id: '6',
-        title: 'Workshop: Analisis Data dengan Python untuk Statistik',
-        tgl_zoom: '2024-11-25T14:30:00Z',
+        webinar_id: '3',
+        title: 'Seminar: Big Data di BPS',
+        tgl_zoom: '2024-11-10T09:00:00Z',
         link_zoom: 'https://zoom.us/j/555666777',
-        status: new Date('2024-11-25T14:30:00Z') > now ? 'upcoming' : 'ended',
-        participants_count: 67
-      },
-      {
-        id: '4',
-        webinar_id: '7',
-        title: 'Seminar: Tren Statistik 2025 dan Persiapan BPS',
-        tgl_zoom: '2024-11-30T09:00:00Z',
-        link_zoom: 'https://zoom.us/j/333444555',
-        status: new Date('2024-11-30T09:00:00Z') > now ? 'upcoming' : 'ended',
-        participants_count: 234
-      },
-      {
-        id: '5',
-        webinar_id: '8',
-        title: 'Pelatihan: Metodologi Survei untuk Staf BPS Pemula',
-        tgl_zoom: '2024-12-02T10:00:00Z',
-        link_zoom: 'https://zoom.us/j/777888999',
-        status: new Date('2024-12-02T10:00:00Z') > now ? 'upcoming' : 'ended',
+        status: 'ongoing',
         participants_count: 89
-      },
-      {
-        id: '6',
-        webinar_id: '9',
-        title: 'Kuliah Tamu: Integrasi Big Data dalam Statistik Nasional',
-        tgl_zoom: '2024-11-18T15:00:00Z',
-        link_zoom: 'https://zoom.us/j/999000111',
-        status: new Date('2024-11-18T15:00:00Z') > now ? 'upcoming' : 'ended',
-        participants_count: 156
-      },
-      {
-        id: '7',
-        webinar_id: '10',
-        title: 'Diskusi Panel: Kualitas Data dan Kepercayaan Publik',
-        tgl_zoom: '2024-11-22T11:00:00Z',
-        link_zoom: 'https://zoom.us/j/111222333',
-        status: new Date('2024-11-22T11:00:00Z') > now ? 'upcoming' : 'ended',
-        participants_count: 203
-      },
-      {
-        id: '8',
-        webinar_id: '11',
-        title: 'Tutorial: Penggunaan Software SPSS untuk Analisis Statistik',
-        tgl_zoom: '2024-11-12T13:30:00Z',
-        link_zoom: 'https://zoom.us/j/444555666',
-        status: 'ended',
-        participants_count: 34
-      },
-      {
-        id: '9',
-        webinar_id: '12',
-        title: 'Workshop: Visualisasi Data Statistik dengan Tableau',
-        tgl_zoom: '2024-11-08T16:00:00Z',
-        link_zoom: 'https://zoom.us/j/666777888',
-        status: 'ended',
-        participants_count: 78
-      },
-      {
-        id: '10',
-        webinar_id: '13',
-        title: 'Seminar: Standar Statistik Internasional dan Implementasi di BPS',
-        tgl_zoom: '2024-11-05T14:00:00Z',
-        link_zoom: 'https://zoom.us/j/888999000',
-        status: 'ended',
-        participants_count: 145
       }
     ];
 
     return dummySchedule;
   },
 
-  async updateWebinarSchedule(id: string, data: Partial<WebinarSchedule>): Promise<WebinarSchedule> {
-    // DUMMY DATA - Replace with actual API call when backend is ready
-    console.log('🔄 DUMMY API: updateWebinarSchedule with id:', id, 'data:', data);
-
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const existingSchedule = await this.getWebinarSchedule();
-    const webinar = existingSchedule.find(item => item.id === id);
-
-    if (!webinar) {
-      throw new Error('Webinar schedule not found');
-    }
-
-    const updatedSchedule: WebinarSchedule = {
-      ...webinar,
+  async createWebinarSchedule(data: Omit<WebinarSchedule, 'id' | 'participants_count'>): Promise<WebinarSchedule> {
+    console.log('🔄 DUMMY API: createWebinarSchedule with data:', data);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const newSchedule: WebinarSchedule = {
+      id: Date.now().toString(),
       ...data,
+      participants_count: 0,
     };
+    return newSchedule;
+  },
 
-    console.log('✅ DUMMY API: Updated webinar schedule:', updatedSchedule);
+  async updateWebinarSchedule(id: string, data: Partial<WebinarSchedule>): Promise<WebinarSchedule> {
+    console.log('🔄 DUMMY API: updateWebinarSchedule with id:', id, 'data:', data);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const updatedSchedule: WebinarSchedule = {
+      id,
+      webinar_id: '1',
+      title: 'Updated Webinar',
+      tgl_zoom: '2024-11-15T10:00:00Z',
+      link_zoom: 'https://zoom.us/j/123456789',
+      status: 'upcoming',
+      participants_count: 0,
+      ...data
+    };
     return updatedSchedule;
+  },
+
+  async deleteWebinarSchedule(id: string): Promise<void> {
+    console.log('🔄 DUMMY API: deleteWebinarSchedule with id:', id);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return;
   },
 };
 
-// Settings API - Using dummy data
+// Settings API operations
 export const settingsApi = {
   async getKnowledgeSettings(): Promise<KnowledgeCenterSettings> {
     // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: getKnowledgeSettings');
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 400));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     const dummySettings: KnowledgeCenterSettings = {
-      rte_whitelist_tags: [
-        'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li',
-        'blockquote', 'pre', 'code',
-        'a', 'img',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
-        'div', 'span',
-        'hr',
-        'sub', 'sup'
-      ],
+      rte_whitelist_tags: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'div', 'span'],
       rte_allowed_attributes: {
-        '*': ['class', 'style'],
-        'a': ['href', 'target', 'title', 'rel'],
-        'img': ['src', 'alt', 'width', 'height', 'title'],
-        'td': ['colspan', 'rowspan'],
-        'th': ['colspan', 'rowspan']
+        'a': ['href', 'target'],
+        'img': ['src', 'alt', 'width', 'height'],
+        'div': ['class'],
+        'span': ['class']
       },
-      max_file_size: 100 * 1024 * 1024, // 100MB
+      max_file_size: 104857600, // 100MB in bytes
       allowed_file_types: {
-        video: ['mp4', 'webm', 'ogg', 'avi', 'mov', 'wmv', 'flv', 'mkv'],
+        video: ['mp4', 'webm', 'avi'],
         pdf: ['pdf'],
-        audio: ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'],
-        image: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+        audio: ['mp3', 'wav', 'ogg'],
+        image: ['jpg', 'jpeg', 'png', 'gif', 'webp']
       },
-      thumbnail_min_width: 1280,
-      thumbnail_min_height: 720,
-      thumbnail_aspect_ratio: '16:9',
+      thumbnail_min_width: 800,
+      thumbnail_min_height: 450,
+      thumbnail_aspect_ratio: '16:9'
     };
 
-    console.log('✅ DUMMY API: Returning settings:', dummySettings);
     return dummySettings;
   },
 
   async updateKnowledgeSettings(data: Partial<KnowledgeCenterSettings>): Promise<KnowledgeCenterSettings> {
-    // DUMMY DATA - Replace with actual API call when backend is ready
     console.log('🔄 DUMMY API: updateKnowledgeSettings with data:', data);
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 600));
+    const updatedSettings: KnowledgeCenterSettings = {
+      rte_whitelist_tags: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'img', 'div', 'span'],
+      rte_allowed_attributes: {
+        'a': ['href', 'target'],
+        'img': ['src', 'alt', 'width', 'height'],
+        'div': ['class'],
+        'span': ['class']
+      },
+      max_file_size: 104857600,
+      allowed_file_types: {
+        video: ['mp4', 'webm', 'avi'],
+        pdf: ['pdf'],
+        audio: ['mp3', 'wav', 'ogg'],
+        image: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+      },
+      thumbnail_min_width: 800,
+      thumbnail_min_height: 450,
+      thumbnail_aspect_ratio: '16:9',
+      ...data
+    };
 
-    const currentSettings = await this.getKnowledgeSettings();
-    const updatedSettings = { ...currentSettings, ...data };
-
-    console.log('✅ DUMMY API: Updated settings:', updatedSettings);
     return updatedSettings;
   },
 };
-
-// Export all APIs
-export const knowledgeCenterApi = {
-  knowledge: knowledgeApi,
-  taxonomy: taxonomyApi,
-  analytics: analyticsApi,
-  schedule: scheduleApi,
-  settings: settingsApi,
-};
-
-export default knowledgeCenterApi;
