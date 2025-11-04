@@ -46,6 +46,6 @@ export type CourseResponse = {
 
 export const getCourses = async (): Promise<CourseResponse[]> => {
   const response = await axios.get(`${API_BASE_URL}/courses`);
-  const course = response.data;
+  const course = response.data.data;
   return course;
 };

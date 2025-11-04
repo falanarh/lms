@@ -12,8 +12,8 @@ interface CourseCardProps {
 export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
   const renderStars = () => {
     const stars = [];
-    const fullStars = Math.floor(course.rating);
-    const hasHalfStar = course.rating % 1 !== 0;
+    const fullStars = Math.floor(course.averageRating);
+    const hasHalfStar = course.averageRating % 1 !== 0;
 
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
@@ -40,7 +40,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
         <div className="aspect-video relative overflow-hidden">
           <img
             src={
-              course.image ||
+              course.thumbnail ||
               "https://dummyimage.com/600x400/000/fff&text=Course"
             }
             alt={course.title}
@@ -57,7 +57,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
         <div className="p-6 flex flex-col">
           <div className="space-y-2">
             <Badge variant="secondary" size="sm">
-              {course.categories}
+              {course.description.category}
             </Badge>
             <div className="min-h-[56px] md:min-h-[64px]">
               <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
@@ -70,22 +70,23 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">{renderStars()}</div>
               <span className="text-sm font-medium text-zinc-700">
-                {course.rating}/5.00
+                {course.averageRating}/5.00
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
+            {/* //TODO: tambahkan avatar ketika sudah ada teacher */}
+            {/* <div className="flex items-center gap-2 text-sm text-zinc-600">
               <TeacherAvatar
                 teacherName={course.teacher}
                 avatarUrl={course.teacherAvatar}
                 size="sm"
               />
               <span>{course.teacher}</span>
-            </div>
+            </div> */}
 
             <div className="flex items-center gap-2 text-sm text-zinc-600">
               <Users className="w-4 h-4" />
-              <span>{course.totalStudents.toLocaleString()} students</span>
+              <span>{course.totalUsers} students</span>
             </div>
           </div>
         </div>
@@ -99,7 +100,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
         <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
           <img
             src={
-              course.image ||
+              course.thumbnail ||
               "https://dummyimage.com/600x400/000/fff&text=Course"
             }
             alt={course.title}
@@ -116,7 +117,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
         <div className="flex-1 p-6 flex flex-col">
           <div className="space-y-2">
             <Badge variant="secondary" size="sm">
-              {course.categories}
+              {course.description.category}
             </Badge>
             <div className="min-h-[56px] md:min-h-[64px]">
               <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
@@ -129,22 +130,23 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">{renderStars()}</div>
               <span className="text-sm font-medium text-zinc-700">
-                {course.rating}/5.00
+                {course.averageRating}/5.00
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
+            {/* //TODO: tambahkan avatar ketika sudah ada teacher */}
+            {/* <div className="flex items-center gap-2 text-sm text-zinc-600">
               <TeacherAvatar
                 teacherName={course.teacher}
                 avatarUrl={course.teacherAvatar}
                 size="sm"
               />
-              <span>{course.teacher}</span>
-            </div>
+              <span>{course.description.teacher}</span>
+            </div> */}
 
             <div className="flex items-center gap-2 text-sm text-zinc-600">
               <Users className="w-4 h-4" />
-              <span>{course.totalStudents.toLocaleString()} students</span>
+              <span>{course.totalUsers} students</span>
             </div>
           </div>
         </div>
@@ -158,7 +160,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
         <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
           <img
             src={
-              course.image ||
+              course.thumbnail ||
               "https://dummyimage.com/600x400/000/fff&text=Course"
             }
             alt={course.title}
@@ -175,14 +177,14 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
         <div className="flex-1 p-6 flex flex-col">
           <div className="space-y-2">
             <Badge variant="secondary" size="sm">
-              {course.categories}
+              {course.description.category}
             </Badge>
             <h3 className="font-bold text-lg text-zinc-900 line-clamp-1 transition-colors duration-200">
               {course.title}
             </h3>
             {course.description && (
               <p className="text-zinc-600 text-sm line-clamp-2">
-                {course.description}
+                {course.description.description}
               </p>
             )}
           </div>
@@ -191,22 +193,23 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">{renderStars()}</div>
               <span className="text-sm font-medium text-zinc-700">
-                {course.rating}/5.00
+                {course.averageRating}/5.00
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
+            {/* //TODO: tambahkan avatar ketika sudah ada teacher */}
+            {/* <div className="flex items-center gap-2 text-sm text-zinc-600">
               <TeacherAvatar
-                teacherName={course.teacher}
-                avatarUrl={course.teacherAvatar}
+                teacherName={course.description.teacher}
+                avatarUrl={course.description.teacherAvatar}
                 size="sm"
               />
-              <span>{course.teacher}</span>
-            </div>
+              <span>{course.description.teacher}</span>
+            </div> */}
 
             <div className="flex items-center gap-2 text-sm text-zinc-600">
               <Users className="w-4 h-4" />
-              <span>{course.totalStudents.toLocaleString()} students</span>
+              <span>{course.totalUsers} students</span>
             </div>
           </div>
         </div>
