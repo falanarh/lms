@@ -530,24 +530,31 @@ export default function KnowledgeCenterPage() {
       </div>
 
       {/* Popular Knowledge Carousel Section */}
-      <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-br from-blue-50/50 via-purple-50/30 to-pink-50/20 relative overflow-hidden border-y border-gray-200/50">
         {/* Background decorations */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full blur-3xl"></div>
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-200/20 via-purple-200/20 to-transparent rounded-full blur-3xl -ml-32 -mt-32"></div>
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-purple-200/20 via-pink-200/20 to-transparent rounded-full blur-3xl -mr-48 -mb-48"></div>
+
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30"></div>
+
+          {/* Floating decorative shapes */}
+          <div className="absolute top-32 right-32 w-16 h-16 bg-gradient-to-br from-blue-300/20 to-purple-300/20 rounded-2xl rotate-45 backdrop-blur-sm"></div>
+          <div className="absolute bottom-40 left-40 w-20 h-20 bg-gradient-to-br from-purple-300/20 to-pink-300/20 rounded-full backdrop-blur-sm"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm text-white font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-full text-sm text-blue-600 font-semibold mb-4 shadow-sm">
               <TrendingUp className="w-4 h-4" />
               <span>Most Popular</span>
             </div>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent leading-snug">
               Trending Knowledge
             </h2>
-            <p className="text-xl text-blue-200 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Discover the most loved resources by our community
             </p>
           </div>
@@ -565,61 +572,15 @@ export default function KnowledgeCenterPage() {
               {popularKnowledge && popularKnowledge.length > 0 && (
                 <>
                   {[...popularKnowledge, ...popularKnowledge].map((knowledge, index) => (
-                    <Link
+                    <div
                       key={`${knowledge.id}-${index}`}
-                      href={`/knowledge-center/${knowledge.id}`}
-                      className="group flex-shrink-0 w-80 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden hover:bg-white/20 hover:border-white/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20"
+                      className="flex-shrink-0 w-80 group/carousel"
                     >
-                      {/* Thumbnail */}
-                      <div className="relative h-48 bg-gradient-to-br from-blue-600 to-purple-600 overflow-hidden">
-                        {knowledge.thumbnail ? (
-                          <Image
-                            src={knowledge.thumbnail}
-                            alt={knowledge.title}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <BookOpen className="w-16 h-16 text-white/40" />
-                          </div>
-                        )}
-                        {/* Overlay gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-
-                        {/* Popular Badge */}
-                        <div className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1 bg-yellow-500 rounded-full text-xs font-bold text-white shadow-lg">
-                          <Star className="w-3 h-3 fill-white" />
-                          <span>Popular</span>
-                        </div>
+                      {/* KnowledgeCard with custom styling for carousel */}
+                      <div className="relative h-full transition-all duration-300 group-hover/carousel:scale-105 group-hover/carousel:shadow-2xl group-hover/carousel:shadow-blue-500/20">
+                        <KnowledgeCard knowledge={knowledge} />
                       </div>
-
-                      {/* Content */}
-                      <div className="p-5">
-                        <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-blue-300 transition-colors">
-                          {knowledge.title}
-                        </h3>
-                        <p className="text-sm text-blue-200/80 mb-4 line-clamp-2">
-                          {knowledge.description}
-                        </p>
-
-                        {/* Stats */}
-                        <div className="flex items-center gap-4 text-xs text-white/60">
-                          <div className="flex items-center gap-1">
-                            <ThumbsUp className="w-3 h-3" />
-                            <span>{knowledge.like_count || 0}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            <span>{knowledge.view_count || 0}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <BookOpen className="w-3 h-3" />
-                            <span className="capitalize">{knowledge.knowledge_type}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
+                    </div>
                   ))}
                 </>
               )}
@@ -627,7 +588,7 @@ export default function KnowledgeCenterPage() {
 
             {/* Pause indicator */}
             {isPaused && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full text-white text-sm font-medium pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-gray-700 text-sm font-semibold border border-gray-200 shadow-lg pointer-events-none">
                 Paused
               </div>
             )}
@@ -637,7 +598,7 @@ export default function KnowledgeCenterPage() {
           <div className="text-center mt-12">
             <Link
               href="/knowledge-center"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-white text-blue-900 rounded-xl hover:bg-blue-50 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
             >
               <span>Explore All Knowledge</span>
               <TrendingUp className="w-5 h-5" />
