@@ -19,6 +19,65 @@
   display: inline-block;
 }
 
+/* Custom Animations untuk Knowledge Center Icons */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes pulse-slow-delay {
+  0%, 50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes bounce-gentle-delay {
+  0%, 25% {
+    transform: translateY(0);
+  }
+  12.5% {
+    transform: translateY(-2px);
+  }
+  50%, 100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.animate-pulse-slow-delay {
+  animation: pulse-slow-delay 3s ease-in-out infinite;
+}
+
+.animate-bounce-gentle {
+  animation: bounce-gentle 2.5s ease-in-out infinite;
+}
+
+.animate-bounce-gentle-delay {
+  animation: bounce-gentle-delay 2.5s ease-in-out infinite;
+}
+
 .vote-count.updating {
   animation: voteUpdate 0.3s ease-in-out;
 }

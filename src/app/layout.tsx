@@ -4,7 +4,6 @@ import "./globals.css";
 import QueryProvider from "@/providers/QueryProvider";
 import { NavbarWrapper } from "@/components/layout/Navbar/NavbarWrapper";
 import { Footer } from "@/components/layout/Footer/Footer";
-import NavbarClient from "@/components/layout/Navbar/NavbarClient";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -36,16 +35,6 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistMono.variable} antialiased bg-zinc-50`}
       >
-        <NavbarClient
-          items={[
-            { key: "home", label: "Home" },
-            { key: "my-course", label: "My Course" },
-            { key: "forum", label: "Forum" },
-            { key: "knowledge-center", label: "Knowledge Center" },
-            { key: "management", label: "Management" },
-          ]}
-          user={{ name: "John Doe", role: "Manager" }}
-        />
         <NavbarWrapper user={{ role: "Manager" }} />
       
         <div className="min-h-[calc(100vh-4rem)] bg-zinc-50">

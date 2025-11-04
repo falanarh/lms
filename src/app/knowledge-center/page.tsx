@@ -12,7 +12,10 @@ import {
   LayoutGrid,
   TrendingUp,
   Star,
+  Clock,
+  Sparkles,
 } from "lucide-react";
+import { Typewriter } from 'react-simple-typewriter';
 import Link from "next/link";
 import Image from "next/image";
 import KnowledgeCard from "@/components/knowledge-center/KnowledgeCard";
@@ -139,7 +142,7 @@ export default function KnowledgeCenterPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section with Full Screen Search - Modern Design */}
-      <section className="relative bg-gradient-to-br from-slate-50 via-blue-50/40 to-blue-50/30 border-b border-gray-200/50 overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-blue-50/30 border-b border-gray-200/50 overflow-hidden -mt-[74px] pt-20">
         {/* Animated Background Decorations */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Large blur circles */}
@@ -150,42 +153,85 @@ export default function KnowledgeCenterPage() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)] opacity-20"></div>
 
           {/* Floating decorative elements */}
-          <div className="absolute top-20 left-20 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-blue-500/10 rounded-2xl rotate-12 backdrop-blur-sm border border-white/20"></div>
+          <div className="absolute top-24 left-20 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-blue-500/10 rounded-2xl rotate-12 backdrop-blur-sm border border-white/20"></div>
           <div className="absolute top-40 right-32 w-16 h-16 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-full backdrop-blur-sm border border-white/20"></div>
           <div className="absolute bottom-32 right-20 w-24 h-24 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-3xl -rotate-6 backdrop-blur-sm border border-white/20"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <div className="relative w-full max-w-7xl mx-auto mb-12 px-4 sm:px-6 lg:px-8 py-12">
           {/* Title Section */}
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-full text-sm text-blue-600 font-medium mb-6 shadow-sm">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-full text-sm text-blue-600 font-medium shadow-sm">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
               <span>Welcome to Knowledge Hub</span>
             </div>
 
-            <h1 className="text-5xl sm:text-7xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent leading-snug">
+            <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-blue-800 bg-clip-text text-transparent leading-snug">
               Knowledge Center
             </h1>
 
-            <p className="text-xl sm:text-2xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-              Pusat pembelajaran dan berbagi pengetahuan untuk Pusdiklat BPS
+            <p className="text-xl sm:text-2xl text-gray-600 max-w-3xl mx-auto my-2 leading-relaxed h-8">
+              <Typewriter
+                words={["Pusat pembelajaran dan berbagi pengetahuan untuk Pusdiklat BPS"]}
+                loop={1}
+                typeSpeed={50}
+                // deleteSpeed={false}
+                delaySpeed={1000}
+                cursor
+                cursorStyle="|"
+                cursorColor="#3B82F6"
+              />
             </p>
 
-            {/* Stats Pills */}
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <div className="group flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm text-gray-700 font-medium shadow-sm hover:shadow-md hover:border-blue-300/50 transition-all duration-300">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <BookOpen className="w-4 h-4 text-white" />
+            {/* Info Pills - Essential Information */}
+            <div className="flex items-center justify-center gap-4 flex-wrap pb-2 my-5">
+              {/* Upcoming Webinar */}
+              {upcomingWebinarsList.length > 0 && (
+                <Link
+                  href={`/knowledge-center/${upcomingWebinarsList[0].id}`}
+                  className="group flex items-center gap-3 px-5 py-3 bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-sm border border-green-200/70 rounded-xl text-sm font-medium shadow-sm hover:shadow-lg hover:border-green-300 hover:scale-105 transition-all duration-300"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center group-hover:rotate-6 transition-transform duration-300">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs text-green-600 font-semibold mb-0.5">Next Webinar</div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {new Date(upcomingWebinarsList[0].tgl_zoom).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                </Link>
+              )}
+
+              {/* Categories Available */}
+              <div className="group flex items-center gap-3 px-5 py-3 bg-gradient-to-br from-blue-50 to-cyan-50 backdrop-blur-sm border border-blue-200/70 rounded-xl text-sm font-medium shadow-sm hover:shadow-lg hover:border-blue-300 hover:scale-105 transition-all duration-300">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center group-hover:rotate-6 transition-transform duration-300 animate-pulse-slow">
+                  <LayoutGrid className="w-5 h-5 text-white animate-bounce-gentle" />
                 </div>
-                <span className="font-bold text-gray-900">{analytics?.total_knowledge || 0}+</span>
-                <span className="text-gray-600">Resources</span>
+                <div className="text-left">
+                  <div className="text-xs text-blue-600 font-semibold mb-0.5">Categories</div>
+                  <div className="text-sm font-bold text-gray-900">
+                    {categories.length} Topics
+                  </div>
+                </div>
               </div>
-              <div className="group flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm text-gray-700 font-medium shadow-sm hover:shadow-md hover:border-green-300/50 transition-all duration-300">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-4 h-4 text-white" />
+
+              {/* Multiple Formats */}
+              <div className="group flex items-center gap-3 px-5 py-3 bg-gradient-to-br from-green-50 to-teal-50 backdrop-blur-sm border border-green-200/70 rounded-xl text-sm font-medium shadow-sm hover:shadow-lg hover:border-green-300 hover:scale-105 transition-all duration-300">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center group-hover:rotate-6 transition-transform duration-300 animate-pulse-slow-delay">
+                  <BookOpen className="w-5 h-5 text-white animate-bounce-gentle-delay" />
                 </div>
-                <span className="font-bold text-gray-900">{(analytics?.total_views || 0).toLocaleString()}+</span>
-                <span className="text-gray-600">Views</span>
+                <div className="text-left">
+                  <div className="text-xs text-green-600 font-semibold mb-0.5">Multiple Formats</div>
+                  <div className="text-sm font-bold text-gray-900">
+                    Video, PDF, Audio
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -193,24 +239,18 @@ export default function KnowledgeCenterPage() {
           {/* Search Section */}
           <div className="max-w-4xl mx-auto">
             <div className="relative mb-6 group">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
-              <div className="relative flex items-center bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200/50 overflow-hidden">
-                <Search className="absolute left-6 text-gray-400 w-6 h-6 transition-colors duration-300 group-hover:text-blue-500" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 rounded-xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
+              <div className="relative flex items-center bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
                 <input
                   type="text"
                   placeholder="Search for webinars, videos, PDFs, audio content..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-16 pr-6 py-5 text-lg bg-transparent focus:outline-none"
+                  className="w-full px-6 py-4 pr-14 bg-transparent focus:outline-none text-gray-900 placeholder:text-gray-400"
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  >
-                    <span className="text-gray-400 hover:text-gray-600 text-xl">×</span>
-                  </button>
-                )}
+                <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 transition-colors">
+                  <Search size={20} />
+                </button>
               </div>
             </div>
 
