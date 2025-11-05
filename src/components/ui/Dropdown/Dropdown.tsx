@@ -105,6 +105,9 @@ function variantClasses(variant: DropdownVariant, error?: boolean) {
         "border border-transparent",
       ].join(" ");
     case "solid":
+      return [
+        "border-2 border-[var(--border,rgba(0,0,0,0.12))]",
+      ]
     default:
       return [
         "bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]",
@@ -224,7 +227,7 @@ export function Dropdown({
   const listboxId = React.useId();
 
   return (
-    <div className={["inline-flex items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
+    <div className={["flex items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}>
       {label && (
         <span className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)] font-[var(--font-body)]">
           {label}
@@ -233,12 +236,12 @@ export function Dropdown({
 
       {name && <input type="hidden" name={name} value={selectedValue ?? ""} />}
 
-      <div className="relative">
+      <div className="relative w-full">
         <button
           ref={buttonRef}
           type="button"
           className={[
-            "inline-flex items-center justify-between min-w-48",
+            "w-full inline-flex items-center justify-between",
             sz.button,
             sz.text,
             variantClasses(variant, error),
