@@ -403,7 +403,7 @@ export default function KnowledgeCenterPage() {
             </div>
 
             {/* Search and Filter Bar */}
-            <div className="flex items-center gap-4 max-w-3/5 w-full">
+            <div className="flex items-center justify-end gap-4 max-w-4/5 w-full">
               <Input
                 type="text"
                 placeholder="Search resources..."

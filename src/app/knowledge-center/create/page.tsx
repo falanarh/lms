@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronRight,
@@ -21,7 +21,9 @@ import {
   X,
   User,
 } from "lucide-react";
-import RichTextEditor from "@/components/knowledge-center/RichTextEditor";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/mantine/style.css";
+import "@blocknote/core/fonts/inter.css";
 import MediaPicker from "@/components/knowledge-center/MediaPicker";
 import { Input } from "@/components/ui/Input/Input";
 import { Dropdown } from "@/components/ui/Dropdown/Dropdown";
@@ -37,6 +39,7 @@ import {
   KnowledgeType,
   MediaType,
 } from "@/types/knowledge-center";
+import { useCreateBlockNote } from "@blocknote/react";
 
 const steps = [
   { id: 1, title: "Content Type", description: "What are you creating?" },
@@ -67,7 +70,28 @@ export default function CreateKnowledgePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [currentTagInput, setCurrentTagInput] = useState<string>("");
-  const [contentType, setContentType] = useState<"article" | "video" | "podcast" | "pdf" | null>(null);
+  const [contentType, setContentType] = useState<
+    "article" | "video" | "podcast" | "pdf" | null
+  >(null);
+  // Creates a new editor instance.
+  const editor = useCreateBlockNote();
+
+  // Auto scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
+  // Auto scroll when content type changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [contentType]);
+
+  // Auto scroll when user goes back to content type selection
+  useEffect(() => {
+    if (currentStep === 3 && !contentType) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  }, [currentStep, contentType]);
 
   const updateFormData = (field: keyof CreateKnowledgeFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -715,8 +739,12 @@ export default function CreateKnowledgePage() {
                 {!contentType ? (
                   <div className="space-y-8">
                     <div className="text-center mb-8">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Choose Content Type</h3>
-                      <p className="text-gray-600">Select the type of content you want to create</p>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        Choose Content Type
+                      </h3>
+                      <p className="text-gray-600">
+                        Select the type of content you want to create
+                      </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <button
@@ -910,15 +938,26 @@ export default function CreateKnowledgePage() {
                     {/* Content Type Header */}
                     <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        {contentType === "article" && <FileText className="w-5 h-5 text-blue-600" />}
-                        {contentType === "video" && <Video className="w-5 h-5 text-blue-600" />}
-                        {contentType === "podcast" && <FileAudio className="w-5 h-5 text-blue-600" />}
-                        {contentType === "pdf" && <FileText className="w-5 h-5 text-blue-600" />}
+                        {contentType === "article" && (
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        )}
+                        {contentType === "video" && (
+                          <Video className="w-5 h-5 text-blue-600" />
+                        )}
+                        {contentType === "podcast" && (
+                          <FileAudio className="w-5 h-5 text-blue-600" />
+                        )}
+                        {contentType === "pdf" && (
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        )}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 capitalize">{contentType}</h3>
+                        <h3 className="font-semibold text-gray-900 capitalize">
+                          {contentType}
+                        </h3>
                         <p className="text-sm text-gray-600">
-                          {contentType === "article" && "Create rich text articles"}
+                          {contentType === "article" &&
+                            "Create rich text articles"}
                           {contentType === "video" && "Upload video content"}
                           {contentType === "podcast" && "Upload audio content"}
                           {contentType === "pdf" && "Upload PDF documents"}
@@ -937,11 +976,16 @@ export default function CreateKnowledgePage() {
                             <div className="w-full h-full flex items-center justify-center p-8">
                               <div className="text-center">
                                 <div className="mx-auto w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                                  {formData.media_resource.type.startsWith("video/") ? (
+                                  {formData.media_resource.type.startsWith(
+                                    "video/"
+                                  ) ? (
                                     <Video className="w-7 h-7 text-blue-600" />
-                                  ) : formData.media_resource.type === "application/pdf" ? (
+                                  ) : formData.media_resource.type ===
+                                    "application/pdf" ? (
                                     <FileText className="w-7 h-7 text-blue-600" />
-                                  ) : formData.media_resource.type.startsWith("audio/") ? (
+                                  ) : formData.media_resource.type.startsWith(
+                                      "audio/"
+                                    ) ? (
                                     <FileAudio className="w-7 h-7 text-blue-600" />
                                   ) : (
                                     <File className="w-7 h-7 text-blue-600" />
@@ -956,13 +1000,18 @@ export default function CreateKnowledgePage() {
                                     (1024 * 1024)
                                   ).toFixed(2)}{" "}
                                   MB •{" "}
-                                  {formData.media_resource.type.startsWith("video/")
+                                  {formData.media_resource.type.startsWith(
+                                    "video/"
+                                  )
                                     ? "Video"
-                                    : formData.media_resource.type === "application/pdf"
-                                    ? "PDF"
-                                    : formData.media_resource.type.startsWith("audio/")
-                                    ? "Audio"
-                                    : "File"}
+                                    : formData.media_resource.type ===
+                                        "application/pdf"
+                                      ? "PDF"
+                                      : formData.media_resource.type.startsWith(
+                                            "audio/"
+                                          )
+                                        ? "Audio"
+                                        : "File"}
                                 </p>
                               </div>
                             </div>
@@ -988,14 +1037,15 @@ export default function CreateKnowledgePage() {
                                 contentType === "video"
                                   ? "video/*"
                                   : contentType === "podcast"
-                                  ? "audio/*"
-                                  : contentType === "pdf"
-                                  ? ".pdf"
-                                  : "*"
+                                    ? "audio/*"
+                                    : contentType === "pdf"
+                                      ? ".pdf"
+                                      : "*"
                               }
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) updateFormData("media_resource", file);
+                                if (file)
+                                  updateFormData("media_resource", file);
                               }}
                               className="hidden"
                               id="media-resource-upload"
@@ -1008,11 +1058,19 @@ export default function CreateKnowledgePage() {
                                 <Upload className="w-7 h-7 text-gray-600" />
                               </div>
                               <p className="text-base font-medium text-gray-900 mb-1">
-                                Upload {contentType === "video" ? "Video" : contentType === "podcast" ? "Audio" : "PDF"} File
+                                Upload{" "}
+                                {contentType === "video"
+                                  ? "Video"
+                                  : contentType === "podcast"
+                                    ? "Audio"
+                                    : "PDF"}{" "}
+                                File
                               </p>
                               <p className="text-sm text-gray-500">
-                                {contentType === "video" && "MP4, MOV up to 50MB"}
-                                {contentType === "podcast" && "MP3, WAV up to 50MB"}
+                                {contentType === "video" &&
+                                  "MP4, MOV up to 50MB"}
+                                {contentType === "podcast" &&
+                                  "MP3, WAV up to 50MB"}
                                 {contentType === "pdf" && "PDF up to 10MB"}
                               </p>
                             </label>
@@ -1031,22 +1089,8 @@ export default function CreateKnowledgePage() {
                       <label className="block text-sm font-medium text-gray-900 mb-2">
                         Content
                       </label>
-                      <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden hover:border-blue-300 transition-colors">
-                        <RichTextEditor
-                          value={formData.content_richtext || ""}
-                          onChange={(value) =>
-                            updateFormData("content_richtext", value)
-                          }
-                          placeholder={
-                            contentType === "article"
-                              ? "Write your article content here..."
-                              : contentType === "video"
-                              ? "Add video description, transcript, or show notes..."
-                              : contentType === "podcast"
-                              ? "Add podcast description, show notes, or transcript..."
-                              : "Add PDF description, summary, or key points..."
-                          }
-                        />
+                      <div className="border border-gray-200 rounded-lg p-4 min-h-128 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+                        <BlockNoteView className="" editor={editor} />
                       </div>
                     </div>
                   </div>
@@ -1068,6 +1112,8 @@ export default function CreateKnowledgePage() {
                   <p className="font-medium text-gray-900">
                     {formData.knowledge_type === "webinar"
                       ? "Webinar"
+                      : contentType
+                      ? `Content (${contentType.charAt(0).toUpperCase() + contentType.slice(1)})`
                       : "Content"}
                   </p>
                 </div>
@@ -1333,7 +1379,7 @@ export default function CreateKnowledgePage() {
 
             {/* Content */}
             <div className="px-8 py-8">
-              <div className="max-w-4xl">
+              <div className="w-full">
                 {renderStepContent()}
 
                 {/* Actions */}
