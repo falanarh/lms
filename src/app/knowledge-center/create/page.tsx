@@ -67,6 +67,7 @@ export default function CreateKnowledgePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [currentTagInput, setCurrentTagInput] = useState<string>("");
+  const [contentType, setContentType] = useState<"article" | "video" | "podcast" | "pdf" | null>(null);
 
   const updateFormData = (field: keyof CreateKnowledgeFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -94,49 +95,49 @@ export default function CreateKnowledgePage() {
   const validateStep = (step: CreateKnowledgeStep): boolean => {
     const newErrors: Record<string, string> = {};
 
-    switch (step) {
-      case 1:
-        if (!formData.knowledge_type) {
-          newErrors.knowledge_type = "Pilih tipe knowledge";
-        }
-        break;
+    // switch (step) {
+    //   case 1:
+    //     if (!formData.knowledge_type) {
+    //       newErrors.knowledge_type = "Pilih tipe knowledge";
+    //     }
+    //     break;
 
-      case 2:
-        if (!formData.title.trim()) {
-          newErrors.title = "Title is required";
-        }
-        if (!formData.description.trim()) {
-          newErrors.description = "Description is required";
-        }
-        if (!formData.subject) {
-          newErrors.subject = "Subject is required";
-        }
-        if (!formData.penyelenggara) {
-          newErrors.penyelenggara = "Penyelenggara is required";
-        }
-        if (!formData.author.trim()) {
-          newErrors.author = "Author is required";
-        }
-        if (!formData.thumbnail && Number(currentStep) === 2) {
-          newErrors.thumbnail = "Thumbnail is required";
-        }
-        break;
+    //   case 2:
+    //     if (!formData.title.trim()) {
+    //       newErrors.title = "Title is required";
+    //     }
+    //     if (!formData.description.trim()) {
+    //       newErrors.description = "Description is required";
+    //     }
+    //     if (!formData.subject) {
+    //       newErrors.subject = "Subject is required";
+    //     }
+    //     if (!formData.penyelenggara) {
+    //       newErrors.penyelenggara = "Penyelenggara is required";
+    //     }
+    //     if (!formData.author.trim()) {
+    //       newErrors.author = "Author is required";
+    //     }
+    //     if (!formData.thumbnail && Number(currentStep) === 2) {
+    //       newErrors.thumbnail = "Thumbnail is required";
+    //     }
+    //     break;
 
-      case 3:
-        if (formData.knowledge_type === "webinar") {
-          if (!formData.tgl_zoom) {
-            newErrors.tgl_zoom = "Tanggal webinar is required";
-          }
-        } else {
-          if (!formData.media_resource) {
-            newErrors.media_resource = "Media file is required";
-          }
-        }
-        break;
+    //   case 3:
+    //     if (formData.knowledge_type === "webinar") {
+    //       if (!formData.tgl_zoom) {
+    //         newErrors.tgl_zoom = "Tanggal webinar is required";
+    //       }
+    //     } else {
+    //       if (!formData.media_resource) {
+    //         newErrors.media_resource = "Media file is required";
+    //       }
+    //     }
+    //     break;
 
-      case 4:
-        break;
-    }
+    //   case 4:
+    //     break;
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -346,7 +347,7 @@ export default function CreateKnowledgePage() {
                   error={!!errors.penyelenggara}
                   size="lg"
                   variant="solid"
-                  className="w-full [&>button]:border-2 [&>button]:border-[var(--border,rgba(0,0,0,0.12))] [&>button]:focus:border-transparent"
+                  className="w-full"
                 />
                 {errors.penyelenggara && (
                   <p className="text-red-600 text-xs mt-1.5">
@@ -397,7 +398,7 @@ export default function CreateKnowledgePage() {
                   error={!!errors.subject}
                   size="lg"
                   variant="solid"
-                  className="w-full [&>button]:border-2 [&>button]:border-[var(--border,rgba(0,0,0,0.12))] [&>button]:focus:border-transparent"
+                  className="w-full"
                 />
                 {errors.subject && (
                   <p className="text-red-600 text-xs mt-1.5">
@@ -538,7 +539,7 @@ export default function CreateKnowledgePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Webinar Date *
+                      Webinar Date <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="datetime-local"
@@ -580,34 +581,19 @@ export default function CreateKnowledgePage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Zoom Link
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.link_zoom || ""}
-                    onChange={(e) =>
-                      updateFormData("link_zoom", e.target.value)
-                    }
-                    className="w-full px-4 h-12 border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
-                    placeholder="https://zoom.us/j/..."
-                  />
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Recording Link
+                      Zoom Link
                     </label>
                     <input
                       type="url"
-                      value={formData.link_record || ""}
+                      value={formData.link_zoom || ""}
                       onChange={(e) =>
-                        updateFormData("link_record", e.target.value)
+                        updateFormData("link_zoom", e.target.value)
                       }
                       className="w-full px-4 h-12 border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
-                      placeholder="https://..."
+                      placeholder="https://zoom.us/j/..."
                     />
                   </div>
 
@@ -630,7 +616,22 @@ export default function CreateKnowledgePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Video Builder Link
+                      Recording Link
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.link_record || ""}
+                      onChange={(e) =>
+                        updateFormData("link_record", e.target.value)
+                      }
+                      className="w-full px-4 h-12 border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Virtual Background Link
                     </label>
                     <input
                       type="url"
@@ -642,82 +643,416 @@ export default function CreateKnowledgePage() {
                       placeholder="https://..."
                     />
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      GOJAGS Reference
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.gojags_ref || ""}
-                      onChange={(e) =>
-                        updateFormData("gojags_ref", e.target.value)
-                      }
-                      className="w-full px-4 h-12 border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-gray-900 placeholder:text-gray-400"
-                      placeholder="GOJAGS ID"
-                    />
-                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Notes PDF
                   </label>
-                  <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg p-3 hover:border-green-300 transition-colors">
-                    <MediaPicker
-                      onFileSelect={(file) =>
-                        updateFormData("file_notulensi_pdf", file)
-                      }
-                      onFileRemove={() =>
-                        updateFormData("file_notulensi_pdf", undefined)
-                      }
-                      selectedFile={formData.file_notulensi_pdf as File}
-                      accept=".pdf"
-                      allowedTypes={["pdf"]}
-                    />
-                  </div>
+                  {formData.file_notulensi_pdf ? (
+                    <div className="relative border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden bg-gray-50 h-64">
+                      <div className="w-full h-full flex items-center justify-center p-8">
+                        <div className="text-center">
+                          <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                            <FileText className="w-7 h-7 text-green-600" />
+                          </div>
+                          <p className="text-gray-900 text-sm font-medium truncate mb-2">
+                            {(formData.file_notulensi_pdf as File).name}
+                          </p>
+                          <p className="text-gray-600 text-xs">
+                            {(
+                              (formData.file_notulensi_pdf as File).size /
+                              (1024 * 1024)
+                            ).toFixed(2)}{" "}
+                            MB • PDF
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                        <p className="text-white text-sm font-medium truncate">
+                          {(formData.file_notulensi_pdf as File)?.name}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          updateFormData("file_notulensi_pdf", undefined)
+                        }
+                        className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-green-400 transition-colors bg-white">
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) updateFormData("file_notulensi_pdf", file);
+                        }}
+                        className="hidden"
+                        id="notes-pdf-upload"
+                      />
+                      <label
+                        htmlFor="notes-pdf-upload"
+                        className="cursor-pointer block text-center"
+                      >
+                        <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                          <Upload className="w-7 h-7 text-gray-600" />
+                        </div>
+                        <p className="text-base font-medium text-gray-900 mb-1">
+                          Upload Notes PDF
+                        </p>
+                        <p className="text-sm text-gray-500">PDF up to 10MB</p>
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Media Resource *
-                </label>
-                <MediaPicker
-                  onFileSelect={(file) =>
-                    updateFormData("media_resource", file)
-                  }
-                  onFileRemove={() =>
-                    updateFormData("media_resource", undefined)
-                  }
-                  selectedFile={formData.media_resource as File}
-                  allowedTypes={["video", "pdf", "audio"]}
-                />
-                {errors.media_resource && (
-                  <p className="text-red-600 text-xs mt-1.5">
-                    {errors.media_resource}
-                  </p>
-                )}
-                <p className="text-gray-500 text-xs mt-1.5">
-                  Upload video, PDF, or audio
-                </p>
-              </div>
-            )}
+              <>
+                {!contentType ? (
+                  <div className="space-y-8">
+                    <div className="text-center mb-8">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Choose Content Type</h3>
+                      <p className="text-gray-600">Select the type of content you want to create</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <button
+                        onClick={() => setContentType("article")}
+                        className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left ${
+                          contentType === "article"
+                            ? "border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50"
+                            : "border-[var(--border,rgba(0,0,0,0.12))] hover:border-blue-300 bg-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center mb-5 transition-colors ${
+                            contentType === "article"
+                              ? "bg-gradient-to-br from-blue-500 to-cyan-600"
+                              : "bg-gray-100 group-hover:bg-blue-50"
+                          }`}
+                        >
+                          <FileText
+                            className={`w-6 h-6 ${
+                              contentType === "article"
+                                ? "text-white"
+                                : "text-gray-700 group-hover:text-blue-600"
+                            }`}
+                          />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          Article
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Write articles with rich text content and formatting
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            Rich Text
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            No File
+                          </span>
+                        </div>
+                        {contentType === "article" && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </button>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Content
-              </label>
-              <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden hover:border-blue-300 transition-colors">
-                <RichTextEditor
-                  value={formData.content_richtext || ""}
-                  onChange={(value) =>
-                    updateFormData("content_richtext", value)
-                  }
-                  placeholder="Write your content here..."
-                />
-              </div>
-            </div>
+                      <button
+                        onClick={() => setContentType("video")}
+                        className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left ${
+                          contentType === "video"
+                            ? "border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50"
+                            : "border-[var(--border,rgba(0,0,0,0.12))] hover:border-blue-300 bg-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center mb-5 transition-colors ${
+                            contentType === "video"
+                              ? "bg-gradient-to-br from-blue-500 to-cyan-600"
+                              : "bg-gray-100 group-hover:bg-blue-50"
+                          }`}
+                        >
+                          <Video
+                            className={`w-6 h-6 ${
+                              contentType === "video"
+                                ? "text-white"
+                                : "text-gray-700 group-hover:text-blue-600"
+                            }`}
+                          />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          Video
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Upload video content with rich text descriptions
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            MP4
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            MOV
+                          </span>
+                        </div>
+                        {contentType === "video" && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setContentType("podcast")}
+                        className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left ${
+                          contentType === "podcast"
+                            ? "border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50"
+                            : "border-[var(--border,rgba(0,0,0,0.12))] hover:border-blue-300 bg-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center mb-5 transition-colors ${
+                            contentType === "podcast"
+                              ? "bg-gradient-to-br from-blue-500 to-cyan-600"
+                              : "bg-gray-100 group-hover:bg-blue-50"
+                          }`}
+                        >
+                          <FileAudio
+                            className={`w-6 h-6 ${
+                              contentType === "podcast"
+                                ? "text-white"
+                                : "text-gray-700 group-hover:text-blue-600"
+                            }`}
+                          />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          Podcast/Audio
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Upload audio content with show notes and transcripts
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            MP3
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            WAV
+                          </span>
+                        </div>
+                        {contentType === "podcast" && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => setContentType("pdf")}
+                        className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left ${
+                          contentType === "pdf"
+                            ? "border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50"
+                            : "border-[var(--border,rgba(0,0,0,0.12))] hover:border-blue-300 bg-white"
+                        }`}
+                      >
+                        <div
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center mb-5 transition-colors ${
+                            contentType === "pdf"
+                              ? "bg-gradient-to-br from-blue-500 to-cyan-600"
+                              : "bg-gray-100 group-hover:bg-blue-50"
+                          }`}
+                        >
+                          <FileText
+                            className={`w-6 h-6 ${
+                              contentType === "pdf"
+                                ? "text-white"
+                                : "text-gray-700 group-hover:text-blue-600"
+                            }`}
+                          />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          PDF
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Upload PDF documents with descriptions and summaries
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            PDF
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            Document
+                          </span>
+                        </div>
+                        {contentType === "pdf" && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Back button */}
+                    <button
+                      onClick={() => setContentType(null)}
+                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Change Content Type
+                    </button>
+
+                    {/* Content Type Header */}
+                    <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        {contentType === "article" && <FileText className="w-5 h-5 text-blue-600" />}
+                        {contentType === "video" && <Video className="w-5 h-5 text-blue-600" />}
+                        {contentType === "podcast" && <FileAudio className="w-5 h-5 text-blue-600" />}
+                        {contentType === "pdf" && <FileText className="w-5 h-5 text-blue-600" />}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 capitalize">{contentType}</h3>
+                        <p className="text-sm text-gray-600">
+                          {contentType === "article" && "Create rich text articles"}
+                          {contentType === "video" && "Upload video content"}
+                          {contentType === "podcast" && "Upload audio content"}
+                          {contentType === "pdf" && "Upload PDF documents"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Media Resource (only for video, podcast, pdf) */}
+                    {contentType !== "article" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                          Media Resource <span className="text-red-500">*</span>
+                        </label>
+                        {formData.media_resource ? (
+                          <div className="relative border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden bg-gray-50 h-64">
+                            <div className="w-full h-full flex items-center justify-center p-8">
+                              <div className="text-center">
+                                <div className="mx-auto w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                                  {formData.media_resource.type.startsWith("video/") ? (
+                                    <Video className="w-7 h-7 text-blue-600" />
+                                  ) : formData.media_resource.type === "application/pdf" ? (
+                                    <FileText className="w-7 h-7 text-blue-600" />
+                                  ) : formData.media_resource.type.startsWith("audio/") ? (
+                                    <FileAudio className="w-7 h-7 text-blue-600" />
+                                  ) : (
+                                    <File className="w-7 h-7 text-blue-600" />
+                                  )}
+                                </div>
+                                <p className="text-gray-900 text-sm font-medium truncate mb-2">
+                                  {(formData.media_resource as File).name}
+                                </p>
+                                <p className="text-gray-600 text-xs">
+                                  {(
+                                    (formData.media_resource as File).size /
+                                    (1024 * 1024)
+                                  ).toFixed(2)}{" "}
+                                  MB •{" "}
+                                  {formData.media_resource.type.startsWith("video/")
+                                    ? "Video"
+                                    : formData.media_resource.type === "application/pdf"
+                                    ? "PDF"
+                                    : formData.media_resource.type.startsWith("audio/")
+                                    ? "Audio"
+                                    : "File"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                              <p className="text-white text-sm font-medium truncate">
+                                {(formData.media_resource as File)?.name}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() =>
+                                updateFormData("media_resource", undefined)
+                              }
+                              className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-lg"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-400 transition-colors bg-white">
+                            <input
+                              type="file"
+                              accept={
+                                contentType === "video"
+                                  ? "video/*"
+                                  : contentType === "podcast"
+                                  ? "audio/*"
+                                  : contentType === "pdf"
+                                  ? ".pdf"
+                                  : "*"
+                              }
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) updateFormData("media_resource", file);
+                              }}
+                              className="hidden"
+                              id="media-resource-upload"
+                            />
+                            <label
+                              htmlFor="media-resource-upload"
+                              className="cursor-pointer block text-center"
+                            >
+                              <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <Upload className="w-7 h-7 text-gray-600" />
+                              </div>
+                              <p className="text-base font-medium text-gray-900 mb-1">
+                                Upload {contentType === "video" ? "Video" : contentType === "podcast" ? "Audio" : "PDF"} File
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {contentType === "video" && "MP4, MOV up to 50MB"}
+                                {contentType === "podcast" && "MP3, WAV up to 50MB"}
+                                {contentType === "pdf" && "PDF up to 10MB"}
+                              </p>
+                            </label>
+                          </div>
+                        )}
+                        {errors.media_resource && (
+                          <p className="text-red-600 text-xs mt-1.5">
+                            {errors.media_resource}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Content (Rich Text Editor) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Content
+                      </label>
+                      <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden hover:border-blue-300 transition-colors">
+                        <RichTextEditor
+                          value={formData.content_richtext || ""}
+                          onChange={(value) =>
+                            updateFormData("content_richtext", value)
+                          }
+                          placeholder={
+                            contentType === "article"
+                              ? "Write your article content here..."
+                              : contentType === "video"
+                              ? "Add video description, transcript, or show notes..."
+                              : contentType === "podcast"
+                              ? "Add podcast description, show notes, or transcript..."
+                              : "Add PDF description, summary, or key points..."
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         );
 
