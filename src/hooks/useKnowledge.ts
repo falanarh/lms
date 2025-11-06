@@ -18,7 +18,11 @@ import {
   getKnowledgeRecommendationsQueryOptions,
   getSubjectsQueryOptions,
   getPenyelenggaraQueryOptions,
-  KnowledgeQueryParams
+  getKnowledgeSubjectsQueryOptions,
+  KnowledgeQueryParams,
+  KnowledgeSubject,
+  CreateKnowledgeSubjectRequest,
+  UpdateKnowledgeSubjectRequest
 } from '@/api/knowledge';
 import { Knowledge } from '@/types/knowledge-center';
 
@@ -632,6 +636,79 @@ export function usePenyelenggara() {
     error,
     refetch,
   };
+}
+
+// Knowledge Subjects Hooks
+export function useKnowledgeSubjects() {
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(getKnowledgeSubjectsQueryOptions());
+
+  return {
+    subjects: data || [],
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useCreateKnowledgeSubject(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (subjectData: CreateKnowledgeSubjectRequest) =>
+      knowledgeApi.createKnowledgeSubject(subjectData),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-subjects'] });
+      const successMessage = `Subject "${data.name}" berhasil dibuat!`;
+      onSuccess?.(successMessage);
+    },
+    onError: (error) => {
+      console.error('Failed to create knowledge subject:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal membuat subject. Silakan coba lagi.';
+      onError?.(errorMessage);
+    },
+  });
+}
+
+export function useUpdateKnowledgeSubject(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateKnowledgeSubjectRequest }) =>
+      knowledgeApi.updateKnowledgeSubject(id, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-subjects'] });
+      const successMessage = `Subject "${data.name}" berhasil diperbarui!`;
+      onSuccess?.(successMessage);
+    },
+    onError: (error) => {
+      console.error('Failed to update knowledge subject:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal memperbarui subject. Silakan coba lagi.';
+      onError?.(errorMessage);
+    },
+  });
+}
+
+export function useDeleteKnowledgeSubject(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: knowledgeApi.deleteKnowledgeSubject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-subjects'] });
+      const successMessage = 'Subject berhasil dihapus!';
+      onSuccess?.(successMessage);
+    },
+    onError: (error) => {
+      console.error('Failed to delete knowledge subject:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus subject. Silakan coba lagi.';
+      onError?.(errorMessage);
+    },
+  });
 }
 
 // Hook for managing create knowledge form state

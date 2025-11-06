@@ -7,7 +7,8 @@ import {
   MediaType,
   type KnowledgeFilters,
 } from '@/types/knowledge-center';
-import { useSubjects, usePenyelenggara, useTags } from '@/hooks/useKnowledgeCenter';
+import { useSubjects, usePenyelenggara } from '@/hooks/useKnowledge';
+import { useTags } from '@/hooks/useKnowledgeCenter';
 
 interface KnowledgeFiltersProps {
   filters: KnowledgeFilters;

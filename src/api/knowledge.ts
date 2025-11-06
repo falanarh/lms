@@ -5,6 +5,8 @@
 
 // Types imported from types/knowledge-center.ts
 import { Knowledge, MediaType, Webinar, Konten, KnowledgeAnalytics } from '@/types/knowledge-center';
+import { API_ENDPOINTS, API_CONFIG } from '@/config/api';
+import axios from 'axios';
 
 export interface WebinarSchedule {
   id: string;
@@ -43,6 +45,44 @@ export interface Penyelenggara {
   description?: string;
 }
 
+// Knowledge Subjects types
+export interface KnowledgeSubject {
+  id: string;
+  name: string;
+  icon: string;
+  createdAt: string;
+  updatedAt: string;
+  listKnowledgeCenter: any[];
+}
+
+export interface KnowledgeSubjectsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  data: KnowledgeSubject[];
+  pageMeta: {
+    page: number;
+    perPage: number;
+    hasPrev: boolean;
+    hasNext: boolean;
+    totalPageCount: number;
+    showingFrom: number;
+    showingTo: number;
+    resultCount: number;
+    totalResultCount: number;
+  };
+}
+
+export interface CreateKnowledgeSubjectRequest {
+  name: string;
+  icon: string;
+}
+
+export interface UpdateKnowledgeSubjectRequest {
+  name?: string;
+  icon?: string;
+}
+
 // KnowledgeAnalytics imported from types/knowledge-center.ts
 
 export interface KnowledgeQueryParams {
@@ -62,137 +102,8 @@ export interface KnowledgeResponse {
   total_pages: number;
 }
 
-// Dummy Data Generator
-const generateDummyKnowledge = (): Knowledge[] => {
-  const subjects = ['Data Science', 'Machine Learning', 'Web Development', 'Mobile Development', 'DevOps', 'Cloud Computing', 'Cybersecurity', 'UI/UX Design'];
-  const penyelenggaras = ['Pusdiklat BPS', 'BPS Sumatera Barat', 'BPS DKI Jakarta', 'BPS Jawa Tengah', 'BPS DI Yogyakarta'];
-  const mediaTypes: MediaType[] = ['video', 'pdf', 'audio', 'article'];
-
-  return Array.from({ length: 50 }, (_, index) => {
-    const id = `knowledge-${index + 1}`;
-    const subject = subjects[index % subjects.length];
-    const isWebinar = index % 3 === 0;
-    const penyelenggara = penyelenggaras[index % penyelenggaras.length];
-
-    const baseFields = {
-      id,
-      title: `${isWebinar ? 'Webinar' : 'Content'} ${index + 1}: ${subject} Fundamentals`,
-      description: `Comprehensive ${isWebinar ? 'webinar' : 'content'} covering the fundamentals of ${subject}. Perfect for beginners and intermediate learners looking to enhance their skills.`,
-      subject,
-      knowledge_type: isWebinar ? 'webinar' as const : 'konten' as const,
-      penyelenggara,
-      thumbnail: `https://picsum.photos/400/225?random=${index}`,
-      author: `Expert ${index + 1}`,
-      like_count: Math.floor(Math.random() * 1000),
-      dislike_count: Math.floor(Math.random() * 100),
-      view_count: Math.floor(Math.random() * 10000),
-      tags: [subject.toLowerCase(), isWebinar ? 'webinar' : 'content'],
-      created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      published_at: new Date(Date.now() - Math.random() * 20 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-
-    if (isWebinar) {
-      // Return Webinar type
-      return {
-        ...baseFields,
-        tgl_zoom: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        link_zoom: `https://zoom.us/webinar/${index}`,
-        link_youtube: `https://youtube.com/watch?v=${index}`,
-        link_vb: `https://virtual-background.com/${index}`,
-        file_notulensi_pdf: `https://example.com/notulensi/${id}.pdf`,
-        content_richtext: `<p>Webinar content for ${subject} fundamentals...</p>`,
-        jumlah_jp: Math.floor(Math.random() * 8) + 2,
-        gojags_ref: `GOJAGS-${index}`,
-      } as Webinar;
-    } else {
-      // Return Konten type
-      const mediaType = mediaTypes[index % mediaTypes.length];
-      return {
-        ...baseFields,
-        media_resource: `https://example.com/media/${id}.${mediaType === 'video' ? 'mp4' : mediaType === 'pdf' ? 'pdf' : mediaType === 'audio' ? 'mp3' : 'html'}`,
-        media_type: mediaType,
-        content_richtext: `<p>Content about ${subject} fundamentals...</p>`,
-      } as Konten;
-    }
-  });
-};
-
-const generateDummyWebinarSchedule = (): WebinarSchedule[] => {
-  const now = new Date();
-  return Array.from({ length: 10 }, (_, index) => {
-    const date = new Date(now.getTime() + (index * 24 * 60 * 60 * 1000)); // Next 10 days
-    return {
-      id: `webinar-schedule-${index + 1}`,
-      title: `Advanced Webinar ${index + 1}`,
-      description: `Advanced topics and best practices in modern technology and development.`,
-      tgl_zoom: date.toISOString(),
-      zoom_link: `https://zoom.us/webinar/${index + 1}`,
-      youtube_link: `https://youtube.com/watch?v=${index + 1}`,
-      speaker: `Industry Expert ${index + 1}`,
-      max_participants: 100,
-      current_participants: Math.floor(Math.random() * 100),
-      is_active: true,
-    };
-  });
-};
-
-// In-memory storage for dummy data
-const dummyKnowledgeStore = generateDummyKnowledge();
-
-const generateDummyAnalytics = (): KnowledgeAnalytics => {
-  return {
-    total_knowledge: 156,
-    total_webinars: 45,
-    total_published: 134,
-    total_likes: 3421,
-    total_dislikes: 234,
-    total_views: 25678,
-    upcoming_webinars: 8,
-    top_subjects: [
-      { subject: 'Data Science', count: 34 },
-      { subject: 'Web Development', count: 28 },
-      { subject: 'Machine Learning', count: 22 },
-      { subject: 'Mobile Development', count: 18 },
-      { subject: 'UI/UX Design', count: 15 },
-    ],
-    popular_knowledge: dummyKnowledgeStore.slice(0, 5),
-  };
-};
-const dummyWebinarScheduleStore = generateDummyWebinarSchedule();
-const dummyAnalyticsStore = generateDummyAnalytics();
-
-// Generate dummy subjects and penyelenggara
-const generateDummySubjects = (): Subject[] => {
-  return [
-    { id: '1', name: 'Data Science', description: 'Learn data analysis and machine learning', icon: 'chart-bar' },
-    { id: '2', name: 'Machine Learning', description: 'Advanced ML techniques and algorithms', icon: 'brain-circuit' },
-    { id: '3', name: 'Web Development', description: 'Modern web development frameworks', icon: 'code' },
-    { id: '4', name: 'Mobile Development', description: 'iOS and Android app development', icon: 'smartphone' },
-    { id: '5', name: 'DevOps', description: 'Cloud infrastructure and deployment', icon: 'git-branch' },
-    { id: '6', name: 'Cloud Computing', description: 'AWS, Azure, and Google Cloud', icon: 'cloud' },
-    { id: '7', name: 'Cybersecurity', description: 'Information security and best practices', icon: 'shield' },
-    { id: '8', name: 'UI/UX Design', description: 'User interface and experience design', icon: 'palette' },
-    { id: '9', name: 'Project Management', description: 'Agile and traditional project management', icon: 'briefcase' },
-    { id: '10', name: 'Business Intelligence', description: 'Data analytics for business decisions', icon: 'chart-pie' },
-  ];
-};
-
-const generateDummyPenyelenggara = (): Penyelenggara[] => {
-  return [
-    { id: '1', name: 'Pusdiklat BPS', description: 'Pusat Pendidikan dan Pelatihan BPS' },
-    { id: '2', name: 'BPS Sumatera Barat', description: 'Badan Pusat Statistik Sumatera Barat' },
-    { id: '3', name: 'BPS DKI Jakarta', description: 'Badan Pusat Statistik DKI Jakarta' },
-    { id: '4', name: 'BPS Jawa Tengah', description: 'Badan Pusat Statistik Jawa Tengah' },
-    { id: '5', name: 'BPS DI Yogyakarta', description: 'Badan Pusat Statistik DI Yogyakarta' },
-    { id: '6', name: 'BPS Jawa Timur', description: 'Badan Pusat Statistik Jawa Timur' },
-    { id: '7', name: 'BPS Bali', description: 'Badan Pusat Statistik Bali' },
-    { id: '8', name: 'BPS Kalimantan', description: 'Badan Pusat Statistik Kalimantan' },
-  ];
-};
-
-const dummySubjectsStore = generateDummySubjects();
-const dummyPenyelenggaraStore = generateDummyPenyelenggara();
+// API base URL - change this to your backend API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
 
 // API Functions
 export const knowledgeApi = {
@@ -200,393 +111,563 @@ export const knowledgeApi = {
    * Fetch knowledge items with filtering and pagination
    */
   async fetchKnowledge(params: KnowledgeQueryParams = {}): Promise<KnowledgeResponse> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      const queryParams = new URLSearchParams();
 
-    let filteredData = [...dummyKnowledgeStore];
+      // Add query parameters
+      if (params.search) queryParams.append('search', params.search);
+      if (params.knowledge_type?.length) queryParams.append('knowledge_type', params.knowledge_type.join(','));
+      if (params.subject?.length) queryParams.append('subject', params.subject.join(','));
+      if (params.sort) queryParams.append('sort', params.sort);
+      if (params.page) queryParams.append('page', params.page.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
 
-    // Apply search filter
-    if (params.search) {
-      const searchLower = params.search.toLowerCase();
-      filteredData = filteredData.filter(item =>
-        item.title.toLowerCase().includes(searchLower) ||
-        item.description.toLowerCase().includes(searchLower) ||
-        item.subject.toLowerCase().includes(searchLower) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      );
-    }
+      const response = await fetch(`${API_BASE_URL}/knowledge?${queryParams.toString()}`);
 
-    // Apply knowledge type filter
-    if (params.knowledge_type && params.knowledge_type.length > 0) {
-      filteredData = filteredData.filter(item =>
-        params.knowledge_type!.includes(item.knowledge_type)
-      );
-    }
-
-    // Apply subject filter
-    if (params.subject && params.subject.length > 0) {
-      filteredData = filteredData.filter(item =>
-        params.subject!.includes(item.subject)
-      );
-    }
-
-    // Apply sorting
-    if (params.sort) {
-      switch (params.sort) {
-        case 'newest':
-          filteredData.sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime());
-          break;
-        case 'most_liked':
-          filteredData.sort((a, b) => b.like_count - a.like_count);
-          break;
-        case 'most_viewed':
-          filteredData.sort((a, b) => b.view_count - a.view_count);
-          break;
-        case 'upcoming_webinar':
-          filteredData = filteredData.filter(item => item.knowledge_type === 'webinar');
-          filteredData.sort((a, b) => new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime());
-          break;
-        case 'popular':
-          filteredData.sort((a, b) => (b.like_count + b.view_count) - (a.like_count + a.view_count));
-          break;
-        case 'oldest':
-          filteredData.sort((a, b) => new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime());
-          break;
-        case 'title':
-          filteredData.sort((a, b) => a.title.localeCompare(b.title));
-          break;
-        case 'likes':
-          filteredData.sort((a, b) => b.like_count - a.like_count);
-          break;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching knowledge:', error);
+      // Return empty response on error
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 12,
+        total_pages: 0,
+      };
     }
-
-    const total = filteredData.length;
-    const page = params.page || 1;
-    const limit = params.limit || 12;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-    const totalPages = Math.ceil(total / limit);
-
-    return {
-      data: paginatedData,
-      total,
-      page,
-      limit,
-      total_pages: totalPages,
-    };
   },
 
   /**
    * Fetch single knowledge item by ID
    */
   async fetchKnowledgeById(id: string): Promise<Knowledge | null> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return dummyKnowledgeStore.find(item => item.id === id) || null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${id}`);
+
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching knowledge by ID:', error);
+      return null;
+    }
   },
 
   /**
    * Fetch webinar schedule - returns upcoming webinars from knowledge data
    */
   async fetchWebinarSchedule(): Promise<Webinar[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(`${API_BASE_URL}/webinars/schedule`);
 
-    // Filter knowledge to get only webinars
-    const webinars = dummyKnowledgeStore.filter(
-      (item): item is Webinar => item.knowledge_type === 'webinar'
-    );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    return webinars;
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching webinar schedule:', error);
+      return [];
+    }
   },
 
   /**
    * Fetch knowledge analytics
    */
   async fetchKnowledgeAnalytics(): Promise<KnowledgeAnalytics> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    return { ...dummyAnalyticsStore };
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/analytics`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching knowledge analytics:', error);
+      // Return default analytics on error
+      return {
+        total_knowledge: 0,
+        total_webinars: 0,
+        total_published: 0,
+        total_likes: 0,
+        total_dislikes: 0,
+        total_views: 0,
+        upcoming_webinars: 0,
+        top_subjects: [],
+        popular_knowledge: [],
+      };
+    }
   },
 
   /**
-   * Create new knowledge (for future use)
+   * Create new knowledge
    */
   async createKnowledge(data: Partial<Knowledge>): Promise<Knowledge> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-    const isWebinar = data.knowledge_type === 'webinar';
-    const baseFields = {
-      id: `knowledge-${Date.now()}`,
-      title: data.title || 'New Knowledge',
-      description: data.description || '',
-      knowledge_type: data.knowledge_type || 'konten',
-      subject: data.subject || 'General',
-      penyelenggara: data.penyelenggara || 'Pusdiklat BPS',
-      thumbnail: data.thumbnail || 'https://picsum.photos/400/225?random=' + Date.now(),
-      author: data.author || 'Anonymous',
-      like_count: 0,
-      dislike_count: 0,
-      view_count: 0,
-      tags: data.tags || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      published_at: new Date().toISOString(),
-    };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    let newKnowledge: Knowledge;
-
-    if (isWebinar) {
-      newKnowledge = {
-        ...baseFields,
-        tgl_zoom: (data as any).tgl_zoom,
-        link_zoom: (data as any).link_zoom || `https://zoom.us/webinar/${Date.now()}`,
-        link_youtube: (data as any).link_youtube,
-        link_record: (data as any).link_record,
-        link_vb: (data as any).link_vb,
-        file_notulensi_pdf: (data as any).file_notulensi_pdf,
-        content_richtext: (data as any).content_richtext || '<p>New webinar content...</p>',
-        jumlah_jp: (data as any).jumlah_jp || 2,
-        gojags_ref: (data as any).gojags_ref || `GOJAGS-${Date.now()}`,
-      } as Webinar;
-    } else {
-      newKnowledge = {
-        ...baseFields,
-        media_resource: (data as any).media_resource,
-        media_type: (data as any).media_type || 'video',
-        content_richtext: (data as any).content_richtext || '<p>New content...</p>',
-      } as Konten;
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error creating knowledge:', error);
+      throw error;
     }
-
-    dummyKnowledgeStore.push(newKnowledge);
-    return newKnowledge;
   },
 
   /**
-   * Update knowledge (for future use)
+   * Update knowledge
    */
   async updateKnowledge(id: string, data: Partial<Knowledge>): Promise<Knowledge | null> {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const index = dummyKnowledgeStore.findIndex(item => item.id === id);
-    if (index === -1) return null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-    dummyKnowledgeStore[index] = {
-      ...dummyKnowledgeStore[index],
-      ...data,
-      updated_at: new Date().toISOString(),
-    };
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    return dummyKnowledgeStore[index];
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error updating knowledge:', error);
+      throw error;
+    }
   },
 
   /**
-   * Delete knowledge (for future use)
+   * Delete knowledge
    */
   async deleteKnowledge(id: string): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = dummyKnowledgeStore.findIndex(item => item.id === id);
-    if (index === -1) return false;
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${id}`, {
+        method: 'DELETE',
+      });
 
-    dummyKnowledgeStore.splice(index, 1);
-    return true;
+      if (!response.ok) {
+        if (response.status === 404) return false;
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting knowledge:', error);
+      throw error;
+    }
   },
 
   /**
-   * Like/unlike knowledge (for future use)
+   * Like/unlike knowledge
    */
   async toggleLikeKnowledge(id: string): Promise<{ liked: boolean; totalLikes: number }> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const knowledge = dummyKnowledgeStore.find(item => item.id === id);
-    if (!knowledge) throw new Error('Knowledge not found');
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${id}/like`, {
+        method: 'POST',
+      });
 
-    // Simulate toggle like (in real app, this would track user's like)
-    const liked = Math.random() > 0.5;
-    if (liked) {
-      knowledge.like_count++;
-    } else {
-      knowledge.like_count = Math.max(0, knowledge.like_count - 1);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      throw error;
     }
-
-    return {
-      liked,
-      totalLikes: knowledge.like_count,
-    };
   },
 
   /**
-   * Increment view count (for future use)
+   * Increment view count
    */
   async incrementViews(id: string): Promise<{ totalViews: number }> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const knowledge = dummyKnowledgeStore.find(item => item.id === id);
-    if (!knowledge) throw new Error('Knowledge not found');
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${id}/view`, {
+        method: 'POST',
+      });
 
-    knowledge.view_count++;
-    return {
-      totalViews: knowledge.view_count,
-    };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error incrementing views:', error);
+      throw error;
+    }
   },
 
   /**
    * Fetch related knowledge items
    */
   async fetchRelatedKnowledge(id: string, limit: number = 6): Promise<Knowledge[]> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const knowledge = dummyKnowledgeStore.find(item => item.id === id);
-    if (!knowledge) return [];
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${id}/related?limit=${limit}`);
 
-    // Find items with same subject or similar tags
-    const related = dummyKnowledgeStore
-      .filter(item =>
-        item.id !== id &&
-        (item.subject === knowledge?.subject ||
-         item.tags.some(tag => knowledge?.tags.includes(tag)))
-      )
-      .sort((a, b) => b.like_count - a.like_count)
-      .slice(0, limit);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-    return related;
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching related knowledge:', error);
+      return [];
+    }
   },
 
   /**
    * Fetch knowledge by author
    */
   async fetchKnowledgeByAuthor(author: string, limit: number = 5): Promise<Knowledge[]> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    return dummyKnowledgeStore
-      .filter(item => item.author === author)
-      .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
-      .slice(0, limit);
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/author/${encodeURIComponent(author)}?limit=${limit}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching knowledge by author:', error);
+      return [];
+    }
   },
 
   /**
-   * Get knowledge reading progress (for future use)
+   * Get knowledge reading progress
    */
-  async getReadingProgress(_userId: string, _knowledgeId: string): Promise<{
+  async getReadingProgress(userId: string, knowledgeId: string): Promise<{
     isCompleted: boolean;
     progress: number;
     lastPosition: number;
   }> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    // Simulate reading progress
-    return {
-      isCompleted: Math.random() > 0.7,
-      progress: Math.floor(Math.random() * 100),
-      lastPosition: Math.floor(Math.random() * 1000),
-    };
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${knowledgeId}/progress/${userId}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error getting reading progress:', error);
+      return {
+        isCompleted: false,
+        progress: 0,
+        lastPosition: 0,
+      };
+    }
   },
 
   /**
-   * Update reading progress (for future use)
+   * Update reading progress
    */
-  async updateReadingProgress(_userId: string, _knowledgeId: string, _progress: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    // Simulate updating reading progress
-    console.log(`Updated progress`);
+  async updateReadingProgress(userId: string, knowledgeId: string, progress: number): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${knowledgeId}/progress/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ progress }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error updating reading progress:', error);
+      throw error;
+    }
   },
 
   /**
-   * Get knowledge comments (for future use)
+   * Get knowledge comments
    */
   async fetchKnowledgeComments(knowledgeId: string): Promise<Comment[]> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    // Generate dummy comments
-    return Array.from({ length: Math.floor(Math.random() * 10) + 1 }, (_, index) => ({
-      id: `comment-${index + 1}`,
-      knowledgeId,
-      userId: `user-${index + 1}`,
-      userName: `User ${index + 1}`,
-      content: `This is a great ${Math.random() > 0.5 ? 'webinar' : 'content'}! Very informative and well-structured.`,
-      createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      likes: Math.floor(Math.random() * 20),
-      replies: Math.floor(Math.random() * 3),
-    }));
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${knowledgeId}/comments`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching knowledge comments:', error);
+      return [];
+    }
   },
 
   /**
-   * Add comment to knowledge (for future use)
+   * Add comment to knowledge
    */
   async addKnowledgeComment(knowledgeId: string, content: string, userId: string): Promise<Comment> {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      knowledgeId,
-      userId,
-      userName: `User ${userId}`,
-      content,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      replies: 0,
-    };
-    return newComment;
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/${knowledgeId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error adding knowledge comment:', error);
+      throw error;
+    }
   },
 
   /**
    * Get knowledge recommendations
    */
-  async fetchKnowledgeRecommendations(_userId: string, limit: number = 8): Promise<Knowledge[]> {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    // Simulate personalized recommendations based on user interests
-    return dummyKnowledgeStore
-      .filter(() => Math.random() > 0.3) // Simulate filtering based on interests
-      .sort((a, b) => b.like_count - a.like_count)
-      .slice(0, limit);
+  async fetchKnowledgeRecommendations(userId: string, limit: number = 8): Promise<Knowledge[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/knowledge/recommendations/${userId}?limit=${limit}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching knowledge recommendations:', error);
+      return [];
+    }
   },
 
   /**
    * Fetch subjects
    */
   async fetchSubjects(): Promise<Subject[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [...dummySubjectsStore];
+    try {
+      const response = await fetch(`${API_BASE_URL}/subjects`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      return [];
+    }
   },
 
   /**
    * Fetch penyelenggara
    */
   async fetchPenyelenggara(): Promise<Penyelenggara[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [...dummyPenyelenggaraStore];
+    try {
+      const response = await fetch(`${API_BASE_URL}/penyelenggara`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching penyelenggara:', error);
+      return [];
+    }
   },
 
   /**
    * Add new subject
    */
   async addSubject(subject: { name: string; icon?: string }): Promise<Subject> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const newSubject: Subject = {
-      id: `subject-${Date.now()}`,
-      name: subject.name,
-      icon: subject.icon,
-    };
-    dummySubjectsStore.push(newSubject);
-    return newSubject;
+    try {
+      const response = await fetch(`${API_BASE_URL}/subjects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(subject),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error adding subject:', error);
+      throw error;
+    }
   },
 
   /**
    * Update subject
    */
   async updateSubject(id: string, subject: { name?: string; icon?: string }): Promise<Subject | null> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = dummySubjectsStore.findIndex(s => s.id === id);
-    if (index === -1) return null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/subjects/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(subject),
+      });
 
-    dummySubjectsStore[index] = {
-      ...dummySubjectsStore[index],
-      ...subject,
-    };
-    return dummySubjectsStore[index];
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      throw error;
+    }
   },
 
   /**
    * Delete subject
    */
   async deleteSubject(id: string): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = dummySubjectsStore.findIndex(s => s.id === id);
-    if (index === -1) return false;
+    try {
+      const response = await fetch(`${API_BASE_URL}/subjects/${id}`, {
+        method: 'DELETE',
+      });
 
-    dummySubjectsStore.splice(index, 1);
-    return true;
+      if (!response.ok) {
+        if (response.status === 404) return false;
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Knowledge Subjects API Functions
+   */
+  async fetchKnowledgeSubjects(): Promise<KnowledgeSubject[]> {
+    try {
+      const response = await axios.get(API_ENDPOINTS.KNOWLEDGE_SUBJECTS, {
+        ...API_CONFIG,
+        baseURL: undefined, // Use full URL from endpoints
+      });
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || "Failed to fetch knowledge subjects");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching knowledge subjects:', error);
+      // Return empty array on error
+      return [];
+    }
+  },
+
+  async createKnowledgeSubject(subjectData: CreateKnowledgeSubjectRequest): Promise<KnowledgeSubject> {
+    try {
+      const response = await axios.post(
+        API_ENDPOINTS.KNOWLEDGE_SUBJECTS,
+        subjectData,
+        {
+          ...API_CONFIG,
+          baseURL: undefined, // Use full URL from endpoints
+        }
+      );
+
+      if (response.data.status !== 201) {
+        throw new Error(response.data.message || "Failed to create knowledge subject");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating knowledge subject:', error);
+      throw error;
+    }
+  },
+
+  async updateKnowledgeSubject(id: string, subjectData: UpdateKnowledgeSubjectRequest): Promise<KnowledgeSubject> {
+    try {
+      const response = await axios.patch(
+        API_ENDPOINTS.KNOWLEDGE_SUBJECT_BY_ID(id),
+        subjectData,
+        {
+          ...API_CONFIG,
+          baseURL: undefined, // Use full URL from endpoints
+        }
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || "Failed to update knowledge subject");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating knowledge subject:', error);
+      throw error;
+    }
+  },
+
+  async deleteKnowledgeSubject(id: string): Promise<boolean> {
+    try {
+      const response = await axios.delete(API_ENDPOINTS.KNOWLEDGE_SUBJECT_BY_ID(id), {
+        ...API_CONFIG,
+        baseURL: undefined, // Use full URL from endpoints
+      });
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || "Failed to delete knowledge subject");
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting knowledge subject:', error);
+      throw error;
+    }
   },
 };
 
@@ -666,6 +747,14 @@ export const getSubjectsQueryOptions = () => ({
 export const getPenyelenggaraQueryOptions = () => ({
   queryKey: ['penyelenggara'],
   queryFn: () => knowledgeApi.fetchPenyelenggara(),
+  staleTime: 1000 * 60 * 30, // 30 minutes
+  gcTime: 1000 * 60 * 60, // 1 hour
+});
+
+// Knowledge Subjects Query Options
+export const getKnowledgeSubjectsQueryOptions = () => ({
+  queryKey: ['knowledge-subjects'],
+  queryFn: () => knowledgeApi.fetchKnowledgeSubjects(),
   staleTime: 1000 * 60 * 30, // 30 minutes
   gcTime: 1000 * 60 * 60, // 1 hour
 });

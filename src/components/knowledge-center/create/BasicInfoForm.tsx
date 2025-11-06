@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { User, Upload, X, Settings } from 'lucide-react';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
-import { Subject, Penyelenggara } from '@/api/knowledge';
+import { Subject, Penyelenggara, KnowledgeSubject } from '@/api/knowledge';
 import SubjectManager from './SubjectManager';
 
 interface BasicInfoFormProps {
@@ -19,7 +19,7 @@ interface BasicInfoFormProps {
   };
   thumbnailPreview: string | null;
   currentTagInput: string;
-  subjects: Subject[];
+  subjects: (Subject | KnowledgeSubject)[];
   penyelenggara: Penyelenggara[];
   errors: Record<string, string>;
   onFieldChange: (field: string, value: unknown) => void;
@@ -178,7 +178,7 @@ export default function BasicInfoForm({
           {showSubjectManager && onSubjectAdd && onSubjectUpdate && onSubjectDelete && (
             <div className="mt-3">
               <SubjectManager
-                subjects={subjects}
+                subjects={subjects.filter(s => 'id' in s && 'createdAt' in s) as KnowledgeSubject[]}
                 onSubjectAdd={onSubjectAdd}
                 onSubjectUpdate={onSubjectUpdate}
                 onSubjectDelete={onSubjectDelete}

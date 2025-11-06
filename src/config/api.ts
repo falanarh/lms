@@ -39,6 +39,10 @@ export const API_ENDPOINTS = {
   PENYELENGGARA: `${API_BASE_URL}/knowledge/penyelenggara`,
   TAGS: `${API_BASE_URL}/knowledge/tags`,
 
+  // Knowledge Subjects endpoints
+  KNOWLEDGE_SUBJECTS: `${API_BASE_URL}/knowledge-subjects`,
+  KNOWLEDGE_SUBJECT_BY_ID: (id: string) => `${API_BASE_URL}/knowledge-subjects/${id}`,
+
   // Analytics endpoint
   KNOWLEDGE_ANALYTICS: `${API_BASE_URL}/knowledge/analytics`,
 

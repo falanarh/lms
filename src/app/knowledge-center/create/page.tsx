@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Toast } from '@/components/ui/Toast/Toast';
+import { createToastState } from '@/utils/toastUtils';
 import {
   KnowledgeTypeSelector,
   BasicInfoForm,
@@ -19,6 +21,10 @@ import {
   useAddSubject,
   useUpdateSubject,
   useDeleteSubject,
+  useKnowledgeSubjects,
+  useCreateKnowledgeSubject,
+  useUpdateKnowledgeSubject,
+  useDeleteKnowledgeSubject,
 } from '@/hooks/useKnowledge';
 
 export const dynamic = 'force-dynamic';
@@ -33,14 +39,28 @@ const steps = [
 export default function CreateKnowledgePage() {
   const router = useRouter();
   const createKnowledgeMutation = useCreateKnowledge();
-  const { subjects } = useSubjects();
+  const { subjects: oldSubjects } = useSubjects(); // Keep old subjects for backward compatibility
+  const { subjects: knowledgeSubjects } = useKnowledgeSubjects(); // New knowledge subjects API
   const { penyelenggara } = usePenyelenggara();
   const wizard = useCreateKnowledgeWizard();
+  const toastState = createToastState();
 
-  // Subject management mutations
-  const addSubjectMutation = useAddSubject();
-  const updateSubjectMutation = useUpdateSubject();
-  const deleteSubjectMutation = useDeleteSubject();
+  // Use knowledge subjects if available, fallback to old subjects
+  const subjects = knowledgeSubjects.length > 0 ? knowledgeSubjects : oldSubjects;
+
+  // Subject management mutations - use new knowledge subjects API with toast callbacks
+  const addSubjectMutation = useCreateKnowledgeSubject(
+    (message) => toastState.showSuccess(message),
+    (message) => toastState.showError(message)
+  );
+  const updateSubjectMutation = useUpdateKnowledgeSubject(
+    (message) => toastState.showSuccess(message),
+    (message) => toastState.showError(message)
+  );
+  const deleteSubjectMutation = useDeleteKnowledgeSubject(
+    (message) => toastState.showSuccess(message),
+    (message) => toastState.showError(message)
+  );
 
   // Subject management handlers
   const handleAddSubject = (subject: { name: string; icon?: string }) => {
@@ -101,10 +121,13 @@ export default function CreateKnowledgePage() {
     };
 
     try {
-      await createKnowledgeMutation.mutate(apiData);
+      await createKnowledgeMutation.mutateAsync(apiData);
+      toastState.showSuccess(`Knowledge "${formData.title}" berhasil ${status === 'published' ? 'dipublikasi' : 'disimpan sebagai draft'}!`);
       router.push('/knowledge-center');
     } catch (error) {
       console.error('Failed to create knowledge:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal membuat knowledge. Silakan coba lagi.';
+      toastState.showError(errorMessage);
     }
   };
 
@@ -239,6 +262,20 @@ export default function CreateKnowledgePage() {
           </div>
         </div>
       </div>
+
+      {/* Toast */}
+      {toastState.toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+          <Toast
+            variant={toastState.toast.variant}
+            message={toastState.toast.message}
+            onClose={toastState.dismissToast}
+            autoDismiss
+            duration={4000}
+            dismissible
+          />
+        </div>
+      )}
     </>
   );
 }

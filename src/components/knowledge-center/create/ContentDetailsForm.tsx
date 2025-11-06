@@ -502,8 +502,7 @@ export default function ContentDetailsForm({
               Content
             </label>
             <BlockNoteEditor
-              value={formData.content_richtext}
-              onChange={(value) => onFieldChange('content_richtext', value)}
+              type={contentType === 'video' ? 'video' : contentType === 'podcast' ? 'audio' : contentType === 'pdf' ? 'pdf' : 'article'}
             />
           </div>
         </div>

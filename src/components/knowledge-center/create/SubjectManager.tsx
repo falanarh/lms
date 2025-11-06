@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { Plus, Edit2, Trash2, X, Check, Sparkles } from "lucide-react";
-import { Subject } from "@/api/knowledge";
+import { KnowledgeSubject, Subject } from "@/api/knowledge";
 import { IconPicker, IconName, Icon } from "@/components/ui/icon-picker";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { iconsData } from "@/utils/icons-data";
 
 interface SubjectManagerProps {
-  subjects: Subject[];
+  subjects: KnowledgeSubject[];
   onSubjectAdd: (subject: { name: string; icon?: string }) => void;
   onSubjectUpdate: (
     id: string,
@@ -44,7 +45,7 @@ export default function SubjectManager({
     }
   };
 
-  const handleEditSubject = (subject: Subject) => {
+  const handleEditSubject = (subject: KnowledgeSubject) => {
     setEditingId(subject.id);
     setEditingSubject({ name: subject.name, icon: subject.icon || "" });
     setIcon((subject.icon as IconName) || undefined);
@@ -59,10 +60,25 @@ export default function SubjectManager({
     }
   };
 
-  const handleDeleteSubject = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this subject?")) {
-      onSubjectDelete(id);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<KnowledgeSubject | null>(null);
+
+  const handleDeleteSubject = (subject: KnowledgeSubject) => {
+    setSubjectToDelete(subject);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (subjectToDelete) {
+      onSubjectDelete(subjectToDelete.id);
     }
+    setShowDeleteConfirm(false);
+    setSubjectToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setSubjectToDelete(null);
   };
 
   const cancelEdit = () => {
@@ -112,8 +128,22 @@ Subject Analysis Examples:
 
 Choose the best matching icon name for "${subjectName}":`;
 
-      // Call Gemini API (using free tier)
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=AIzaSyAWObATIRtXg5J6kSBiBkZKyFGnPpsA0x4', {
+      // Call Gemini API (using environment variable)
+      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        console.warn('Gemini API key not configured, using fallback logic');
+        const fallbackIcon = getFallbackIcon(subjectName);
+        setIcon(fallbackIcon);
+        if (isEditing) {
+          setEditingSubject(prev => ({ ...prev, icon: fallbackIcon }));
+        } else {
+          setNewSubject(prev => ({ ...prev, icon: fallbackIcon }));
+        }
+        setIsGeneratingIcon(false);
+        return;
+      }
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiApiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -356,7 +386,7 @@ Choose the best matching icon name for "${subjectName}":`;
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteSubject(subject.id)}
+                    onClick={() => handleDeleteSubject(subject)}
                     disabled={isDeleting}
                     className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
                     title="Delete subject"
@@ -376,6 +406,19 @@ Choose the best matching icon name for "${subjectName}":`;
           <p className="text-xs mt-1">Add your first subject to get started</p>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        title="Hapus Subject"
+        message={`Apakah Anda yakin ingin menghapus subject "${subjectToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
