@@ -7,7 +7,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useKnowledgeCategories } from '@/hooks/useKnowledge';
 import { KnowledgeType, SortOption } from '@/types/knowledge-center';
 import {
   KnowledgeHero,
@@ -22,11 +21,8 @@ export default function KnowledgeCenterPage() {
   // UI State Management
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<KnowledgeType | 'all'>('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-
-  // Get categories for filters
-  const { categories } = useKnowledgeCategories();
 
   // UI Handlers
   const handleSearchChange = (query: string) => {
@@ -37,8 +33,8 @@ export default function KnowledgeCenterPage() {
     setSelectedType(type);
   };
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
+  const handleSubjectChange = (subject: string) => {
+    setSelectedSubject(subject);
   };
 
   const handleSortChange = (sort: SortOption) => {
@@ -63,11 +59,10 @@ export default function KnowledgeCenterPage() {
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         selectedType={selectedType}
-        selectedCategory={selectedCategory}
-        onCategoryChange={handleCategoryChange}
+        selectedSubject={selectedSubject}
+        onSubjectChange={handleSubjectChange}
         sortBy={sortBy}
         onSortChange={handleSortChange}
-        categories={categories}
       />
 
       {/* Upcoming Webinars Section */}

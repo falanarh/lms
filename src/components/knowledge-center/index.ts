@@ -12,6 +12,6 @@ export { default as UpcomingWebinars } from './UpcomingWebinars';
 
 // Re-export existing components
 export { default as KnowledgeCard } from './KnowledgeCard';
-export { default as CategoryFilter } from './CategoryFilter';
+export { default as Subject } from './Subject';
 export { default as MediaPicker } from './MediaPicker';
 export { default as RichTextEditor } from './RichTextEditor';

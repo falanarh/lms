@@ -5,9 +5,6 @@ import { X, ChevronDown, Filter, Search } from 'lucide-react';
 import {
   KnowledgeType,
   MediaType,
-  Subject,
-  Penyelenggara,
-  Tag,
   type KnowledgeFilters,
 } from '@/types/knowledge-center';
 import { useSubjects, usePenyelenggara, useTags } from '@/hooks/useKnowledgeCenter';

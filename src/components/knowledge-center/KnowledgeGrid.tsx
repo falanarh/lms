@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { Search, BookOpen } from 'lucide-react';
-import { KnowledgeCard, CategoryFilter } from '@/components/knowledge-center';
+import { KnowledgeCard, Subject } from '@/components/knowledge-center';
 import { Pagination } from '@/components/shared/Pagination/Pagination';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Input } from '@/components/ui/Input/Input';
@@ -18,22 +18,20 @@ interface KnowledgeGridProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedType: 'webinar' | 'konten' | 'all';
-  selectedCategory: string;
-  onCategoryChange: (category: string) => void;
+  selectedSubject: string;
+  onSubjectChange: (subject: string) => void;
   sortBy: SortOption;
   onSortChange: (sort: SortOption) => void;
-  categories: string[];
 }
 
 export default function KnowledgeGrid({
   searchQuery,
   onSearchChange,
   selectedType,
-  selectedCategory,
-  onCategoryChange,
+  selectedSubject,
+  onSubjectChange,
   sortBy,
   onSortChange,
-  categories,
 }: KnowledgeGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -46,7 +44,7 @@ export default function KnowledgeGrid({
   } = useKnowledge({
     search: searchQuery || undefined,
     knowledge_type: selectedType !== 'all' ? [selectedType] : undefined,
-    subject: selectedCategory !== 'all' ? [selectedCategory] : undefined,
+    subject: selectedSubject !== 'all' ? [selectedSubject] : undefined,
     sort: sortBy,
     page: currentPage,
     limit: 12,
@@ -71,7 +69,7 @@ export default function KnowledgeGrid({
 
   const handleClearFilters = () => {
     onSearchChange('');
-    onCategoryChange('all');
+    onSubjectChange('all');
     setCurrentPage(1);
   };
 
@@ -79,10 +77,9 @@ export default function KnowledgeGrid({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Category Filter */}
       <div className="mb-8">
-        <CategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={onCategoryChange}
+        <Subject
+          selectedSubject={selectedSubject}
+          onSubjectChange={onSubjectChange}
         />
       </div>
 
@@ -100,7 +97,7 @@ export default function KnowledgeGrid({
               {total || 0} items found
               {selectedType !== 'all' &&
                 ` • ${selectedType === 'webinar' ? 'Webinars' : 'Content'}`}
-              {selectedCategory !== 'all' && ` • ${selectedCategory}`}
+              {selectedSubject !== 'all' && ` • ${selectedSubject}`}
             </p>
           </div>
 
@@ -202,7 +199,7 @@ export default function KnowledgeGrid({
                 </p>
                 {(searchQuery ||
                   selectedType !== 'all' ||
-                  selectedCategory !== 'all') && (
+                  selectedSubject !== 'all') && (
                   <button
                     onClick={handleClearFilters}
                     className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"

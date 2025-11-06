@@ -14,14 +14,11 @@ import {
   settingsApi,
 } from '@/api/knowledge-center';
 import {
-  Knowledge,
-  KnowledgeListResponse,
   KnowledgeQueryParams,
   CreateKnowledgeFormData,
   Subject,
   Penyelenggara,
   Tag,
-  KnowledgeAnalytics,
   WebinarSchedule,
   KnowledgeCenterSettings,
 } from '@/types/knowledge-center';
@@ -52,6 +49,81 @@ export const SCHEDULE_QUERY_KEYS = {
 export const SETTINGS_QUERY_KEYS = {
   settings: ['settings'] as const,
 } as const;
+
+const SUBJECT_FALLBACK_NAMES: string[] = [
+  'Ekonomi Makro',
+  'Ekonomi Mikro',
+  'Statistik Sosial',
+  'Statistik Industri',
+  'Statistik Pertanian',
+  'Statistik Perdagangan',
+  'Statistik Ketenagakerjaan',
+  'Statistik Kesehatan',
+  'Statistik Lingkungan',
+  'Statistik Pendidikan',
+  'Statistik Transportasi',
+  'Statistik Pariwisata',
+  'Statistik Energi',
+  'Statistik Teknologi',
+  'Statistik Keuangan',
+  'Statistik Pertambangan',
+  'Statistik Perikanan',
+  'Statistik Kehutanan',
+  'Statistik Perumahan',
+  'Statistik Kependudukan',
+  'Sistem Informasi',
+  'Transformasi Digital',
+  'Analitik Data',
+  'Kebijakan Publik',
+  'Geospasial',
+  'Pembangunan Daerah',
+  'Demografi',
+  'Metodologi Survei',
+  'Pengembangan SDM',
+  'Inovasi Layanan',
+  'Manajemen Pengetahuan',
+  'Governansi Data',
+  'Integrasi Sistem',
+  'Keamanan Informasi',
+  'Internet of Things',
+  'Kecerdasan Buatan',
+  'Ekonomi Kreatif',
+  'Ekonomi Maritim',
+  'Ekonomi Syariah',
+  'Logistik Nasional',
+  'Reformasi Birokrasi',
+  'Pelayanan Publik',
+  'Komunikasi Publik',
+  'Budaya Statistik',
+  'Harmonisasi Regulasi',
+  'Kemitraan Strategis',
+  'Pengelolaan Arsip',
+  'Pengelolaan Risiko',
+  'Manajemen Perubahan',
+  'Pengadaan Barang/Jasa',
+  'Perencanaan Strategis',
+  'Monitoring & Evaluasi',
+  'Layanan Data',
+  'Ekonomi Digital',
+  'Big Data',
+  'Open Data',
+  'Kota Cerdas',
+  'Analisis Kebijakan',
+  'Pengembangan Kurikulum',
+  'Pelatihan Teknis',
+  'Pengembangan Modul',
+  'Kompetensi ASN',
+  'Kepemimpinan Transformasional',
+  'Inovasi Organisasi',
+  'Manajemen Kinerja',
+  'Manajemen Talenta',
+  'Pengembangan SDM Statistik',
+];
+
+const SUBJECT_FALLBACKS: Subject[] = SUBJECT_FALLBACK_NAMES.map((name, index) => ({
+  id: `fallback-subject-${index + 1}`,
+  name,
+}));
 
 // Main Knowledge hooks
 export function useKnowledge(params: KnowledgeQueryParams = {}) {
@@ -267,8 +339,27 @@ export function useSubjects() {
     gcTime: 1000 * 60 * 60, // 1 hour
   });
 
+  const fetchedSubjects = Array.isArray(data) ? data.filter(Boolean) as Subject[] : [];
+
+  // Merge fetched subjects with curated fallback list, ensuring uniqueness by name
+  const subjectMap = new Map<string, Subject>();
+
+  fetchedSubjects.forEach((subject) => {
+    if (!subject?.name) return;
+    subjectMap.set(subject.name.trim().toLowerCase(), subject);
+  });
+
+  SUBJECT_FALLBACKS.forEach((fallback) => {
+    const key = fallback.name.trim().toLowerCase();
+    if (!subjectMap.has(key)) {
+      subjectMap.set(key, fallback);
+    }
+  });
+
+  const resolvedSubjects = Array.from(subjectMap.values());
+
   return {
-    subjects: data || [],
+    subjects: resolvedSubjects,
     isLoading,
     error,
     refetch,

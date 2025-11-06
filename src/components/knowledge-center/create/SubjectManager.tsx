@@ -94,19 +94,7 @@ export default function SubjectManager({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               autoFocus
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-1">
-              Description (Optional)
-            </label>
-            <textarea
-              value={newSubject.description}
-              onChange={(e) => setNewSubject(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Enter subject description"
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-            />
-          </div>
+          </div>  
           <div className="flex items-center gap-2">
             <button
               onClick={handleAddSubject}
@@ -154,17 +142,6 @@ export default function SubjectManager({
                     autoFocus
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Description (Optional)
-                  </label>
-                  <textarea
-                    value={editingSubject.description}
-                    onChange={(e) => setEditingSubject(prev => ({ ...prev, description: e.target.value }))}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-                  />
-                </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleUpdateSubject}
@@ -191,11 +168,6 @@ export default function SubjectManager({
                   <h4 className="text-sm font-medium text-gray-900 truncate">
                     {subject.name}
                   </h4>
-                  {subject.description && (
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                      {subject.description}
-                    </p>
-                  )}
                 </div>
                 <div className="flex items-center gap-1 ml-3">
                   <button
