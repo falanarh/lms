@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { TrendingUp } from 'lucide-react';
-import Link from 'next/link';
 import { KnowledgeCard } from '@/components/knowledge-center';
 import { usePopularKnowledge } from '@/hooks/useKnowledge';
 

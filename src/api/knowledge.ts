@@ -546,6 +546,46 @@ export const knowledgeApi = {
     await new Promise(resolve => setTimeout(resolve, 300));
     return [...dummyPenyelenggaraStore];
   },
+
+  /**
+   * Add new subject
+   */
+  async addSubject(subject: Omit<Subject, 'id'>): Promise<Subject> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const newSubject: Subject = {
+      id: `subject-${Date.now()}`,
+      ...subject,
+    };
+    dummySubjectsStore.push(newSubject);
+    return newSubject;
+  },
+
+  /**
+   * Update subject
+   */
+  async updateSubject(id: string, subject: Partial<Omit<Subject, 'id'>>): Promise<Subject | null> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const index = dummySubjectsStore.findIndex(s => s.id === id);
+    if (index === -1) return null;
+
+    dummySubjectsStore[index] = {
+      ...dummySubjectsStore[index],
+      ...subject,
+    };
+    return dummySubjectsStore[index];
+  },
+
+  /**
+   * Delete subject
+   */
+  async deleteSubject(id: string): Promise<boolean> {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const index = dummySubjectsStore.findIndex(s => s.id === id);
+    if (index === -1) return false;
+
+    dummySubjectsStore.splice(index, 1);
+    return true;
+  },
 };
 
 // Query Options for React Query

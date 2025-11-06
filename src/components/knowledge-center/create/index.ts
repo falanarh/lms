@@ -10,3 +10,4 @@ export { default as ReviewStep } from './ReviewStep';
 export { default as WizardSidebar } from './WizardSidebar';
 export { default as WizardHeader } from './WizardHeader';
 export { default as WizardActions } from './WizardActions';
+export { default as SubjectManager } from './SubjectManager';

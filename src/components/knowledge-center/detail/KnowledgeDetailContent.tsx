@@ -10,7 +10,6 @@ interface KnowledgeDetailContentProps {
 
 export default function KnowledgeDetailContent({ knowledge }: KnowledgeDetailContentProps) {
   const isWebinar = knowledge.knowledge_type === 'webinar';
-  const webinarData = knowledge as any;
 
   return (
     <div className="space-y-12">
@@ -42,7 +41,7 @@ export default function KnowledgeDetailContent({ knowledge }: KnowledgeDetailCon
 
       {/* Webinar Content Preview */}
       {isWebinar && knowledge.content_richtext && (
-        <div>
+        <div className='mb-12'>
           <h3 className="text-lg font-bold text-gray-900 mb-4">About This Webinar</h3>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <div className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700">

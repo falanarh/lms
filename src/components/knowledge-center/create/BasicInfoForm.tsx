@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import { User, Upload, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Upload, X, Settings } from 'lucide-react';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Subject, Penyelenggara } from '@/api/knowledge';
+import SubjectManager from './SubjectManager';
 
 interface BasicInfoFormProps {
   formData: {
@@ -27,6 +28,14 @@ interface BasicInfoFormProps {
   onTagInput: (value: string) => void;
   onAddTag: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onRemoveTag: (tag: string) => void;
+  onSubjectAdd?: (subject: { name: string; description?: string }) => void;
+  onSubjectUpdate?: (id: string, subject: { name?: string; description?: string }) => void;
+  onSubjectDelete?: (id: string) => void;
+  isSubjectManagementPending?: {
+    adding: boolean;
+    updating: boolean;
+    deleting: boolean;
+  };
 }
 
 export default function BasicInfoForm({
@@ -42,7 +51,12 @@ export default function BasicInfoForm({
   onTagInput,
   onAddTag,
   onRemoveTag,
+  onSubjectAdd,
+  onSubjectUpdate,
+  onSubjectDelete,
+  isSubjectManagementPending = { adding: false, updating: false, deleting: false },
 }: BasicInfoFormProps) {
+  const [showSubjectManager, setShowSubjectManager] = useState(false);
   return (
     <div className="space-y-5">
       <div>
@@ -130,9 +144,19 @@ export default function BasicInfoForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Subject <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-900">
+              Subject <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowSubjectManager(!showSubjectManager)}
+              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              <Settings className="w-3 h-3" />
+              Manage Subjects
+            </button>
+          </div>
           <Dropdown
             items={subjects.map((s) => ({
               value: s.name,
@@ -148,6 +172,21 @@ export default function BasicInfoForm({
           />
           {errors.subject && (
             <p className="text-red-600 text-xs mt-1.5">{errors.subject}</p>
+          )}
+
+          {/* Subject Manager */}
+          {showSubjectManager && onSubjectAdd && onSubjectUpdate && onSubjectDelete && (
+            <div className="mt-3">
+              <SubjectManager
+                subjects={subjects}
+                onSubjectAdd={onSubjectAdd}
+                onSubjectUpdate={onSubjectUpdate}
+                onSubjectDelete={onSubjectDelete}
+                isAdding={isSubjectManagementPending.adding}
+                isUpdating={isSubjectManagementPending.updating}
+                isDeleting={isSubjectManagementPending.deleting}
+              />
+            </div>
           )}
         </div>
 

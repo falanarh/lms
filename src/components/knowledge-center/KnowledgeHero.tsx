@@ -5,10 +5,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
 import { Search, LayoutGrid, Calendar, BookOpen } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
-import { useUpcomingWebinars, useKnowledgeCategories } from '@/hooks/useKnowledge';
+import { useKnowledgeCategories } from '@/hooks/useKnowledge';
 import { KnowledgeType } from '@/types/knowledge-center';
 
 interface KnowledgeHeroProps {
@@ -24,7 +23,6 @@ export default function KnowledgeHero({
   selectedType,
   onTypeChange,
 }: KnowledgeHeroProps) {
-  const { upcomingWebinars } = useUpcomingWebinars(7);
   const { categories } = useKnowledgeCategories();
 
   const typeButtons = [

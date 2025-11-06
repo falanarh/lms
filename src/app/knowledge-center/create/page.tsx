@@ -16,6 +16,9 @@ import {
   useSubjects,
   usePenyelenggara,
   useCreateKnowledge,
+  useAddSubject,
+  useUpdateSubject,
+  useDeleteSubject,
 } from '@/hooks/useKnowledge';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +36,24 @@ export default function CreateKnowledgePage() {
   const { subjects } = useSubjects();
   const { penyelenggara } = usePenyelenggara();
   const wizard = useCreateKnowledgeWizard();
+
+  // Subject management mutations
+  const addSubjectMutation = useAddSubject();
+  const updateSubjectMutation = useUpdateSubject();
+  const deleteSubjectMutation = useDeleteSubject();
+
+  // Subject management handlers
+  const handleAddSubject = (subject: { name: string; description?: string }) => {
+    addSubjectMutation.mutate(subject);
+  };
+
+  const handleUpdateSubject = (id: string, subject: { name?: string; description?: string }) => {
+    updateSubjectMutation.mutate({ id, data: subject });
+  };
+
+  const handleDeleteSubject = (id: string) => {
+    deleteSubjectMutation.mutate(id);
+  };
 
   // Auto scroll to top when step changes
   useEffect(() => {
@@ -113,6 +134,14 @@ export default function CreateKnowledgePage() {
             onTagInput={wizard.form.setCurrentTagInput}
             onAddTag={wizard.form.handleAddTag}
             onRemoveTag={wizard.form.handleRemoveTag}
+            onSubjectAdd={handleAddSubject}
+            onSubjectUpdate={handleUpdateSubject}
+            onSubjectDelete={handleDeleteSubject}
+            isSubjectManagementPending={{
+              adding: addSubjectMutation.isPending,
+              updating: updateSubjectMutation.isPending,
+              deleting: deleteSubjectMutation.isPending,
+            }}
           />
         );
 

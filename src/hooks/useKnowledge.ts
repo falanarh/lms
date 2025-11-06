@@ -575,6 +575,49 @@ export function useSubjects() {
   };
 }
 
+export function useAddSubject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: knowledgeApi.addSubject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+    },
+    onError: (error) => {
+      console.error('Failed to add subject:', error);
+    },
+  });
+}
+
+export function useUpdateSubject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Subject, 'id'>> }) =>
+      knowledgeApi.updateSubject(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update subject:', error);
+    },
+  });
+}
+
+export function useDeleteSubject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: knowledgeApi.deleteSubject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+    },
+    onError: (error) => {
+      console.error('Failed to delete subject:', error);
+    },
+  });
+}
+
 export function usePenyelenggara() {
   const {
     data,
