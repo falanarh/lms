@@ -34,7 +34,7 @@ export const EnrollButton = ({ isEnrolled, onToggle }: EnrollButtonProps) => {
               strokeLinejoin="round"
             />
           </svg>
-          <span>Enrolled</span>
+          <span>Start Now</span>
         </>
       ) : (
         <>

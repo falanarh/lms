@@ -7,7 +7,6 @@ interface CourseInfoCardProps {
   category: string;
   rating: number;
   totalRatings: number;
-  // teacher: string;
   type: string;
   isEnrolled: boolean;
   onToggle: () => void;
@@ -17,7 +16,6 @@ export const CourseInfoCard = ({
   category,
   rating,
   totalRatings,
-  // teacher,
   type,
   isEnrolled,
   onToggle,
@@ -85,11 +83,11 @@ export const CourseInfoCard = ({
           onClick={onToggle}
           className={`
             w-full font-semibold text-base py-4 px-6 rounded-xl transition-all duration-200 
-            flex items-center justify-center gap-2.5 shadow-lg hover:shadow-xl hover:-translate-y-0.5
+            flex items-center justify-center gap-2.5 hover:-translate-y-0.5
             ${
               isEnrolled
-                ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-green-500/25 hover:shadow-green-500/35"
-                : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-blue-500/25 hover:shadow-blue-500/35"
+                ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
             }
           `}
         >
@@ -110,7 +108,7 @@ export const CourseInfoCard = ({
                   strokeLinejoin="round"
                 />
               </svg>
-              <span>Enrolled</span>
+              <span>Start Learning</span>
             </>
           ) : (
             <>

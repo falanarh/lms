@@ -42,12 +42,22 @@ export const CourseInfoCards = ({
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
               Silabus
             </div>
-            <a
-              href="#"
-              className="text-sm font-semibold text-gray-900 hover:text-blue-700 truncate hover:underline block"
-            >
-              {syllabusFile}
-            </a>
+            {syllabusFile ? (
+              <a
+                href={syllabusFile}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className=" flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 truncate hover:underline block"
+              >
+                Download Silabus
+                <Download className="w-4 h-4 text-blue-600" strokeWidth={2} />
+              </a>
+            ) : (
+              <span className="text-sm font-semibold text-gray-400 truncate block">
+                Tidak tersedia
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -62,12 +72,9 @@ export const CourseInfoCards = ({
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
               Total Jam Pelajaran
             </div>
-            <a
-              href="#"
-              className="text-sm font-semibold text-gray-900 hover:text-blue-700 truncate hover:underline block"
-            >
-              {totalJP}
-            </a>
+            <div className="text-sm font-semibold text-gray-900 truncate">
+              {totalJP} JP
+            </div>
           </div>
         </div>
       </div>

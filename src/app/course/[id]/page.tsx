@@ -10,9 +10,12 @@ import {
   CourseContentsTab,
   DiscussionForumTab,
   RatingsReviewsTab,
+  PageContainer,
 } from "@/features/detail-course/components";
 import { useGroupCourse } from "@/hooks/useGroupCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
+import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
+import { mockReviews } from "@/features/detail-course/constants/reviews";
 
 interface DetailCoursePageProps {
   params: Promise<{
@@ -25,6 +28,12 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const { data: courseDetail, isLoading, error } = useGroupCourse(id);
   const { activeTab, setActiveTab } = useCourseTab(id);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+
+  const { data: sections, isLoading: isSectionsLoading } = useSectionsByGroupId({
+    groupId: id,
+    enabled: activeTab === "course_contents",
+  });
 
   if (isLoading || !courseDetail) {
     return <div>Loading...</div>;
@@ -37,7 +46,19 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const course = courseDetail[0];
 
   const handleEnrollToggle = () => {
-    setIsEnrolled(!isEnrolled);
+    if (isEnrolled) {
+      console.log("Redirecting to /my-course/" + id);
+    } else {
+      setIsEnrolled(true);
+    }
+  };
+
+  const handleToggleSection = (sectionId: string) => {
+    setExpandedSections(prev =>
+      prev.includes(sectionId)
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
   };
 
   const breadcrumbItems = [
@@ -47,12 +68,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   ];
 
   return (
-    <div className="min-h-screen">
-        <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
-        {/* Header */}
+    <PageContainer>
         <CourseHeader title={course.title} breadcrumbItems={breadcrumbItems} />
 
-        {/* Thumbnail & Info Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Thumbnail */}
           <div className="lg:col-span-2">
@@ -68,8 +86,8 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
               category={course.kategori}
               rating={course.rating}
               totalRatings={course.total_user}
-              isEnrolled={isEnrolled}
               type={course.type_course}
+              isEnrolled={isEnrolled}
               onToggle={handleEnrollToggle}
             />
           </div>
@@ -82,7 +100,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
           {activeTab === "information" && (
             <CourseInformationTab
               method={course.metode}
-              syllabusFile=""
+              syllabusFile={course.silabus}
               totalJP={course.jp}
               quota={course.kuota}
               description={course.description}
@@ -90,12 +108,17 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
           )}
 
           {activeTab === "course_contents" && (
-            <CourseContentsTab
-              sections={[]}
-              isEnrolled={isEnrolled}
-              expandedSections={[]}
-              onToggleSection={() => {}}
-            />
+            isSectionsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500">Loading sections...</div>
+              </div>
+            ) : (
+              <CourseContentsTab
+                sections={sections || []}
+                expandedSections={expandedSections}
+                onToggleSection={handleToggleSection}
+              />
+            )
           )}
 
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
@@ -103,13 +126,12 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
           {activeTab === "ratings_reviews" && (
             <RatingsReviewsTab
               averageRating={course.rating}
-              totalRatings={course.total_user}
-              ratingDistribution={{ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }}
-              reviews={[]}
+              totalRatings={mockReviews.length}
+              ratingDistribution={{5: 2, 4: 1, 3: 0, 2: 0, 1: 0}}
+              reviews={mockReviews}
             />
           )}
         </div>
-      </div>
-    </div>
+    </PageContainer>
     );
 }

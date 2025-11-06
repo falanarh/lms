@@ -7,17 +7,10 @@ import {
   FileText,
   Lock,
 } from "lucide-react";
-
-interface Activity {
-  id: string;
-  type: string;
-  name: string;
-  restrictAccess: boolean;
-}
+import { Content } from "@/api/contents";
 
 interface ActivityCardProps {
-  activity: Activity;
-  isEnrolled: boolean;
+  activity: Content;
 }
 
 // Get activity icon based on type and lock status
@@ -60,8 +53,8 @@ const getActivityColor = (type: string) => {
   }
 };
 
-export const ActivityCard = ({ activity, isEnrolled }: ActivityCardProps) => {
-  const isLocked = !isEnrolled && activity.restrictAccess;
+export const ActivityCard = ({ activity }: ActivityCardProps) => {
+  const isLocked = true;
   const colorClasses = getActivityColor(activity.type);
 
   return (

@@ -1,29 +1,15 @@
 import { BookOpen } from "lucide-react";
 import { CourseSectionItem } from "../CourseSectionItem";
-
-interface Activity {
-  id: string;
-  type: string;
-  name: string;
-  restrictAccess: boolean;
-}
-
-interface Section {
-  id: string;
-  name: string;
-  contents: Activity[];
-}
+import { Section } from "@/api/sections";
 
 interface CourseContentsTabProps {
   sections: Section[];
-  isEnrolled: boolean;
   expandedSections: string[];
   onToggleSection: (sectionId: string) => void;
 }
 
 export const CourseContentsTab = ({
   sections,
-  isEnrolled,
   expandedSections,
   onToggleSection,
 }: CourseContentsTabProps) => {
@@ -50,7 +36,6 @@ export const CourseContentsTab = ({
             section={section}
             index={index}
             isExpanded={expandedSections.includes(section.id)}
-            isEnrolled={isEnrolled}
             onToggle={onToggleSection}
           />
         ))}

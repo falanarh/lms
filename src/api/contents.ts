@@ -1,32 +1,33 @@
+import { API_BASE_URL } from "@/config/api";
 import axios from "axios";
 
 export type Content = {
   id: string
-  idSection: string
   type: string
-  contentUrl: string
   name: string
   description: string
+  contentUrl: string
   contentStart: string
   contentEnd: string
   sequence: number
-  createdAt?: string
-  updatedAt?: string
 }
 
-
-const BASE_URL = "http://10.101.20.150:3000"
-
 export const getContents = async (): Promise<Content[]> => {
-    const response = await axios.get<Content[]>(`${BASE_URL}/contents`, {
+    const response = await axios.get<Content[]>(`${API_BASE_URL}/contents`, {
       withCredentials: false
     })
     return response.data
 }
 
-export const createContent = async (newContent: Omit<Content, "id" | "createdAt" | "updatedAt">): Promise<Content> => {
+export const getContentsBySectionId = async (sectionId: string): Promise<Content[]> => {
+  const response = await axios.get(`${API_BASE_URL}/sections/${sectionId}/content`);
+  const content = response.data.data;
+  return content;
+};
+
+export const createContent = async (newContent: Omit<Content, "id">): Promise<Content> => {
   const response = await axios.post<Content>(
-    `${BASE_URL}/contents`,
+    `${API_BASE_URL}/contents`,
     newContent,
     {
       headers: {
@@ -38,5 +39,5 @@ export const createContent = async (newContent: Omit<Content, "id" | "createdAt"
 }
 
 export const deleteContent = async (id: string): Promise<void> => {
-  await axios.delete(`${BASE_URL}/contents/${id}`)
+  await axios.delete(`${API_BASE_URL}/contents/${id}`)
 }

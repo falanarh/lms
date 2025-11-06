@@ -1,24 +1,18 @@
 import { ChevronDown } from "lucide-react";
 import { ActivityCard } from "./ActivityCard";
-
-interface Activity {
-  id: string;
-  type: string;
-  name: string;
-  restrictAccess: boolean;
-}
+import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
 
 interface Section {
   id: string;
   name: string;
-  contents: Activity[];
+  description: string;
+  sequence: number;
 }
 
 interface CourseSectionItemProps {
   section: Section;
   index: number;
   isExpanded: boolean;
-  isEnrolled: boolean;
   onToggle: (sectionId: string) => void;
 }
 
@@ -26,9 +20,13 @@ export const CourseSectionItem = ({
   section,
   index,
   isExpanded,
-  isEnrolled,
   onToggle,
 }: CourseSectionItemProps) => {
+  const { data: contents, isLoading: isContentsLoading } = useContentsBySectionId({
+    sectionId: section.id,
+    enabled: isExpanded,
+  });
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Section Header */}
@@ -60,15 +58,20 @@ export const CourseSectionItem = ({
       {/* Section Content */}
       {isExpanded && (
         <div className="">
-          <div className="p-4 space-y-2">
-            {section.contents.map((activity) => (
-              <ActivityCard
-                key={activity.id}
-                activity={activity}
-                isEnrolled={isEnrolled}
-              />
-            ))}
-          </div>
+          {isContentsLoading ? (
+            <div className="p-6 text-center text-gray-500">
+              Loading contents...
+            </div>
+          ) : (
+            <div className="p-4 space-y-2">
+              {contents?.map((content) => (
+                <ActivityCard
+                  key={content.id}
+                  activity={content}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
