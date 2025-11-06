@@ -118,7 +118,7 @@ const generateDummyKnowledgeData = (): Knowledge[] => {
     // For content, cycle through media types
     const contentIndex = Math.floor(index / 3) * 2 + (index % 3) - 1;
     const mediaTypeIndex = contentIndex % 4;
-    const mediaType: MediaType = ['video', 'audio', 'pdf', 'article'][mediaTypeIndex];
+    const mediaType: MediaType = (['video', 'audio', 'pdf', 'article'] as const)[mediaTypeIndex];
 
     const imageId = picsumIds[picsumIndex] + index;
 
