@@ -11,9 +11,8 @@ import {
   DiscussionForumTab,
   RatingsReviewsTab,
 } from "@/features/detail-course/components";
-import { useCourse } from "@/hooks/useCourse";
+import { useGroupCourse } from "@/hooks/useGroupCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
-import { CourseLayout } from "@/features/course/components";
 
 interface DetailCoursePageProps {
   params: Promise<{
@@ -23,7 +22,7 @@ interface DetailCoursePageProps {
 
 export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const { id } = use(params);
-  const { data: courseDetail, isLoading, error } = useCourse(id);
+  const { data: courseDetail, isLoading, error } = useGroupCourse(id);
   const { activeTab, setActiveTab } = useCourseTab(id);
   const [isEnrolled, setIsEnrolled] = useState(false);
 
@@ -48,7 +47,8 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   ];
 
   return (
-    <CourseLayout>
+    <div className="min-h-screen">
+        <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
         {/* Header */}
         <CourseHeader title={course.title} breadcrumbItems={breadcrumbItems} />
 
@@ -56,17 +56,20 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Thumbnail */}
           <div className="lg:col-span-2">
-            <CourseThumbnail thumbnail={course.thumbnail} title={course.title} />
+            <CourseThumbnail 
+              thumbnail={(course as any).thumbnail || "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&h=450&fit=crop"} 
+              title={course.title} 
+            />
           </div>
 
           {/* Course Info */}
           <div className="space-y-4">
             <CourseInfoCard
-              category={course.description.category}
-              rating={course.averageRating}
-              totalRatings={course.totalUsers}
+              category={course.kategori}
+              rating={course.rating}
+              totalRatings={course.total_user}
               isEnrolled={isEnrolled}
-              type={course.typeCourse}
+              type={course.type_course}
               onToggle={handleEnrollToggle}
             />
           </div>
@@ -78,11 +81,11 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.description.method}
+              method={course.metode}
               syllabusFile=""
-              zoomLink=""
-              quota={course.description.quota}
-              description={course.description.description}
+              totalJP={course.jp}
+              quota={course.kuota}
+              description={course.description}
             />
           )}
 
@@ -99,13 +102,14 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
           {activeTab === "ratings_reviews" && (
             <RatingsReviewsTab
-              averageRating={course.averageRating}
-              totalRatings={course.totalUsers}
+              averageRating={course.rating}
+              totalRatings={course.total_user}
               ratingDistribution={{ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }}
               reviews={[]}
             />
           )}
         </div>
-      </CourseLayout>
+      </div>
+    </div>
     );
 }

@@ -1,16 +1,16 @@
-import { BookOpen, Download, Video, Users } from "lucide-react";
+import { BookOpen, Download, Book, Users } from "lucide-react";
 
 interface CourseInfoCardsProps {
   method: string;
   syllabusFile: string;
-  zoomLink: string;
+  totalJP: number;
   quota: number;
 }
 
 export const CourseInfoCards = ({
   method,
   syllabusFile,
-  zoomLink,
+  totalJP,
   quota,
 }: CourseInfoCardsProps) => {
   return (
@@ -52,21 +52,21 @@ export const CourseInfoCards = ({
         </div>
       </div>
 
-      {/* Zoom Conference */}
+      {/* Total Jam Pelajaran */}
       <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center flex-shrink-0">
-            <Video className="w-6 h-6 text-white" strokeWidth={2} />
+            <Book className="w-6 h-6 text-white" strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Zoom Conference
+              Total Jam Pelajaran
             </div>
             <a
               href="#"
               className="text-sm font-semibold text-gray-900 hover:text-blue-700 truncate hover:underline block"
             >
-              {zoomLink}
+              {totalJP}
             </a>
           </div>
         </div>

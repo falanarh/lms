@@ -10,7 +10,7 @@ import {
   CourseHeader,
   CourseLayout,
 } from "@/features/course/components";
-import { useCourses } from "@/hooks/useCourses";
+import { useGroupCourses } from "@/hooks/useGroupCourses";
 
 const COURSES_PER_PAGE = 4;
 
@@ -21,7 +21,7 @@ export default function CoursePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewModeValue>("grid-4");
 
-  const { data, isPending, isFetching } = useCourses();
+  const { data, isPending, isFetching } = useGroupCourses();
   const courses = data ?? [];
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -34,7 +34,7 @@ export default function CoursePage() {
         .includes(debouncedSearchQuery.toLowerCase());
       const matchesCategory =
         selectedCategory === "All Categories" ||
-        course.description.category === selectedCategory;
+        course.kategori === selectedCategory;
       return matchesSearch && matchesCategory;
     });
 
@@ -45,9 +45,9 @@ export default function CoursePage() {
         case "title-desc":
           return b.title.localeCompare(a.title);
         case "rating-desc":
-          return b.averageRating - a.averageRating;
+          return b.rating - a.rating;
         case "students-desc":
-          return b.totalUsers - a.totalUsers;
+          return b.total_user - a.total_user;
         default:
           return 0;
       }

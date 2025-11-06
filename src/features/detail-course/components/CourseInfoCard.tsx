@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge/Badge";
 import { Users } from "lucide-react";
 import { renderStars } from "@/features/course/hooks/stars";
+import { TeacherAvatar } from "@/features/course/components/TeacherAvatar";
 
 interface CourseInfoCardProps {
   category: string;
@@ -41,22 +42,18 @@ export const CourseInfoCard = ({
       {/* Details Section */}
       <div className="p-5 space-y-4">
         {/* Instructor */}
-        {/* <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="text-white font-semibold text-sm">
-              {teacher
-                .split(" ")
-                .map((word) => word.charAt(0))
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)}
-            </span>
-          </div>
+        {/* //TODO: PERBAIKI KETIKA SUDAH ADA TEACHER */}
+        <div className="flex items-start gap-3">
+          <TeacherAvatar
+            teacherName="Dr. John Smith"
+            avatarUrl="https://i.pravatar.cc/150?img=12"
+            size="lg"
+          />
           <div className="flex-1 min-w-0 pt-0.5">
             <p className="text-xs text-gray-500 mb-0.5">Instructor</p>
-            <p className="text-sm font-semibold text-gray-900">{teacher}</p>
+            <p className="text-sm font-semibold text-gray-900">Dr. John Smith</p>
           </div>
-        </div> */}
+        </div>
 
         {/* Students */}
         <div className="flex items-start gap-3">

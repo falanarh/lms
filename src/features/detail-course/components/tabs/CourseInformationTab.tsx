@@ -4,7 +4,7 @@ import { CourseDescription } from "../CourseDescription";
 interface CourseInformationTabProps {
   method: string;
   syllabusFile: string;
-  zoomLink: string;
+  totalJP: number;
   quota: number;
   description: string;
 }
@@ -12,7 +12,7 @@ interface CourseInformationTabProps {
 export const CourseInformationTab = ({
   method,
   syllabusFile,
-  zoomLink,
+  totalJP,
   quota,
   description,
 }: CourseInformationTabProps) => {
@@ -21,7 +21,7 @@ export const CourseInformationTab = ({
       <CourseInfoCards
         method={method}
         syllabusFile={syllabusFile}
-        zoomLink={zoomLink}
+        totalJP={totalJP}
         quota={quota}
       />
       <CourseDescription description={description} />
