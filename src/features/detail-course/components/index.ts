@@ -9,5 +9,6 @@ export { CourseSectionItem } from "./CourseSectionItem";
 export { ActivityCard } from "./ActivityCard";
 export { ReviewCard } from "./ReviewCard";
 export { PageContainer } from "./PageContainer";
+export { DetailCourseSkeleton } from "./DetailCourseSkeleton";
 
 export * from "./tabs";

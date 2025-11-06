@@ -11,6 +11,7 @@ import {
   DiscussionForumTab,
   RatingsReviewsTab,
   PageContainer,
+  DetailCourseSkeleton,
 } from "@/features/detail-course/components";
 import { useGroupCourse } from "@/hooks/useGroupCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
@@ -36,7 +37,11 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   });
 
   if (isLoading || !courseDetail) {
-    return <div>Loading...</div>;
+    return (
+      <PageContainer>
+        <DetailCourseSkeleton />
+      </PageContainer>
+    );
   }
 
   if (error) {
@@ -75,7 +80,8 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
           {/* Thumbnail */}
           <div className="lg:col-span-2">
             <CourseThumbnail 
-              thumbnail={(course as any).thumbnail || "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&h=450&fit=crop"} 
+              thumbnail={(course as any).thumbnail || "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&h=450&fit=crop"}
+              trailerUrl={(course as any).trailerUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
               title={course.title} 
             />
           </div>

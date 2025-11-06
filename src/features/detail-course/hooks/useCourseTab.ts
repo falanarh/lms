@@ -13,7 +13,7 @@ export const useCourseTab = (courseId: string) => {
   const setActiveTab = useCallback((tab: CourseTabType) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', tab);
-    router.push(`/course/${courseId}?${params.toString()}`, { scroll: false });
+    router.push(`/course/${courseId}/${params.toString()}`, { scroll: false });
   }, [courseId, router, searchParams]);
 
   return {
