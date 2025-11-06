@@ -43,11 +43,11 @@ export default function CreateKnowledgePage() {
   const deleteSubjectMutation = useDeleteSubject();
 
   // Subject management handlers
-  const handleAddSubject = (subject: { name: string; description?: string }) => {
+  const handleAddSubject = (subject: { name: string; icon?: string }) => {
     addSubjectMutation.mutate(subject);
   };
 
-  const handleUpdateSubject = (id: string, subject: { name?: string; description?: string }) => {
+  const handleUpdateSubject = (id: string, subject: { name?: string; icon?: string }) => {
     updateSubjectMutation.mutate({ id, data: subject });
   };
 

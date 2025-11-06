@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Check } from 'lucide-react';
-import { Subject } from '@/api/knowledge';
+import React, { useState } from "react";
+import { Plus, Edit2, Trash2, X, Check, Sparkles } from "lucide-react";
+import { Subject } from "@/api/knowledge";
+import { IconPicker, IconName, Icon } from "@/components/ui/icon-picker";
+import { iconsData } from "@/utils/icons-data";
 
 interface SubjectManagerProps {
   subjects: Subject[];
-  onSubjectAdd: (subject: { name: string; description?: string }) => void;
-  onSubjectUpdate: (id: string, subject: { name?: string; description?: string }) => void;
+  onSubjectAdd: (subject: { name: string; icon?: string }) => void;
+  onSubjectUpdate: (
+    id: string,
+    subject: { name?: string; icon?: string }
+  ) => void;
   onSubjectDelete: (id: string) => void;
   isAdding?: boolean;
   isUpdating?: boolean;
@@ -25,44 +30,155 @@ export default function SubjectManager({
 }: SubjectManagerProps) {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newSubject, setNewSubject] = useState({ name: '', description: '' });
-  const [editingSubject, setEditingSubject] = useState({ name: '', description: '' });
+  const [newSubject, setNewSubject] = useState({ name: "", icon: "" });
+  const [editingSubject, setEditingSubject] = useState({ name: "", icon: "" });
+  const [icon, setIcon] = useState<IconName | undefined>(undefined);
+  const [isGeneratingIcon, setIsGeneratingIcon] = useState(false);
 
   const handleAddSubject = () => {
     if (newSubject.name.trim()) {
       onSubjectAdd(newSubject);
-      setNewSubject({ name: '', description: '' });
+      setNewSubject({ name: "", icon: "" });
+      setIcon(undefined);
       setIsAddingNew(false);
     }
   };
 
   const handleEditSubject = (subject: Subject) => {
     setEditingId(subject.id);
-    setEditingSubject({ name: subject.name, description: subject.description || '' });
+    setEditingSubject({ name: subject.name, icon: subject.icon || "" });
+    setIcon((subject.icon as IconName) || undefined);
   };
 
   const handleUpdateSubject = () => {
     if (editingId && editingSubject.name.trim()) {
       onSubjectUpdate(editingId, editingSubject);
       setEditingId(null);
-      setEditingSubject({ name: '', description: '' });
+      setEditingSubject({ name: "", icon: "" });
+      setIcon(undefined);
     }
   };
 
   const handleDeleteSubject = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this subject?')) {
+    if (window.confirm("Are you sure you want to delete this subject?")) {
       onSubjectDelete(id);
     }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditingSubject({ name: '', description: '' });
+    setEditingSubject({ name: "", icon: "" });
+    setIcon(undefined);
   };
 
   const cancelAdd = () => {
     setIsAddingNew(false);
-    setNewSubject({ name: '', description: '' });
+    setNewSubject({ name: "", icon: "" });
+    setIcon(undefined);
+  };
+
+  const handleAutoPickIcon = async (subjectName: string, isEditing: boolean = false) => {
+    if (!subjectName.trim()) return;
+
+    setIsGeneratingIcon(true);
+
+    try {
+      // Get list of available icon names
+      const availableIcons = iconsData.map(icon => icon.name);
+
+      // Create prompt for Gemini with detailed icon information
+      const iconDetails = iconsData.map(icon =>
+        `${icon.name} (categories: ${icon.categories.join(', ')}; tags: ${icon.tags.join(', ')})`
+      ).join('\n');
+
+      const prompt = `Given the subject name "${subjectName}", analyze the following icon database and suggest the most appropriate icon name.
+
+Available Icons:
+${iconDetails}
+
+Instructions:
+1. Analyze the subject name and its semantic meaning
+2. Consider the categories and tags of each icon
+3. Choose the icon that best represents the subject concept
+4. Prioritize icons with relevant categories and tags
+5. Return ONLY the exact icon name (no additional text)
+
+Subject Analysis Examples:
+- "Data Science" → Look for icons with "data", "chart", "analytics" tags
+- "Web Development" → Look for icons with "code", "development", "web" tags
+- "UI/UX Design" → Look for icons with "design", "palette", "interface" tags
+- "Mobile Development" → Look for icons with "mobile", "smartphone", "app" tags
+- "Cybersecurity" → Look for icons with "security", "shield", "protection" tags
+
+Choose the best matching icon name for "${subjectName}":`;
+
+      // Call Gemini API (using free tier)
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=AIzaSyAWObATIRtXg5J6kSBiBkZKyFGnPpsA0x4', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      const suggestedIcon = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+      // Validate that the suggested icon exists in our list
+      if (suggestedIcon && availableIcons.includes(suggestedIcon)) {
+        setIcon(suggestedIcon as IconName);
+        if (isEditing) {
+          setEditingSubject(prev => ({ ...prev, icon: suggestedIcon }));
+        } else {
+          setNewSubject(prev => ({ ...prev, icon: suggestedIcon }));
+        }
+      } else {
+        // Fallback to local logic if Gemini fails
+        const fallbackIcon = getFallbackIcon(subjectName);
+        setIcon(fallbackIcon);
+        if (isEditing) {
+          setEditingSubject(prev => ({ ...prev, icon: fallbackIcon }));
+        } else {
+          setNewSubject(prev => ({ ...prev, icon: fallbackIcon }));
+        }
+      }
+    } catch (error) {
+      console.error('Error generating icon:', error);
+      // Fallback to local logic
+      const fallbackIcon = getFallbackIcon(subjectName);
+      setIcon(fallbackIcon);
+      if (isEditing) {
+        setEditingSubject(prev => ({ ...prev, icon: fallbackIcon }));
+      } else {
+        setNewSubject(prev => ({ ...prev, icon: fallbackIcon }));
+      }
+    } finally {
+      setIsGeneratingIcon(false);
+    }
+  };
+
+  const getFallbackIcon = (subjectName: string): IconName => {
+    const name = subjectName.toLowerCase();
+
+    // Technology-related keywords
+    if (name.includes('data') || name.includes('analytics') || name.includes('business')) return 'chart-bar';
+    if (name.includes('machine') || name.includes('ai') || name.includes('learning')) return 'brain-circuit';
+    if (name.includes('web') || name.includes('code') || name.includes('programming')) return 'code';
+    if (name.includes('mobile') || name.includes('app') || name.includes('phone')) return 'smartphone';
+    if (name.includes('cloud') || name.includes('server') || name.includes('aws')) return 'cloud';
+    if (name.includes('security') || name.includes('protect') || name.includes('shield')) return 'shield';
+    if (name.includes('design') || name.includes('ui') || name.includes('ux')) return 'palette';
+    if (name.includes('project') || name.includes('manage') || name.includes('business')) return 'briefcase';
+    if (name.includes('database') || name.includes('storage')) return 'database';
+
+    // Default fallback
+    return 'folder';
   };
 
   return (
@@ -89,12 +205,39 @@ export default function SubjectManager({
             <input
               type="text"
               value={newSubject.name}
-              onChange={(e) => setNewSubject(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setNewSubject((prev) => ({ ...prev, name: e.target.value }))
+              }
               placeholder="Enter subject name"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               autoFocus
             />
-          </div>  
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              Icon <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <IconPicker
+                value={icon}
+                onValueChange={(e) => {
+                  setIcon(e as IconName);
+                  setNewSubject((prev) => ({ ...prev, icon: e }));
+                }}
+                className="w-fit"
+              />
+              <button
+                type="button"
+                onClick={() => handleAutoPickIcon(newSubject.name)}
+                disabled={!newSubject.name.trim() || isGeneratingIcon}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm disabled:opacity-50"
+                title="Auto-pick icon based on subject name"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isGeneratingIcon ? "..." : "Auto"}
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleAddSubject}
@@ -102,7 +245,7 @@ export default function SubjectManager({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm disabled:opacity-50"
             >
               <Check className="w-4 h-4" />
-              {isAdding ? 'Adding...' : 'Add'}
+              {isAdding ? "Adding..." : "Add"}
             </button>
             <button
               onClick={cancelAdd}
@@ -123,8 +266,8 @@ export default function SubjectManager({
             key={subject.id}
             className={`p-3 border rounded-lg transition-all ${
               editingId === subject.id
-                ? 'border-blue-300 bg-blue-50'
-                : 'border-gray-200 bg-white hover:border-gray-300'
+                ? "border-blue-300 bg-blue-50"
+                : "border-gray-200 bg-white hover:border-gray-300"
             }`}
           >
             {editingId === subject.id ? (
@@ -137,10 +280,43 @@ export default function SubjectManager({
                   <input
                     type="text"
                     value={editingSubject.name}
-                    onChange={(e) => setEditingSubject(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setEditingSubject((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     autoFocus
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-1">
+                    Icon <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <IconPicker
+                      value={icon}
+                      onValueChange={(e) => {
+                        setIcon(e as IconName);
+                        setEditingSubject((prev) => ({
+                          ...prev,
+                          icon: e,
+                        }))
+                      }}
+                      className="w-fit"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAutoPickIcon(editingSubject.name, true)}
+                      disabled={!editingSubject.name.trim() || isGeneratingIcon}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm disabled:opacity-50"
+                      title="Auto-pick icon based on subject name"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      {isGeneratingIcon ? "..." : "Auto"}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -149,7 +325,7 @@ export default function SubjectManager({
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm disabled:opacity-50"
                   >
                     <Check className="w-4 h-4" />
-                    {isUpdating ? 'Updating...' : 'Update'}
+                    {isUpdating ? "Updating..." : "Update"}
                   </button>
                   <button
                     onClick={cancelEdit}
@@ -164,7 +340,8 @@ export default function SubjectManager({
             ) : (
               // View mode
               <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
+                <div className="flex gap-2 min-w-0">
+                  <Icon name={subject.icon as IconName} />
                   <h4 className="text-sm font-medium text-gray-900 truncate">
                     {subject.name}
                   </h4>

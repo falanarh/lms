@@ -593,7 +593,7 @@ export function useUpdateSubject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Subject, 'id'>> }) =>
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; icon?: string } }) =>
       knowledgeApi.updateSubject(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['subjects'] });

@@ -28,8 +28,8 @@ interface BasicInfoFormProps {
   onTagInput: (value: string) => void;
   onAddTag: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onRemoveTag: (tag: string) => void;
-  onSubjectAdd?: (subject: { name: string; description?: string }) => void;
-  onSubjectUpdate?: (id: string, subject: { name?: string; description?: string }) => void;
+  onSubjectAdd?: (subject: { name: string; icon?: string }) => void;
+  onSubjectUpdate?: (id: string, subject: { name?: string; icon?: string }) => void;
   onSubjectDelete?: (id: string) => void;
   isSubjectManagementPending?: {
     adding: boolean;

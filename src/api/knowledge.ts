@@ -34,6 +34,7 @@ export interface Subject {
   id: string;
   name: string;
   description?: string;
+  icon?: string;
 }
 
 export interface Penyelenggara {
@@ -164,16 +165,16 @@ const dummyAnalyticsStore = generateDummyAnalytics();
 // Generate dummy subjects and penyelenggara
 const generateDummySubjects = (): Subject[] => {
   return [
-    { id: '1', name: 'Data Science', description: 'Learn data analysis and machine learning' },
-    { id: '2', name: 'Machine Learning', description: 'Advanced ML techniques and algorithms' },
-    { id: '3', name: 'Web Development', description: 'Modern web development frameworks' },
-    { id: '4', name: 'Mobile Development', description: 'iOS and Android app development' },
-    { id: '5', name: 'DevOps', description: 'Cloud infrastructure and deployment' },
-    { id: '6', name: 'Cloud Computing', description: 'AWS, Azure, and Google Cloud' },
-    { id: '7', name: 'Cybersecurity', description: 'Information security and best practices' },
-    { id: '8', name: 'UI/UX Design', description: 'User interface and experience design' },
-    { id: '9', name: 'Project Management', description: 'Agile and traditional project management' },
-    { id: '10', name: 'Business Intelligence', description: 'Data analytics for business decisions' },
+    { id: '1', name: 'Data Science', description: 'Learn data analysis and machine learning', icon: 'chart-bar' },
+    { id: '2', name: 'Machine Learning', description: 'Advanced ML techniques and algorithms', icon: 'brain-circuit' },
+    { id: '3', name: 'Web Development', description: 'Modern web development frameworks', icon: 'code' },
+    { id: '4', name: 'Mobile Development', description: 'iOS and Android app development', icon: 'smartphone' },
+    { id: '5', name: 'DevOps', description: 'Cloud infrastructure and deployment', icon: 'git-branch' },
+    { id: '6', name: 'Cloud Computing', description: 'AWS, Azure, and Google Cloud', icon: 'cloud' },
+    { id: '7', name: 'Cybersecurity', description: 'Information security and best practices', icon: 'shield' },
+    { id: '8', name: 'UI/UX Design', description: 'User interface and experience design', icon: 'palette' },
+    { id: '9', name: 'Project Management', description: 'Agile and traditional project management', icon: 'briefcase' },
+    { id: '10', name: 'Business Intelligence', description: 'Data analytics for business decisions', icon: 'chart-pie' },
   ];
 };
 
@@ -550,11 +551,12 @@ export const knowledgeApi = {
   /**
    * Add new subject
    */
-  async addSubject(subject: Omit<Subject, 'id'>): Promise<Subject> {
+  async addSubject(subject: { name: string; icon?: string }): Promise<Subject> {
     await new Promise(resolve => setTimeout(resolve, 500));
     const newSubject: Subject = {
       id: `subject-${Date.now()}`,
-      ...subject,
+      name: subject.name,
+      icon: subject.icon,
     };
     dummySubjectsStore.push(newSubject);
     return newSubject;
@@ -563,7 +565,7 @@ export const knowledgeApi = {
   /**
    * Update subject
    */
-  async updateSubject(id: string, subject: Partial<Omit<Subject, 'id'>>): Promise<Subject | null> {
+  async updateSubject(id: string, subject: { name?: string; icon?: string }): Promise<Subject | null> {
     await new Promise(resolve => setTimeout(resolve, 500));
     const index = dummySubjectsStore.findIndex(s => s.id === id);
     if (index === -1) return null;
