@@ -1,27 +1,32 @@
 import axios from "axios";
 
 export type Content = {
-  id_content?: string
-  id_section: string
+  id: string
+  idSection: string
   type: string
-  content_url: string
+  contentUrl: string
   name: string
   description: string
-  content_start: string
-  content_end: string
+  contentStart: string
+  contentEnd: string
   sequence: number
-  created_at?: string
-  updated_at?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
+
+const BASE_URL = "http://10.101.20.150:3000"
+
 export const getContents = async (): Promise<Content[]> => {
-    const response = await axios.get<Content[]>("http://10.101.20.150:3000/contents")
+    const response = await axios.get<Content[]>(`${BASE_URL}/contents`, {
+      withCredentials: false
+    })
     return response.data
 }
 
-export const createContent = async (newContent: Omit<Content, "id_content" | "created_at" | "updated_at">): Promise<Content> => {
+export const createContent = async (newContent: Omit<Content, "id" | "createdAt" | "updatedAt">): Promise<Content> => {
   const response = await axios.post<Content>(
-    "http://10.101.20.150:3000/contents",
+    `${BASE_URL}/contents`,
     newContent,
     {
       headers: {
@@ -30,4 +35,8 @@ export const createContent = async (newContent: Omit<Content, "id_content" | "cr
     }
   )
   return response.data
+}
+
+export const deleteContent = async (id: string): Promise<void> => {
+  await axios.delete(`${BASE_URL}/contents/${id}`)
 }

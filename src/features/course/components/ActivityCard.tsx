@@ -63,7 +63,7 @@
  * - --color-foreground, --color-foreground-muted
  */
 import React from "react";
-import { FileText, Video, Download, Eye } from "lucide-react";
+import { FileText, Video, Download, Eye, Link } from "lucide-react";
 
 export type MaterialType = "PDF" | "VIDEO" | "LINK" | "SCORM";
 
@@ -90,30 +90,30 @@ const materialConfig: Record<
 > = {
   PDF: {
     icon: FileText,
-    color: "red",
-    bgColor: "bg-red-100",
-    iconColor: "text-red-600",
+    color: "green",
+    bgColor: "bg-green-100",
+    iconColor: "text-green-600",
     label: "PDF",
   },
   VIDEO: {
     icon: Video,
     color: "blue",
-    bgColor: "bg-blue-100",
-    iconColor: "text-blue-600",
+    bgColor: "bg-green-100",
+    iconColor: "text-green-600",
     label: "VIDEO",
   },
   LINK: {
-    icon: FileText,
-    color: "blue",
-    bgColor: "bg-blue-100",
-    iconColor: "text-blue-600",
+    icon: Link,
+    color: "orange",
+    bgColor: "bg-orange-100",
+    iconColor: "text-orange-600",
     label: "LINK",
   },
   SCORM: {
     icon: FileText,
-    color: "orange",
-    bgColor: "bg-orange-100",
-    iconColor: "text-orange-600",
+    color: "yellow",
+    bgColor: "bg-yellow-100",
+    iconColor: "text-yellow-600",
     label: "PPT",
   },
 };

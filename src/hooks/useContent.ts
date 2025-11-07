@@ -1,4 +1,4 @@
-import {createContent, getContents} from "@/api/contents";
+import {createContent, deleteContent, getContents} from "@/api/contents";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
@@ -28,9 +28,21 @@ export const useCreateContent = (
   return useMutation({
     mutationFn: createContent,
     onSuccess: async (...args) => {
-      // Force immediate refetch of contents list
       await queryClient.refetchQueries({ queryKey: getContentQueryKey() })
-      // Call the config's onSuccess if provided
+      await config.onSuccess?.(...args)
+    },
+    ...config,
+  })
+}
+
+
+export const useDeleteContent = (
+  config: MutationConfig<typeof deleteContent> = {}
+) => {
+  return useMutation({
+    mutationFn: deleteContent,
+    onSuccess: async (...args) => {
+      await queryClient.refetchQueries({ queryKey: getContentQueryKey() })
       await config.onSuccess?.(...args)
     },
     ...config,

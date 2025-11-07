@@ -15,6 +15,7 @@ import { getContentQueryKey, useCreateContent } from "@/hooks/useContent";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { queryClient } from "@/lib/queryClient";
 import { getSectionQueryKey } from "@/hooks/useSections";
+import { randomUUID } from "crypto";
 
 type ActivityType = "VIDEO" | "LINK" | "PDF" | "QUIZ" | "SCORM" | "jadwal_kurikulum" | null;
 type ContentSource = "new" | "curriculum" | null;
@@ -35,6 +36,54 @@ interface ActivityDrawerContentProps {
   onSave?: () => void;
   sectionId?: string; // ID section untuk membuat content baru
 }
+
+const CURRICULUM_SESSIONS = [
+  {
+    id: "session-1",
+    title: "Sesi 1: Pengantar Next.js",
+    date: "2024-08-01",
+    status: "upcoming",
+    topic: "Fundamental Next.JS",
+    duration: "30 menit",
+    instructor: "Dr. Alfian Syrff",
+    description: "Pengenalan dasar tentang Next.js framework dan konsep fundamental yang perlu dipahami",
+    materials: [
+      { type: "pdf", title: "Next.js Fundamentals", size: "12 MB" },
+      { type: "video", title: "Next.js Introduction", size: "30 MB" },
+    ],
+  },
+  {
+    id: "session-2",
+    title: "Sesi 2: React Hooks & State Management",
+    date: "2024-08-08",
+    status: "upcoming",
+    topic: "React Advanced Concepts",
+    duration: "45 menit",
+    instructor: "Dr. Alfian Syrff",
+    description: "Mempelajari React Hooks seperti useState, useEffect, dan teknik state management modern",
+    materials: [
+      { type: "pdf", title: "React Hooks Guide", size: "8 MB" },
+      { type: "video", title: "State Management Tutorial", size: "45 MB" },
+      { type: "pdf", title: "Best Practices", size: "5 MB" },
+    ],
+  },
+  {
+    id: "session-3",
+    title: "Sesi 3: API Routes & Data Fetching",
+    date: "2024-08-15",
+    status: "upcoming",
+    topic: "Backend Integration",
+    duration: "60 menit",
+    instructor: "Prof. Sarah Johnson",
+    description: "Implementasi API routes di Next.js dan berbagai metode fetching data (SSR, SSG, ISR)",
+    materials: [
+      { type: "video", title: "API Routes Demo", size: "50 MB" },
+      { type: "pdf", title: "Data Fetching Patterns", size: "10 MB" },
+    ],
+  },
+];
+
+
 
 const ACTIVITY_OPTIONS = [
   { type: "VIDEO", label: "Video Upload", description: "Upload file video lokal", icon: Video, color: "blue" },
@@ -71,6 +120,7 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
     },
     onError: (error: any) => {
       setShowToast(true);
+      console.log(error)
       setToastMessage(error?.message || "Gagal menambahkan activity");
       setToastVariant("warning");
     },
@@ -93,7 +143,7 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
   });
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedSession, setSelectedSession] = useState<typeof CURRICULUM_SESSIONS[0] | null>(null);
   const [completionEnabled, setCompletionEnabled] = useState(false);
   const [mustOpenLink, setMustOpenLink] = useState(false);
   const [deadlineEnabled, setDeadlineEnabled] = useState(false);
@@ -196,13 +246,13 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
 
     // Create content payload
     const newContent = {
-      id_section: sectionId,
+      idSection: sectionId,
       type: selectedActivityType,
-      content_url: contentUrl,
+      contentUrl: contentUrl,
       name: title,
       description: description || "",
-      content_start: contentStart,
-      content_end: contentEnd,
+      contentStart: contentStart,
+      contentEnd: contentEnd,
       sequence: sequence,
     };
 
@@ -440,7 +490,7 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
         <h4 className="mb-4">Pilih Sesi Kurikulum:</h4>
         <div className="space-y-3">
           {CURRICULUM_SESSIONS.map((session) => (
-            <SessionCard 
+            <SessionCard
               key={session.id}
               onClick={() => handleSessionSelect(session)}
               title={session.title}
@@ -583,7 +633,7 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
                        <ActivityCard
                         key={index}
                         title={material.title}
-                        type={"video"}
+                        type={"VIDEO"}
                         size={material.size}
                         showAction
                         actionLabel="Download"

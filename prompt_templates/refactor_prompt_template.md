@@ -56,8 +56,8 @@ onChange? / onClick? / onSelect?: (args) => void
 - **Brand:** `text/bg-[var(--color-primary)]` dan `bg-[var(--color-primary-50)]` (subtle)
 - **Focus:** `focus-visible:ring-2` `focus-visible:ring-[var(--color-focus-ring)]` `focus-visible:ring-offset-2`
 - **Border:** `border-[var(--border)]`
-- **Radius:** `rounded-[var(--radius-sm|md|lg)]`
-- **Font:** `text-[var(--font-sm|md|lg)]`, `font-[var(--font-body|var(--font-body-bold))]`
+- **Radius:** gunakan token radius, misal `rounded-[var(--radius-sm)]`, `rounded-[var(--radius-md)]`, `rounded-[var(--radius-lg)]`
+- **Font:** gunakan token font size, misal `text-[var(--font-sm)]`, `text-[var(--font-md)]`, `text-[var(--font-lg)]`; dan untuk weight gunakan `font-[var(--font-body-bold)]`. Untuk font-family gunakan `[font-family:var(--font-body)]`.
 - **Larangan:** Jangan gunakan warna Tailwind default (mis. `gray-500`, `blue-50`, dsb.) **kecuali** melalui fallback aman di `var()`
 
 ---

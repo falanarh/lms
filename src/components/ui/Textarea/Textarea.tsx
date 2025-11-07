@@ -50,6 +50,7 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
   autoResize?: boolean;
   minRows?: number;
   maxRows?: number;
+  isLoading?: boolean;
   containerClassName?: string;
 }
 
@@ -78,6 +79,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
     autoResize = false,
     minRows = 3,
     maxRows,
+    isLoading,
     disabled,
     containerClassName,
     id,
@@ -95,6 +97,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
 
   const sz = sizeMap[size];
   const showError = !!isInvalid && !!errorText;
+  const isDisabled = disabled || isLoading;
 
   // Auto-resize handler
   const handleResize = React.useCallback(() => {
@@ -154,7 +157,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
   };
 
   return (
-    <div className={["w-full", containerClassName].filter(Boolean).join(" ")}>
+    <div className={["w-full", isLoading ? "relative" : "", containerClassName].filter(Boolean).join(" ")}>
       {label && (
         <label
           htmlFor={resolvedId}
@@ -188,14 +191,14 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
           "resize-y", // Allow vertical resize kecuali jika autoResize aktif
           autoResize ? "resize-none overflow-hidden" : "",
           isInvalid ? "border-[var(--danger,#dc2626)]" : "",
-          disabled ? "opacity-50 cursor-not-allowed" : "",
+          isDisabled ? "opacity-50 cursor-not-allowed" : "",
           className,
         ]
           .filter(Boolean)
           .join(" ")}
         aria-invalid={isInvalid || undefined}
         aria-describedby={[(helperText || showError) ? helperId : undefined].filter(Boolean).join(" ") || undefined}
-        disabled={disabled}
+        disabled={isDisabled}
         onChange={handleChange}
         {...props}
       />
@@ -213,6 +216,11 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(fun
         >
           {showError ? errorText : helperText}
         </p>
+      )}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface,white)] bg-opacity-50 rounded-[var(--radius-md,8px)]">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--color-focus-ring,#2563eb)]"></div>
+        </div>
       )}
     </div>
   );
