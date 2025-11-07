@@ -4,6 +4,7 @@ import { CourseTabType, TabConfig } from "../types/tab";
 interface CourseTabNavigationProps {
   activeTab: CourseTabType;
   onTabChange: (tab: CourseTabType) => void;
+  hiddenTabs?: CourseTabType[]; // Tabs yang akan disembunyikan (untuk sidebar mode)
 }
 
 const tabs: TabConfig[] = [
@@ -32,7 +33,11 @@ const tabs: TabConfig[] = [
 export const CourseTabNavigation = ({
   activeTab,
   onTabChange,
+  hiddenTabs = [],
 }: CourseTabNavigationProps) => {
+  // Filter tabs berdasarkan hiddenTabs
+  const visibleTabs = tabs.filter(tab => !hiddenTabs.includes(tab.key));
+
   return (
     <>
       {/* Mobile: Dropdown Select */}
@@ -43,10 +48,11 @@ export const CourseTabNavigation = ({
             onChange={(e) => onTabChange(e.target.value as CourseTabType)}
             className="w-full h-[48px] px-4 pr-10 bg-white border-2 border-gray-200 rounded-xl appearance-none text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
           >
-            <option value="information">Information</option>
-            <option value="course_contents">Course Contents</option>
-            <option value="discussion_forum">Discussion Forum</option>
-            <option value="ratings_reviews">Ratings & Reviews</option>
+            {visibleTabs.map((tab) => (
+              <option key={tab.key} value={tab.key}>
+                {tab.label}
+              </option>
+            ))}
           </select>
           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
         </div>
@@ -56,7 +62,7 @@ export const CourseTabNavigation = ({
       <div className="hidden md:block bg-[#ececf0] rounded-[14px] w-full">
         <div className="flex flex-row items-center size-full">
           <div className="box-border flex items-center px-[3px] py-[3px] size-full gap-0">
-            {tabs.map((tab) => {
+            {visibleTabs.map((tab) => {
               const isActive = activeTab === tab.key;
 
               return (

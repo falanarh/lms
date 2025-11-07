@@ -1,7 +1,10 @@
+"use client";
+
 import { Badge } from "@/components/ui/Badge/Badge";
 import { Users } from "lucide-react";
 import { renderStars } from "@/features/course/hooks/stars";
 import { TeacherAvatar } from "@/features/course/components/TeacherAvatar";
+import { useRouter } from "next/navigation";
 
 interface CourseInfoCardProps {
   category: string;
@@ -10,6 +13,7 @@ interface CourseInfoCardProps {
   type: string;
   isEnrolled: boolean;
   onToggle: () => void;
+  courseId?: string; // ID untuk navigasi ke my-course
 }
 
 export const CourseInfoCard = ({
@@ -19,7 +23,17 @@ export const CourseInfoCard = ({
   type,
   isEnrolled,
   onToggle,
+  courseId,
 }: CourseInfoCardProps) => {
+  const router = useRouter();
+
+  const handleButtonClick = () => {
+    if (isEnrolled && courseId) {
+      router.push(`/my-course/${courseId}`);
+    } else {
+      onToggle();
+    }
+  };
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header Section */}
@@ -80,7 +94,7 @@ export const CourseInfoCard = ({
 
         {/* Enroll Button */}
         <button
-          onClick={onToggle}
+          onClick={handleButtonClick}
           className={`
             w-full font-semibold text-base py-4 px-6 rounded-xl transition-all duration-200 
             flex items-center justify-center gap-2.5 hover:-translate-y-0.5

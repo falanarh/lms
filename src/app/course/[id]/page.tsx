@@ -51,11 +51,8 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const course = courseDetail[0];
 
   const handleEnrollToggle = () => {
-    if (isEnrolled) {
-      console.log("Redirecting to /my-course/" + id);
-    } else {
-      setIsEnrolled(true);
-    }
+    // Hanya handle enroll action, redirect sudah dihandle di CourseInfoCard
+    setIsEnrolled(true);
   };
 
   const handleToggleSection = (sectionId: string) => {
@@ -95,6 +92,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
               type={course.type_course}
               isEnrolled={isEnrolled}
               onToggle={handleEnrollToggle}
+              courseId={id}
             />
           </div>
         </div>
