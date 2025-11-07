@@ -70,7 +70,6 @@ export type MaterialType = "PDF" | "VIDEO" | "LINK" | "SCORM";
 export interface ActivityCardProps {
   title: string;
   type: MaterialType;
-  size: string;
   description?: string;
   onAction?: () => void;
   actionLabel?: string;
@@ -98,8 +97,8 @@ const materialConfig: Record<
   VIDEO: {
     icon: Video,
     color: "blue",
-    bgColor: "bg-green-100",
-    iconColor: "text-green-600",
+    bgColor: "bg-blue-100",
+    iconColor: "text-blue-600",
     label: "VIDEO",
   },
   LINK: {
@@ -114,7 +113,7 @@ const materialConfig: Record<
     color: "yellow",
     bgColor: "bg-yellow-100",
     iconColor: "text-yellow-600",
-    label: "PPT",
+    label: "SCORM",
   },
 };
 
@@ -123,7 +122,6 @@ export const ActivityCard = React.forwardRef<HTMLDivElement, ActivityCardProps>(
     {
       title,
       type,
-      size,
       description,
       onAction,
       actionLabel = "Lihat",
@@ -180,11 +178,6 @@ export const ActivityCard = React.forwardRef<HTMLDivElement, ActivityCardProps>(
                   ].join(" ")}
                 >
                   {config.label}
-                </span>
-
-                {/* Size */}
-                <span className="text-xs text-[var(--color-foreground-muted,#6b7280)]">
-                  {size}
                 </span>
 
                 {/* Optional Description */}

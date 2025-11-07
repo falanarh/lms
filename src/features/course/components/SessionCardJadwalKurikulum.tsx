@@ -68,6 +68,7 @@ export interface SessionCardProps {
   duration?: string;
   instructor?: string;
   materials?: Material[];
+  jp?: number;
   icon?: React.ReactNode;
   onClick?: () => void;
   className?: string;
@@ -147,14 +148,17 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
       duration,
       instructor,
       materials = [],
+      jp,
       icon,
       onClick,
       className,
     },
-    ref
+    ref,
   ) {
     const colors = statusConfig[status];
-    const IconComponent = icon || <Calendar className={`size-6 ${colors.text}`} />;
+    const IconComponent = icon || (
+      <Calendar className={`size-6 ${colors.text}`} />
+    );
 
     return (
       <div
@@ -215,10 +219,15 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
           >
             {colors.label}
           </span>
+
+          {jp && (
+            <span className="text-purple-700 font-medium px-3 py-1 rounded-lg text-xs font-medium border capitalize flex-shrink-0 ml-3">
+              {jp} JP
+            </span>
+          )}
         </div>
 
-        {/* Info Grid */}
-        {(date || duration || instructor) && (
+        {(date || duration || instructor || jp) && (
           <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-100">
             {date && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -284,7 +293,7 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 export default SessionCard;
