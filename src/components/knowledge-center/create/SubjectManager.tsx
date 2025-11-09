@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, Edit2, Trash2, X, Check, Sparkles } from "lucide-react";
-import { KnowledgeSubject, Subject } from "@/api/knowledge";
+import { KnowledgeSubject } from "@/api/knowledge";
 import { IconPicker, IconName, Icon } from "@/components/ui/icon-picker";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { iconsData } from "@/utils/icons-data";

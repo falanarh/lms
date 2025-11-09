@@ -21,7 +21,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input/Input';
-import { useSubjects } from '@/hooks/useKnowledgeCenter';
+import { useKnowledgeSubjects } from '@/hooks/useKnowledge';
 
 interface SubjectProps {
   selectedSubject: string;
@@ -38,9 +38,9 @@ export default function Subject({
   const [needsToggle, setNeedsToggle] = useState(false);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { subjects, isLoading } = useSubjects();
+  const { subjects, isLoading } = useKnowledgeSubjects();
 
-  const getSubjectIcon = (subjectName: string) => {
+  const getSubjectIconByName = (subjectName: string) => {
     if (subjectName === 'all') return LayoutGrid;
 
     const name = subjectName.toLowerCase();
@@ -58,21 +58,37 @@ export default function Subject({
     return BookOpen;
   };
 
-  const subjectOptions = useMemo(() => {
-    const names = (subjects || [])
-      .map((subject) => subject?.name?.trim())
-      .filter(Boolean) as string[];
+const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
+    // Use icon from API if available, fallback to name-based logic
+    if (subjectIcon && subjectIcon.trim()) {
+      // For now, use name-based logic even with icon from API
+      // In the future, you could map icon strings to Lucide icons here
+      return getSubjectIconByName(subjectName);
+    }
+    return getSubjectIconByName(subjectName);
+  };
 
-    const uniqueNames = Array.from(
-      new Map(names.map((name) => [name.toLowerCase(), name])).values()
-    ).sort((a, b) => a.localeCompare(b));
+  const subjectOptions = useMemo(() => {
+    // Get unique subjects from API data
+    const uniqueSubjects = (subjects || [])
+      .filter((subject) => subject?.name?.trim())
+      .reduce((acc, subject) => {
+        const existing = acc.find(s => s.name.toLowerCase() === subject.name.toLowerCase());
+        if (!existing) {
+          acc.push(subject);
+        }
+        return acc;
+      }, [] as any[])
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     return [
       { value: 'all', label: 'All Subjects', icon: LayoutGrid },
-      ...uniqueNames.map((name) => ({
-        value: name,
-        label: name,
-        icon: getSubjectIcon(name),
+      ...uniqueSubjects.map((subject) => ({
+        value: subject.name,
+        label: subject.name,
+        icon: getSubjectIcon(subject.name, subject.icon),
+        // Store original subject data for future use
+        originalSubject: subject,
       })),
     ];
   }, [subjects]);

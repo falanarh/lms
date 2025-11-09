@@ -11,7 +11,7 @@ import { KnowledgeCard, Subject } from '@/components/knowledge-center';
 import { Pagination } from '@/components/shared/Pagination/Pagination';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Input } from '@/components/ui/Input/Input';
-import { useKnowledge } from '@/hooks/useKnowledge';
+import { useKnowledgeGrid } from '@/hooks/useKnowledge';
 import { SortOption } from '@/types/knowledge-center';
 
 interface KnowledgeGridProps {
@@ -41,9 +41,9 @@ export default function KnowledgeGrid({
     error,
     total,
     totalPages,
-  } = useKnowledge({
+  } = useKnowledgeGrid({
     search: searchQuery || undefined,
-    knowledge_type: selectedType !== 'all' ? [selectedType] : undefined,
+    knowledge_type: selectedType !== 'all' ? [selectedType as 'webinar' | 'konten'] : undefined,
     subject: selectedSubject !== 'all' ? [selectedSubject] : undefined,
     sort: sortBy,
     page: currentPage,

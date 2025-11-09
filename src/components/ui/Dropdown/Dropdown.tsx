@@ -313,7 +313,7 @@ export function Dropdown({
                 const selected = it.value === selectedValue;
                 const focused = idx === activeIndex;
                 return (
-                  <li key={it.value} role="option" aria-selected={selected}>
+                  <li key={it.value+idx} role="option" aria-selected={selected}>
                     <button
                       type="button"
                       className={[

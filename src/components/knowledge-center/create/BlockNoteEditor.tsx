@@ -1,38 +1,45 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 // @ts-expect-error: CSS module has no type declarations
 import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 // @ts-expect-error: CSS module has no type declarations
 import "@blocknote/mantine/style.css";
+import { Block } from "@blocknote/core";
 
-export default function BlockNoteEditor({
-  type,
-}: {
-  type?: "article" | "pdf" | "video" | "audio";
-}) {
-  // Stores the document JSON.
-  // const [blocks, setBlocks] = useState<Block[]>([]);
+type KnowledgeType = "article" | "file" | "video" | "audio";
 
-  async function uploadImage(file: File) {
-    const body = new FormData();
-    body.append("image", file);
-    const ret = await fetch("http://localhost:9999/api/upload", {
-      method: "POST",
-      body: body,
-    });
-    return (await ret.json()).data.imageUrl;
-  }
+interface BlockTemplate {
+  id: string;
+  type: string;
+  props?: Record<string, unknown>;
+  content?: Array<{ type: string; text: string; styles?: Record<string, unknown> }>;
+}
 
-  const editorForArticle = useCreateBlockNote({
-    initialContent: [
+interface TemplateConfig {
+  title: string;
+  description: string;
+  blocks: BlockTemplate[];
+}
+
+interface BlockNoteEditorProps {
+  type?: KnowledgeType;
+  onContentChange?: (contentJson: string) => void;
+  initialContent?: Block[];
+}
+
+const KNOWLEDGE_TEMPLATES: Record<KnowledgeType, TemplateConfig> = {
+  article: {
+    title: "Template Artikel",
+    description: "Struktur artikel lengkap dengan heading, pembahasan, dan referensi",
+    blocks: [
       {
         id: crypto.randomUUID(),
         type: "heading",
         props: { level: 1 },
-        content: "Judul Artikel",
+        content: [{ type: "text", text: "Judul Artikel" }],
       },
       {
         id: crypto.randomUUID(),
@@ -49,7 +56,7 @@ export default function BlockNoteEditor({
         id: crypto.randomUUID(),
         type: "heading",
         props: { level: 2 },
-        content: "Pendahuluan",
+        content: [{ type: "text", text: "Pendahuluan" }],
       },
       {
         id: crypto.randomUUID(),
@@ -65,7 +72,7 @@ export default function BlockNoteEditor({
         id: crypto.randomUUID(),
         type: "heading",
         props: { level: 2 },
-        content: "Pembahasan",
+        content: [{ type: "text", text: "Pembahasan" }],
       },
       {
         id: crypto.randomUUID(),
@@ -101,7 +108,7 @@ export default function BlockNoteEditor({
         id: crypto.randomUUID(),
         type: "heading",
         props: { level: 2 },
-        content: "Kesimpulan",
+        content: [{ type: "text", text: "Kesimpulan" }],
       },
       {
         id: crypto.randomUUID(),
@@ -117,7 +124,7 @@ export default function BlockNoteEditor({
         id: crypto.randomUUID(),
         type: "heading",
         props: { level: 3 },
-        content: "Referensi",
+        content: [{ type: "text", text: "Referensi" }],
       },
       {
         id: crypto.randomUUID(),
@@ -130,33 +137,58 @@ export default function BlockNoteEditor({
         ],
       },
     ],
-    uploadFile: uploadImage,
-  });
-
-  const editorForPDF = useCreateBlockNote({
-    initialContent: [
+  },
+  file: {
+    title: "Template Dokumen File",
+    description: "Template untuk konten file dengan struktur sederhana",
+    blocks: [
+      {
+        id: crypto.randomUUID(),
+        type: "heading",
+        props: { level: 1 },
+        content: [{ type: "text", text: "Judul Dokumen" }],
+      },
       {
         id: crypto.randomUUID(),
         type: "paragraph",
         content: [
           {
             type: "text",
-            text: "Konten PDF akan ditampilkan di sini.",
+            text: "Konten file akan ditampilkan di sini.",
+          },
+        ],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Informasi tambahan mengenai dokumen file.",
           },
         ],
       },
     ],
-  });
-
-  const editorForVideo = useCreateBlockNote({
-    initialContent: [
+  },
+  video: {
+    title: "Template Video",
+    description: "Template untuk konten video dengan thumbnail dan transkrip",
+    blocks: [
       {
         id: crypto.randomUUID(),
         type: "heading",
-        props: {
-          level: 2,
-        },
-        content: "Transkrip Video",
+        props: { level: 1 },
+        content: [{ type: "text", text: "Judul Video" }],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Deskripsi singkat mengenai konten video.",
+          },
+        ],
       },
       {
         id: crypto.randomUUID(),
@@ -168,6 +200,12 @@ export default function BlockNoteEditor({
       },
       {
         id: crypto.randomUUID(),
+        type: "heading",
+        props: { level: 2 },
+        content: [{ type: "text", text: "Transkrip Video" }],
+      },
+      {
+        id: crypto.randomUUID(),
         type: "paragraph",
         content: [
           {
@@ -217,18 +255,32 @@ export default function BlockNoteEditor({
         ],
       },
     ],
-  });
-
-  // Tambahkan initial konten untuk konten audio di bawah ini dengan lengkap
-  const editorForAudio = useCreateBlockNote({
-    initialContent: [
+  },
+  audio: {
+    title: "Template Audio",
+    description: "Template untuk konten audio dengan transkrip dan timeline",
+    blocks: [
       {
         id: crypto.randomUUID(),
         type: "heading",
-        props: {
-          level: 2,
-        },
-        content: "Transkrip Audio",
+        props: { level: 1 },
+        content: [{ type: "text", text: "Judul Audio" }],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Deskripsi singkat mengenai konten audio/podcast.",
+          },
+        ],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "heading",
+        props: { level: 2 },
+        content: [{ type: "text", text: "Transkrip Audio" }],
       },
       {
         id: crypto.randomUUID(),
@@ -280,21 +332,103 @@ export default function BlockNoteEditor({
           },
         ],
       },
+      {
+        id: crypto.randomUUID(),
+        type: "heading",
+        props: { level: 2 },
+        content: [{ type: "text", text: "Catatan Tambahan" }],
+      },
+      {
+        id: crypto.randomUUID(),
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Tambahkan catatan atau informasi tambahan di sini.",
+          },
+        ],
+      },
     ],
-  });
+  },
+};
 
-  const editor =
-    type === "pdf"
-      ? editorForPDF
-      : type === "video"
-        ? editorForVideo
-        : type === "audio"
-          ? editorForAudio
-          : editorForArticle;
+export default function BlockNoteEditor({
+  type,
+  onContentChange,
+  initialContent,
+}: BlockNoteEditorProps) {
+  async function uploadImage(file: File) {
+    const body = new FormData();
+    body.append("image", file);
+    const ret = await fetch("http://localhost:9999/api/upload", {
+      method: "POST",
+      body: body,
+    });
+    return (await ret.json()).data.imageUrl;
+  }
+
+  const createEditor = (knowledgeType: KnowledgeType) => {
+    const template = KNOWLEDGE_TEMPLATES[knowledgeType];
+    const content = initialContent || template.blocks;
+
+    const editor = useCreateBlockNote({
+      initialContent: content,
+      uploadFile: uploadImage,
+    });
+
+    // Set up onChange event listener as recommended by BlockNote docs
+    if (onContentChange) {
+      editor.onChange((editor) => {
+        const blocks = editor.document;
+        const contentJson = JSON.stringify(blocks);
+        console.log('BlockNote: Content changed, JSON length:', contentJson.length);
+        onContentChange(contentJson);
+      });
+    }
+
+    return editor;
+  };
+
+  const currentType: KnowledgeType = type || "article";
+  const editor = createEditor(currentType);
+
+  const currentTemplate = KNOWLEDGE_TEMPLATES[currentType];
+
+  // Initialize content when editor is ready and onContentChange is provided
+  useEffect(() => {
+    if (editor && onContentChange) {
+      // Set initial content from template
+      const blocks = editor.document;
+      const contentJson = JSON.stringify(blocks);
+      console.log('BlockNote: Initial content set, JSON length:', contentJson.length);
+      onContentChange(contentJson);
+    }
+  }, [editor, onContentChange]);
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden min-h-screen py-8">
-      <BlockNoteView editor={editor} />
+      <div className="px-6 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {currentTemplate.title}
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              {currentTemplate.description}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+              {currentType.toUpperCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="p-6">
+        <BlockNoteView
+          editor={editor}
+        />
+      </div>
     </div>
   );
 }

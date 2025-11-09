@@ -1,16 +1,15 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import {
-  KnowledgeDetailHero,
   KnowledgeDetailInfo,
   KnowledgeDetailActionBar,
   KnowledgeDetailContent,
   KnowledgeDetailResources,
   KnowledgeDetailTags,
 } from '@/components/knowledge-center/detail';
-import { Knowledge, Webinar, Konten } from '@/types/knowledge-center';
+import { Knowledge } from '@/types/knowledge-center';
 
 interface KnowledgePreviewModalProps {
   isOpen: boolean;
@@ -24,21 +23,30 @@ interface KnowledgePreviewModalProps {
     knowledge_type: 'webinar' | 'konten' | undefined;
     published_at: string;
     tags: string[];
-    thumbnail?: File;
+    thumbnail?: string | File;
     tgl_zoom?: string;
     link_zoom?: string;
     link_youtube?: string;
     link_record?: string;
     link_vb?: string;
-    file_notulensi_pdf?: File;
+    file_notulensi_pdf?: string | File;
     jumlah_jp?: number;
-    media_resource?: File;
+    media_resource?: string | File;
     media_type?: 'video' | 'audio' | 'pdf' | 'article';
     content_richtext?: string;
   };
   thumbnailPreview: string | null;
   contentType: 'article' | 'video' | 'podcast' | 'pdf' | null;
 }
+
+type PreviewKnowledge = Knowledge & {
+  type: 'webinar' | 'content';
+  knowledgeContent?: {
+    contentType: 'article' | 'video' | 'podcast' | 'pdf';
+    mediaUrl?: string;
+    document: string;
+  };
+};
 
 export default function KnowledgePreviewModal({
   isOpen,
@@ -47,6 +55,16 @@ export default function KnowledgePreviewModal({
   thumbnailPreview,
   contentType,
 }: KnowledgePreviewModalProps) {
+  const objectUrlRef = useRef<string[]>([]);
+
+  const getResourceUrl = useCallback((value?: string | File) => {
+    if (!value) return undefined;
+    if (typeof value === 'string') return value;
+    const objectUrl = URL.createObjectURL(value);
+    objectUrlRef.current.push(objectUrl);
+    return objectUrl;
+  }, []);
+
   // Handle ESC key press
   useEffect(() => {
     if (!isOpen) return;
@@ -67,7 +85,38 @@ export default function KnowledgePreviewModal({
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      objectUrlRef.current.forEach(URL.revokeObjectURL);
+      objectUrlRef.current = [];
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      objectUrlRef.current.forEach(URL.revokeObjectURL);
+      objectUrlRef.current = [];
+    };
+  }, []);
+
+  const resolvedMediaUrl = useMemo(
+    () => (isOpen ? getResourceUrl(formData.media_resource) : undefined),
+    [isOpen, formData.media_resource, getResourceUrl]
+  );
+  const resolvedNotulensiUrl = useMemo(
+    () => (isOpen ? getResourceUrl(formData.file_notulensi_pdf) : undefined),
+    [isOpen, formData.file_notulensi_pdf, getResourceUrl]
+  );
+  const resolvedThumbnail = useMemo(
+    () => thumbnailPreview || (isOpen ? getResourceUrl(formData.thumbnail) : undefined),
+    [isOpen, thumbnailPreview, formData.thumbnail, getResourceUrl]
+  );
+
   if (!isOpen) return null;
+
+  const isWebinar = formData.knowledge_type === 'webinar';
+  const resolvedContentType = contentType || 'article';
+  const blockNoteDocument = formData.content_richtext ?? '[]';
 
   // Transform formData to Knowledge type for preview
   const baseKnowledge = {
@@ -76,8 +125,9 @@ export default function KnowledgePreviewModal({
     description: formData.description || 'No description provided',
     subject: formData.subject || 'General',
     knowledge_type: formData.knowledge_type || 'konten',
+    type: isWebinar ? 'webinar' : 'content',
     penyelenggara: formData.penyelenggara || 'Pusdiklat BPS',
-    thumbnail: thumbnailPreview || '',
+    thumbnail: resolvedThumbnail || '',
     author: formData.author || 'Anonymous',
     like_count: 0,
     dislike_count: 0,
@@ -88,7 +138,7 @@ export default function KnowledgePreviewModal({
     updated_at: new Date().toISOString(),
   };
 
-  const previewKnowledge: Knowledge = formData.knowledge_type === 'webinar'
+  const previewKnowledge: PreviewKnowledge = isWebinar
     ? {
         ...baseKnowledge,
         tgl_zoom: formData.tgl_zoom,
@@ -96,16 +146,21 @@ export default function KnowledgePreviewModal({
         link_youtube: formData.link_youtube,
         link_record: formData.link_record,
         link_vb: formData.link_vb,
-        file_notulensi_pdf: formData.file_notulensi_pdf ? URL.createObjectURL(formData.file_notulensi_pdf) : undefined,
+        file_notulensi_pdf: resolvedNotulensiUrl,
         jumlah_jp: formData.jumlah_jp,
         content_richtext: formData.content_richtext || '<p>No content provided</p>',
-      } as Webinar
+      }
     : {
         ...baseKnowledge,
-        media_resource: formData.media_resource ? URL.createObjectURL(formData.media_resource) : undefined,
-        media_type: formData.media_type || 'article',
-        content_richtext: formData.content_richtext || '<p>No content provided</p>',
-      } as Konten;
+        media_resource: resolvedMediaUrl,
+        media_type: resolvedContentType,
+        content_richtext: blockNoteDocument,
+        knowledgeContent: {
+          contentType: resolvedContentType,
+          document: blockNoteDocument,
+          ...(resolvedMediaUrl && resolvedContentType !== 'article' ? { mediaUrl: resolvedMediaUrl } : {}),
+        },
+      };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -138,10 +193,10 @@ export default function KnowledgePreviewModal({
           <div className="flex-1 overflow-y-auto">
             <div className="min-h-screen bg-white">
               {/* Hero Section */}
-              {thumbnailPreview && (
+              {resolvedThumbnail && (
                 <div className="relative h-64 md:h-96 lg:h-[500px]">
                   <img
-                    src={thumbnailPreview}
+                    src={resolvedThumbnail}
                     alt={formData.title}
                     className="w-full h-full object-cover"
                   />

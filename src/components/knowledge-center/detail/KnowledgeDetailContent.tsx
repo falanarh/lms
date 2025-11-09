@@ -2,6 +2,7 @@
 
 import React from 'react';
 import MediaViewer from '../MediaViewer';
+import BlockNoteViewer from './BlockNoteViewer';
 import { Knowledge } from '@/types/knowledge-center';
 
 interface KnowledgeDetailContentProps {
@@ -9,33 +10,51 @@ interface KnowledgeDetailContentProps {
 }
 
 export default function KnowledgeDetailContent({ knowledge }: KnowledgeDetailContentProps) {
-  const isWebinar = knowledge.knowledge_type === 'webinar';
+  // Debug logs
+  console.log('KnowledgeDetailContent - Full knowledge object:', knowledge);
+  console.log('KnowledgeDetailContent - knowledge.type:', knowledge.type);
+
+  const isWebinar = knowledge.type === 'webinar';
+  const knowledgeContent = (knowledge as any).knowledgeContent;
+  const contentType = knowledgeContent?.contentType;
+
+  console.log('KnowledgeDetailContent - knowledgeContent:', knowledgeContent);
+  console.log('KnowledgeDetailContent - contentType:', contentType);
+  console.log('KnowledgeDetailContent - isWebinar:', isWebinar);
+  console.log('KnowledgeDetailContent - document exists:', !!knowledgeContent?.document);
 
   return (
     <div className="space-y-12">
-      {/* Media Content for Video, Audio, PDF */}
-      {!isWebinar &&
-       (knowledge as any).media_type &&
-       ['video', 'audio', 'pdf'].includes((knowledge as any).media_type) &&
-       (knowledge as any).media_resource && (
+      {/* Media Content for Video, Audio, File */}
+      {!isWebinar && contentType && ['video', 'podcast', 'file'].includes(contentType) && knowledgeContent?.mediaUrl && (
         <div>
           <MediaViewer
-            src={(knowledge as any).media_resource}
-            type={(knowledge as any).media_type}
+            src={knowledgeContent.mediaUrl}
+            type={contentType === 'podcast' ? 'audio' : contentType}
             title={knowledge.title}
             className="w-full rounded-lg"
           />
         </div>
       )}
 
-      {/* Article Content - Full Rich Text */}
-      {!isWebinar &&
-       (knowledge as any).media_type === 'article' &&
-       knowledge.content_richtext && (
+      {/* Article/File Content - BlockNote Viewer */}
+      {!isWebinar && contentType && ['article', 'file'].includes(contentType) && knowledgeContent?.document && (
         <div>
-          <article className="article-content">
-            <div dangerouslySetInnerHTML={{ __html: knowledge.content_richtext }} />
-          </article>
+          <BlockNoteViewer
+            contentJson={knowledgeContent.document}
+            className="w-full"
+          />
+        </div>
+      )}
+
+      {/* Video/Podcast with Document Content */}
+      {!isWebinar && contentType && ['video', 'podcast'].includes(contentType) && knowledgeContent?.document && (
+        <div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Transcript & Notes</h3>
+          <BlockNoteViewer
+            contentJson={knowledgeContent.document}
+            className="w-full"
+          />
         </div>
       )}
 

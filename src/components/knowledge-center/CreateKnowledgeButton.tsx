@@ -12,7 +12,7 @@ export default function CreateKnowledgeButton() {
   return (
     <Link
       href="/knowledge-center/create"
-      className="group fixed bottom-24 right-8 h-12 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all duration-300 hover:scale-105 flex items-center justify-center z-40 overflow-hidden w-12 hover:w-auto hover:px-5"
+      className="group fixed bottom-24 right-8 h-12 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all duration-300 hover:scale-105 flex items-center justify-center z-50 overflow-hidden w-12 hover:w-auto hover:px-5 border-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-500"
       aria-label="Create Knowledge"
     >
       <Plus className="w-6 h-6 flex-shrink-0" />

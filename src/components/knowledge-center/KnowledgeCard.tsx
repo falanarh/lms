@@ -5,6 +5,45 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale/id';
+
+// Utility function to get proper thumbnail URL
+const getThumbnailUrl = (thumbnail: string) => {
+  if (!thumbnail || thumbnail.trim() === '') {
+    return '/api/placeholder/400x225.png';
+  }
+
+  // Handle YouTube URLs
+  if (thumbnail.includes('youtube.com') || thumbnail.includes('youtu.be')) {
+    // Extract YouTube video ID if it's a regular YouTube URL
+    const videoId = extractYouTubeVideoId(thumbnail);
+    if (videoId) {
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    }
+    // If it's already an img.youtube.com URL, return as is
+    if (thumbnail.includes('img.youtube.com') || thumbnail.includes('i.ytimg.com')) {
+      return thumbnail;
+    }
+  }
+
+  return thumbnail;
+};
+
+// Extract YouTube video ID from various YouTube URL formats
+const extractYouTubeVideoId = (url: string): string | null => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /(?:youtube\.com\/.*[?&]v=)([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
 import {
   Calendar,
   Eye,
@@ -159,11 +198,12 @@ export default function KnowledgeCard({
         <div className="relative aspect-video bg-gray-100 overflow-hidden">
           {!imageError && knowledge.thumbnail ? (
             <Image
-              src={knowledge.thumbnail}
+              src={getThumbnailUrl(knowledge.thumbnail)}
               alt={knowledge.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-200"
               onError={() => setImageError(true)}
+              unoptimized={knowledge.thumbnail.includes('youtube.com')}
             />
           ) : (
             <div className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient()} flex flex-col items-center justify-center gap-3`}>

@@ -15,9 +15,6 @@ import {
 } from '@/components/knowledge-center/create';
 import {
   useCreateKnowledgeWizard,
-  useSubjects,
-  usePenyelenggara,
-  useCreateKnowledge,
   useAddSubject,
   useUpdateSubject,
   useDeleteSubject,
@@ -25,7 +22,9 @@ import {
   useCreateKnowledgeSubject,
   useUpdateKnowledgeSubject,
   useDeleteKnowledgeSubject,
+  useCreateKnowledgeCenter,
 } from '@/hooks/useKnowledge';
+import { PENYELENGGARA_DATA } from '@/api/knowledge';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,15 +37,24 @@ const steps = [
 
 export default function CreateKnowledgePage() {
   const router = useRouter();
-  const createKnowledgeMutation = useCreateKnowledge();
-  const { subjects: oldSubjects } = useSubjects(); // Keep old subjects for backward compatibility
-  const { subjects: knowledgeSubjects } = useKnowledgeSubjects(); // New knowledge subjects API
-  const { penyelenggara } = usePenyelenggara();
   const wizard = useCreateKnowledgeWizard();
   const toastState = createToastState();
 
-  // Use knowledge subjects if available, fallback to old subjects
-  const subjects = knowledgeSubjects.length > 0 ? knowledgeSubjects : oldSubjects;
+  // Use new knowledge subjects API
+  const { subjects: knowledgeSubjects } = useKnowledgeSubjects();
+
+  // Use hardcoded penyelenggara data
+  const penyelenggara = PENYELENGGARA_DATA.map(item => ({
+    id: item.value,
+    name: item.value,
+    description: '',
+  }));
+
+  // Knowledge center creation mutation with new API
+  const createKnowledgeMutation = useCreateKnowledgeCenter(
+    (message) => toastState.showSuccess(message),
+    (message) => toastState.showError(message)
+  );
 
   // Subject management mutations - use new knowledge subjects API with toast callbacks
   const addSubjectMutation = useCreateKnowledgeSubject(
@@ -95,39 +103,74 @@ export default function CreateKnowledgePage() {
   const handleSubmit = async (status: 'draft' | 'published') => {
     const formData = wizard.form.formData;
 
-    // Transform form data to match API expected format
+    // Find subject ID from subject name
+    const selectedSubject = knowledgeSubjects.find(s => s.name === formData.subject);
+
+    if (!selectedSubject) {
+      toastState.showError('Pilih subject terlebih dahulu!');
+      return;
+    }
+
+    // Transform form data to match new API expected format
     const apiData: any = {
+      createdBy: "019a356a-6f9e-7580-a774-417030c13ab8", // Hardcoded user ID for now
+      idSubject: selectedSubject.id,
       title: formData.title,
       description: formData.description,
-      subject: formData.subject,
+      type: formData.knowledge_type === 'webinar' ? 'webinar' : 'content',
       penyelenggara: formData.penyelenggara,
-      knowledge_type: formData.knowledge_type,
-      author: formData.author,
-      tags: formData.tags,
-      published_at: formData.published_at,
-      status,
-      thumbnail: formData.thumbnail,
-      // Convert file objects to strings for API compatibility
-      file_notulensi_pdf: formData.file_notulensi_pdf?.name,
-      media_resource: formData.media_resource?.name,
-      // Add content-specific fields
-      content_richtext: formData.content_richtext,
-      tgl_zoom: formData.tgl_zoom,
-      link_zoom: formData.link_zoom,
-      link_youtube: formData.link_youtube,
-      link_record: formData.link_record,
-      link_vb: formData.link_vb,
-      jumlah_jp: formData.jumlah_jp,
+      thumbnail: formData.thumbnail || "https://via.placeholder.com/300x200",
+      isFinal: status === 'published',
+      publishedAt: formData.published_at ? formData.published_at.split('T')[0] : new Date().toISOString().split('T')[0],
     };
+
+    // Add type-specific data
+    if (formData.knowledge_type === 'webinar') {
+      apiData.webinar = {
+        zoomDate: formData.tgl_zoom ? formData.tgl_zoom.split('T')[0] : new Date().toISOString().split('T')[0],
+        zoomLink: formData.link_zoom || "",
+        recordLink: formData.link_record || "",
+        youtubeLink: formData.link_youtube || "",
+        vbLink: formData.link_vb || "",
+        jpCount: formData.jumlah_jp || 0,
+      };
+
+      // Debug log for webinar data
+      console.log('Debug: Webinar payload:', {
+        zoomDate: apiData.webinar.zoomDate,
+        zoomLink: apiData.webinar.zoomLink,
+        recordLink: apiData.webinar.recordLink,
+        youtubeLink: apiData.webinar.youtubeLink,
+        vbLink: apiData.webinar.vbLink,
+        jpCount: apiData.webinar.jpCount
+      });
+    } else {
+      // Content type
+      console.log('Debug: formData.content_richtext:', formData.content_richtext);
+      console.log('Debug: content_richtext length:', formData.content_richtext?.length);
+
+      const contentType = wizard.form.contentType || 'article';
+      const knowledgeContent: any = {
+        contentType: contentType,
+        document: formData.content_richtext || "",
+      };
+
+      // Only include mediaUrl for non-article content types
+      if (contentType !== 'article') {
+        knowledgeContent.mediaUrl = formData.media_resource || "";
+      }
+
+      apiData.knowledgeContent = knowledgeContent;
+      console.log('Debug: Final apiData.knowledgeContent.document length:', apiData.knowledgeContent.document.length);
+    }
 
     try {
       await createKnowledgeMutation.mutateAsync(apiData);
-      toastState.showSuccess(`Knowledge "${formData.title}" berhasil ${status === 'published' ? 'dipublikasi' : 'disimpan sebagai draft'}!`);
+      // Success message handled by mutation callback
       router.push('/knowledge-center');
     } catch (error) {
+      // Error handled by mutation callback
       console.error('Failed to create knowledge:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Gagal membuat knowledge. Silakan coba lagi.';
-      toastState.showError(errorMessage);
     }
   };
 
@@ -148,7 +191,8 @@ export default function CreateKnowledgePage() {
             formData={wizard.form.formData}
             thumbnailPreview={wizard.form.thumbnailPreview}
             currentTagInput={wizard.form.currentTagInput}
-            subjects={subjects}
+            isUploadingThumbnail={wizard.form.isUploadingThumbnail}
+            subjects={knowledgeSubjects}
             penyelenggara={penyelenggara}
             errors={wizard.form.errors}
             onFieldChange={wizard.form.updateFormData}
@@ -177,6 +221,10 @@ export default function CreateKnowledgePage() {
             errors={wizard.form.errors}
             onContentTypeChange={wizard.form.setContentType}
             onFieldChange={wizard.form.updateFormData}
+            onMediaUpload={wizard.form.handleMediaUpload}
+            onPDFUpload={wizard.form.handlePDFUpload}
+            isUploadingMedia={wizard.form.isUploadingMedia}
+            isUploadingPDF={wizard.form.isUploadingPDF}
           />
         );
 

@@ -14,15 +14,19 @@ interface ContentDetailsFormProps {
     link_youtube: string;
     link_record: string;
     link_vb: string;
-    file_notulensi_pdf?: File;
+    file_notulensi_pdf?: string; // Changed from File to string (URL)
     jumlah_jp?: number;
     // Content fields
-    media_resource?: File;
+    media_resource?: string; // Changed from File to string (URL)
     content_richtext: string;
   };
   errors: Record<string, string>;
   onContentTypeChange: (type: 'article' | 'video' | 'podcast' | 'pdf' | null) => void;
   onFieldChange: (field: string, value: unknown) => void;
+  onMediaUpload?: (file: File, type: 'video' | 'audio' | 'pdf') => Promise<void>;
+  onPDFUpload?: (file: File) => Promise<void>;
+  isUploadingMedia?: boolean;
+  isUploadingPDF?: boolean;
 }
 
 export default function ContentDetailsForm({
@@ -32,6 +36,10 @@ export default function ContentDetailsForm({
   errors,
   onContentTypeChange,
   onFieldChange,
+  onMediaUpload,
+  onPDFUpload,
+  isUploadingMedia = false,
+  isUploadingPDF = false,
 }: ContentDetailsFormProps) {
 
   if (knowledgeType === 'webinar') {
@@ -141,17 +149,16 @@ export default function ContentDetailsForm({
                     <FileText className="w-7 h-7 text-green-600" />
                   </div>
                   <p className="text-gray-900 text-sm font-medium truncate mb-2">
-                    {formData.file_notulensi_pdf.name}
+                    PDF Notes Uploaded
                   </p>
                   <p className="text-gray-600 text-xs">
-                    {(formData.file_notulensi_pdf.size / (1024 * 1024)).toFixed(2)}{' '}
-                    MB • PDF
+                    File uploaded successfully • PDF
                   </p>
                 </div>
               </div>
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                 <p className="text-white text-sm font-medium truncate">
-                  {formData.file_notulensi_pdf.name}
+                  {formData.file_notulensi_pdf.split('/').pop()?.split('?')[0] || 'PDF File'}
                 </p>
               </div>
               <button
@@ -162,26 +169,49 @@ export default function ContentDetailsForm({
               </button>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-green-400 transition-colors bg-white">
+            <div className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white ${
+              isUploadingPDF
+                ? 'border-yellow-400 bg-yellow-50'
+                : 'border-gray-300 hover:border-green-400'
+            }`}>
               <input
                 type="file"
                 accept=".pdf"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (file) onFieldChange('file_notulensi_pdf', file);
+                  if (file && onPDFUpload) {
+                    try {
+                      await onPDFUpload(file);
+                    } catch (error) {
+                      console.error('PDF upload failed:', error);
+                    }
+                  }
                 }}
                 className="hidden"
                 id="notes-pdf-upload"
+                disabled={isUploadingPDF}
               />
               <label
                 htmlFor="notes-pdf-upload"
-                className="cursor-pointer block text-center"
+                className={`block text-center ${isUploadingPDF ? 'cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Upload className="w-7 h-7 text-gray-600" />
+                <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
+                  isUploadingPDF
+                    ? 'bg-yellow-100'
+                    : 'bg-gray-100'
+                }`}>
+                  {isUploadingPDF ? (
+                    <div className="w-7 h-7 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Upload className="w-7 h-7 text-gray-600" />
+                  )}
                 </div>
-                <p className="text-base font-medium text-gray-900 mb-1">
-                  Upload Notes PDF
+                <p className={`text-base font-medium mb-1 ${
+                  isUploadingPDF
+                    ? 'text-yellow-700'
+                    : 'text-gray-900'
+                }`}>
+                  {isUploadingPDF ? 'Uploading PDF...' : 'Upload Notes PDF'}
                 </p>
                 <p className="text-sm text-gray-500">PDF up to 10MB</p>
               </label>
@@ -408,35 +438,27 @@ export default function ContentDetailsForm({
                   <div className="w-full h-full flex items-center justify-center p-8">
                     <div className="text-center">
                       <div className="mx-auto w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        {formData.media_resource.type.startsWith('video/') ? (
+                        {contentType === 'video' ? (
                           <Video className="w-7 h-7 text-blue-600" />
-                        ) : formData.media_resource.type === 'application/pdf' ? (
+                        ) : contentType === 'pdf' ? (
                           <FileText className="w-7 h-7 text-blue-600" />
-                        ) : formData.media_resource.type.startsWith('audio/') ? (
+                        ) : contentType === 'podcast' ? (
                           <FileAudio className="w-7 h-7 text-blue-600" />
                         ) : (
                           <FileText className="w-7 h-7 text-blue-600" />
                         )}
                       </div>
                       <p className="text-gray-900 text-sm font-medium truncate mb-2">
-                        {formData.media_resource.name}
+                        {contentType === 'video' ? 'Video' : contentType === 'pdf' ? 'PDF' : 'Audio'} File Uploaded
                       </p>
                       <p className="text-gray-600 text-xs">
-                        {(formData.media_resource.size / (1024 * 1024)).toFixed(2)}{' '}
-                        MB •{' '}
-                        {formData.media_resource.type.startsWith('video/')
-                          ? 'Video'
-                          : formData.media_resource.type === 'application/pdf'
-                          ? 'PDF'
-                          : formData.media_resource.type.startsWith('audio/')
-                          ? 'Audio'
-                          : 'File'}
+                        File uploaded successfully • {contentType === 'video' ? 'Video' : contentType === 'pdf' ? 'PDF' : 'Audio'}
                       </p>
                     </div>
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                     <p className="text-white text-sm font-medium truncate">
-                      {formData.media_resource.name}
+                      {formData.media_resource.split('/').pop()?.split('?')[0] || `${contentType === 'video' ? 'Video' : contentType === 'pdf' ? 'PDF' : 'Audio'} File`}
                     </p>
                   </div>
                   <button
@@ -447,7 +469,11 @@ export default function ContentDetailsForm({
                   </button>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-400 transition-colors bg-white">
+                <div className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white ${
+                  isUploadingMedia
+                    ? 'border-yellow-400 bg-yellow-50'
+                    : 'border-gray-300 hover:border-blue-400'
+                }`}>
                   <input
                     type="file"
                     accept={
@@ -459,28 +485,42 @@ export default function ContentDetailsForm({
                         ? '.pdf'
                         : '*'
                     }
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
-                      if (file) onFieldChange('media_resource', file);
+                      if (file && onMediaUpload) {
+                        try {
+                          const uploadType = contentType === 'video' ? 'video' : contentType === 'podcast' ? 'audio' : 'pdf';
+                          await onMediaUpload(file, uploadType);
+                        } catch (error) {
+                          console.error('Media upload failed:', error);
+                        }
+                      }
                     }}
                     className="hidden"
                     id="media-resource-upload"
+                    disabled={isUploadingMedia}
                   />
                   <label
                     htmlFor="media-resource-upload"
-                    className="cursor-pointer block text-center"
+                    className={`block text-center ${isUploadingMedia ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <Upload className="w-7 h-7 text-gray-600" />
+                    <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
+                      isUploadingMedia
+                        ? 'bg-yellow-100'
+                        : 'bg-gray-100'
+                    }`}>
+                      {isUploadingMedia ? (
+                        <div className="w-7 h-7 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Upload className="w-7 h-7 text-gray-600" />
+                      )}
                     </div>
-                    <p className="text-base font-medium text-gray-900 mb-1">
-                      Upload{' '}
-                      {contentType === 'video'
-                        ? 'Video'
-                        : contentType === 'podcast'
-                        ? 'Audio'
-                        : 'PDF'}{' '}
-                      File
+                    <p className={`text-base font-medium mb-1 ${
+                      isUploadingMedia
+                        ? 'text-yellow-700'
+                        : 'text-gray-900'
+                    }`}>
+                      {isUploadingMedia ? 'Uploading...' : `Upload ${contentType === 'video' ? 'Video' : contentType === 'podcast' ? 'Audio' : 'PDF'} File`}
                     </p>
                     <p className="text-sm text-gray-500">
                       {contentType === 'video' && 'MP4, MOV up to 50MB'}
@@ -503,6 +543,9 @@ export default function ContentDetailsForm({
             </label>
             <BlockNoteEditor
               type={contentType === 'video' ? 'video' : contentType === 'podcast' ? 'audio' : contentType === 'pdf' ? 'pdf' : 'article'}
+              onContentChange={(contentJson) => {
+                onFieldChange('content_richtext', contentJson);
+              }}
             />
           </div>
         </div>

@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.bn-editor {
+  padding-inline: 0 !important;
+  /* color: black !important; */
+}
+
 /* Voting Transitions untuk mencegah flickering */
 .vote-button {
   transition: all 0.2s ease-in-out;

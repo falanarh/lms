@@ -45,6 +45,15 @@ export interface Penyelenggara {
   description?: string;
 }
 
+// Hardcoded penyelenggara data for dropdown
+export const PENYELENGGARA_DATA = [
+  { value: "Politeknik Statistika STIS", label: "Politeknik Statistika STIS" },
+  { value: "Pusdiklat BPS", label: "Pusdiklat BPS" },
+  { value: "Pusdiklat BPS RI", label: "Pusdiklat BPS RI" },
+  { value: "Badan Pusat Statistik", label: "Badan Pusat Statistik" },
+  { value: "BPS", label: "BPS" },
+];
+
 // Knowledge Subjects types
 export interface KnowledgeSubject {
   id: string;
@@ -81,6 +90,115 @@ export interface CreateKnowledgeSubjectRequest {
 export interface UpdateKnowledgeSubjectRequest {
   name?: string;
   icon?: string;
+}
+
+// Knowledge Centers API Types
+export interface KnowledgeWebinar {
+  zoomDate: string;
+  zoomLink: string;
+  recordLink: string;
+  youtubeLink?: string;
+  vbLink?: string;
+  contentText?: string;
+  jpCount: number;
+}
+
+export interface KnowledgeContent {
+  contentType: 'article' | 'video' | 'podcast' | 'pdf';
+  mediaUrl: string;
+  document: string; // JSON string representing BlockNote editor document
+}
+
+export interface KnowledgeCenter {
+  id: string;
+  createdBy: string;
+  idSubject: string;
+  subject?: {
+    name: string;
+  };
+  title: string;
+  description: string;
+  type: 'content' | 'webinar';
+  penyelenggara: string;
+  thumbnail: string;
+  viewCount: number;
+  likeCount: number;
+  isFinal: boolean;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  webinar?: KnowledgeWebinar | null;
+  knowledgeContent?: KnowledgeContent | null;
+}
+
+export interface KnowledgeCentersResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  data: KnowledgeCenter[];
+  pageMeta: {
+    page: number;
+    perPage: number;
+    hasPrev: boolean;
+    hasNext: boolean;
+    totalPageCount: number;
+    showingFrom: number;
+    showingTo: number;
+    resultCount: number;
+    totalResultCount: number;
+  };
+}
+
+export interface KnowledgeCenterResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  data: KnowledgeCenter;
+}
+
+export interface CreateKnowledgeCenterRequest {
+  createdBy: string;
+  idSubject: string;
+  title: string;
+  description: string;
+  type: 'content' | 'webinar';
+  penyelenggara?: string;
+  thumbnail?: string;
+  isFinal: boolean;
+  publishedAt: string;
+  webinar?: {
+    zoomDate: string;
+    zoomLink: string;
+    recordLink: string;
+    jpCount: number;
+  };
+  knowledgeContent?: {
+    contentType: 'article' | 'video' | 'podcast' | 'pdf';
+    mediaUrl: string;
+    document: string; // JSON string representing BlockNote editor document
+  };
+}
+
+export interface UpdateKnowledgeCenterRequest {
+  createdBy: string;
+  idSubject?: string;
+  title?: string;
+  description?: string;
+  penyelenggara?: string;
+  thumbnail?: string;
+  isFinal?: boolean;
+  publishedAt?: string;
+  webinar?: {
+    zoomDate?: string;
+    zoomLink?: string;
+    recordLink?: string;
+    jpCount?: number;
+  };
+  knowledgeContent?: {
+    contentType?: 'article' | 'video' | 'podcast' | 'pdf';
+    mediaUrl?: string;
+    document?: string; // JSON string representing BlockNote editor document
+  };
 }
 
 // KnowledgeAnalytics imported from types/knowledge-center.ts
@@ -669,6 +787,294 @@ export const knowledgeApi = {
       throw error;
     }
   },
+
+  /**
+   * Knowledge Centers API Functions
+   */
+  async fetchKnowledgeCenters(): Promise<KnowledgeCenter[]> {
+    try {
+      const response = await axios.get(API_ENDPOINTS.KNOWLEDGE_CENTERS, API_CONFIG);
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || "Failed to fetch knowledge centers");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching knowledge centers:', error);
+      // Return empty array on error
+      return [];
+    }
+  },
+
+  async fetchKnowledgeCenterById(id: string): Promise<KnowledgeCenter | null> {
+    try {
+      const response = await axios.get(API_ENDPOINTS.KNOWLEDGE_CENTER_BY_ID(id), API_CONFIG);
+
+      if (response.data.status !== 200) {
+        if (response.data.status === 404) return null;
+        throw new Error(response.data.message || "Failed to fetch knowledge center");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching knowledge center by ID:', error);
+      return null;
+    }
+  },
+
+  async createKnowledgeCenter(centerData: CreateKnowledgeCenterRequest): Promise<KnowledgeCenter> {
+    try {
+      const response = await axios.post(API_ENDPOINTS.KNOWLEDGE_CENTERS, centerData, API_CONFIG);
+
+      if (response.data.status !== 201) {
+        throw new Error(response.data.message || "Failed to create knowledge center");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating knowledge center:', error);
+      throw error;
+    }
+  },
+
+  async updateKnowledgeCenter(id: string, centerData: UpdateKnowledgeCenterRequest): Promise<KnowledgeCenter> {
+    try {
+      const response = await axios.patch(API_ENDPOINTS.KNOWLEDGE_CENTER_BY_ID(id), centerData, API_CONFIG);
+
+      if (response.data.status !== 200) {
+        if (response.data.status === 404) {
+          throw new Error("Knowledge center not found");
+        }
+        throw new Error(response.data.message || "Failed to update knowledge center");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating knowledge center:', error);
+      throw error;
+    }
+  },
+
+  async deleteKnowledgeCenter(id: string): Promise<boolean> {
+    try {
+      const response = await axios.delete(API_ENDPOINTS.KNOWLEDGE_CENTER_BY_ID(id), API_CONFIG);
+
+      if (response.data.status !== 200) {
+        if (response.data.status === 404) return false;
+        throw new Error(response.data.message || "Failed to delete knowledge center");
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting knowledge center:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload image to external API
+   */
+  async uploadImage(file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('http://localhost:9999/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Upload failed');
+      }
+
+      return result.data.imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete image from external API
+   */
+  async deleteImage(publicId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`http://localhost:9999/api/upload/${publicId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Upload PDF file to multimedia API
+   */
+  async uploadPDF(file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const response = await fetch('http://localhost:9999/api/pdf', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`PDF upload failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'PDF upload failed');
+      }
+
+      return result.data.fileUrl;
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload video file to multimedia API
+   */
+  async uploadVideo(file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const response = await fetch('http://localhost:9999/api/video', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Video upload failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Video upload failed');
+      }
+
+      return result.data.videoUrl;
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload audio file to multimedia API
+   */
+  async uploadAudio(file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+
+      const response = await fetch('http://localhost:9999/api/audio', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Audio upload failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Audio upload failed');
+      }
+
+      return result.data.audioUrl;
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete PDF file from multimedia API
+   */
+  async deletePDF(publicId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`http://localhost:9999/api/pdf/${publicId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`PDF delete failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('Error deleting PDF:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Delete video file from multimedia API
+   */
+  async deleteVideo(publicId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`http://localhost:9999/api/video/${publicId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Video delete failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Delete audio file from multimedia API
+   */
+  async deleteAudio(publicId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`http://localhost:9999/api/audio/${publicId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Audio delete failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('Error deleting audio:', error);
+      return false;
+    }
+  },
 };
 
 // Query Options for React Query
@@ -757,4 +1163,19 @@ export const getKnowledgeSubjectsQueryOptions = () => ({
   queryFn: () => knowledgeApi.fetchKnowledgeSubjects(),
   staleTime: 1000 * 60 * 30, // 30 minutes
   gcTime: 1000 * 60 * 60, // 1 hour
+});
+
+// Knowledge Centers Query Options
+export const getKnowledgeCentersQueryOptions = () => ({
+  queryKey: ['knowledge-centers'],
+  queryFn: () => knowledgeApi.fetchKnowledgeCenters(),
+  staleTime: 1000 * 60 * 5, // 5 minutes
+  gcTime: 1000 * 60 * 10, // 10 minutes
+});
+
+export const getKnowledgeCenterByIdQueryOptions = (id: string) => ({
+  queryKey: ['knowledge-center', id],
+  queryFn: () => knowledgeApi.fetchKnowledgeCenterById(id),
+  staleTime: 1000 * 60 * 10, // 10 minutes
+  gcTime: 1000 * 60 * 15, // 15 minutes
 });

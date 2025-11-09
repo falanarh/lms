@@ -19,563 +19,139 @@ import {
   getSubjectsQueryOptions,
   getPenyelenggaraQueryOptions,
   getKnowledgeSubjectsQueryOptions,
+  getKnowledgeCentersQueryOptions,
+  getKnowledgeCenterByIdQueryOptions,
   KnowledgeQueryParams,
   KnowledgeSubject,
+  KnowledgeCenter,
   CreateKnowledgeSubjectRequest,
-  UpdateKnowledgeSubjectRequest
+  UpdateKnowledgeSubjectRequest,
+  CreateKnowledgeCenterRequest,
+  UpdateKnowledgeCenterRequest
 } from '@/api/knowledge';
 import { Knowledge } from '@/types/knowledge-center';
 
-// Main Knowledge Hook
-export function useKnowledge(params: KnowledgeQueryParams = {}) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getKnowledgeQueryOptions(params));
+// Keep only essential hooks that are still being used
 
-  return {
-    data: data?.data || [],
-    total: data?.total || 0,
-    page: data?.page || 1,
-    limit: data?.limit || 12,
-    totalPages: data?.total_pages || 0,
-    isLoading,
-    error,
-    refetch,
+// Utility Hooks for Knowledge Center components
+export function useKnowledgeStats() {
+  // Mock stats for now - could be replaced with real API call
+  const stats = {
+    total_knowledge: 150,
+    total_webinars: 45,
+    total_views: 15234,
+    total_likes: 892,
+    top_subjects: [
+      { name: 'Statistika', count: 25 },
+      { name: 'Ekonomi', count: 18 },
+      { name: 'Metodologi', count: 12 }
+    ]
   };
-}
-
-// Single Knowledge Hook
-export function useKnowledgeById(id: string) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getKnowledgeByIdQueryOptions(id));
 
   return {
-    data,
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-// Webinar Schedule Hook - returns all webinars from knowledge data
-export function useWebinarSchedule() {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getWebinarScheduleQueryOptions());
-
-  return {
-    schedule: data || [],
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-// Knowledge Analytics Hook
-export function useKnowledgeAnalytics() {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getKnowledgeAnalyticsQueryOptions());
-
-  return {
-    analytics: data,
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-// Knowledge Categories Hook
-export function useKnowledgeCategories() {
-  const { data } = useKnowledge({ limit: 1000 });
-
-  const categories = data ? [
-    ...new Set(data.map(item => item.subject).filter(Boolean))
-  ].sort() : [];
-
-  return {
-    categories,
+    stats,
     isLoading: false,
+    error: null,
   };
 }
 
-// Popular Knowledge Hook
-export function usePopularKnowledge(limit: number = 10) {
-  return useKnowledge({
-    sort: 'most_liked',
-    limit,
-  });
+export function usePopularKnowledge(limit: number = 6) {
+  const { centers, isLoading } = useKnowledgeCenters();
+
+  // Transform KnowledgeCenter to Knowledge format and sort by likeCount
+  const popularKnowledge = centers
+    .map(center => {
+      // Transform from KnowledgeCenter API format to Knowledge component format
+      const transformed: Knowledge = {
+        id: center.id,
+        title: center.title,
+        description: center.description,
+        subject: center.subject?.name || '',
+        knowledge_type: center.type === 'webinar' ? 'webinar' : 'konten',
+        penyelenggara: center.penyelenggara,
+        thumbnail: center.thumbnail,
+        author: center.createdBy,
+        like_count: center.likeCount,
+        dislike_count: 0, // Not available in new API
+        view_count: center.viewCount,
+        tags: [], // Not available in new API
+        published_at: center.publishedAt,
+        created_at: center.createdAt,
+        updated_at: center.updatedAt,
+        // Add webinar specific fields if applicable
+        ...(center.type === 'webinar' && center.webinar ? {
+          tgl_zoom: center.webinar.zoomDate,
+          link_zoom: center.webinar.zoomLink,
+          link_record: center.webinar.recordLink,
+          link_youtube: center.webinar.youtubeLink,
+          link_vb: center.webinar.vbLink,
+          content_richtext: center.webinar.contentText,
+          jumlah_jp: center.webinar.jpCount,
+        } : {}),
+        // Add content specific fields if applicable
+        ...(center.type === 'content' && center.knowledgeContent ? {
+          media_resource: center.knowledgeContent.mediaUrl,
+          media_type: center.knowledgeContent.contentType,
+          content_richtext: center.knowledgeContent.text,
+        } : {}),
+      };
+      return transformed;
+    })
+    .sort((a, b) => b.like_count - a.like_count)
+    .slice(0, limit);
+
+  return {
+    data: popularKnowledge,
+    isLoading,
+  };
 }
 
-// Upcoming Webinars Hook - filters webinars to show only upcoming ones
 export function useUpcomingWebinars(limit: number = 6) {
-  const { schedule, isLoading, error } = useWebinarSchedule();
+  const { centers, isLoading } = useKnowledgeCenters();
 
-  const upcomingWebinars = React.useMemo(() => {
-    if (!schedule) return [];
-
-    const now = new Date();
-
-    // Filter upcoming webinars and sort by date (nearest first)
-    return schedule
-      .filter(webinar => {
-        const webinarDate = new Date(webinar.tgl_zoom);
-        return webinarDate > now; // Only future webinars
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.tgl_zoom);
-        const dateB = new Date(b.tgl_zoom);
-        return dateA.getTime() - dateB.getTime();
-      })
-      .slice(0, limit); // Limit the number of results
-  }, [schedule, limit]);
+  // Filter webinars, transform to Knowledge format, and sort by date
+  const now = new Date();
+  const upcomingWebinars = centers
+    .filter(center => center.type === 'webinar' && center.webinar)
+    .map(center => {
+      // Transform from KnowledgeCenter API format to Knowledge component format
+      const transformed: Knowledge = {
+        id: center.id,
+        title: center.title,
+        description: center.description,
+        subject: center.subject?.name || '',
+        knowledge_type: 'webinar',
+        penyelenggara: center.penyelenggara,
+        thumbnail: center.thumbnail,
+        author: center.createdBy,
+        like_count: center.likeCount,
+        dislike_count: 0,
+        view_count: center.viewCount,
+        tags: [],
+        published_at: center.publishedAt,
+        created_at: center.createdAt,
+        updated_at: center.updatedAt,
+        // Webinar specific fields
+        tgl_zoom: center.webinar?.zoomDate,
+        link_zoom: center.webinar?.zoomLink,
+        link_record: center.webinar?.recordLink,
+        link_youtube: center.webinar?.youtubeLink,
+        link_vb: center.webinar?.vbLink,
+        content_richtext: center.webinar?.contentText,
+        jumlah_jp: center.webinar?.jpCount,
+      };
+      return {
+        ...transformed,
+        webinarDate: center.webinar?.zoomDate ? new Date(center.webinar.zoomDate) : null
+      };
+    })
+    .filter(webinar => webinar.webinarDate && webinar.webinarDate > now)
+    .sort((a, b) => (a.webinarDate?.getTime() || 0) - (b.webinarDate?.getTime() || 0))
+    .slice(0, limit);
 
   return {
     upcomingWebinars,
     isLoading,
-    error,
-  };
-}
-
-// Knowledge by Type Hook
-export function useKnowledgeByType(type: 'webinar' | 'konten', params: Omit<KnowledgeQueryParams, 'knowledge_type'> = {}) {
-  return useKnowledge({
-    ...params,
-    knowledge_type: [type],
-  });
-}
-
-// Knowledge by Subject Hook
-export function useKnowledgeBySubject(subject: string, params: Omit<KnowledgeQueryParams, 'subject'> = {}) {
-  return useKnowledge({
-    ...params,
-    subject: [subject],
-  });
-}
-
-// Featured Knowledge Hook
-export function useFeaturedKnowledge(limit: number = 6) {
-  const { data, isLoading, error } = useKnowledge({ limit: 1000 });
-
-  // For now, take the first items as featured since there's no is_featured field
-  const featuredData = data ? data.slice(0, limit) : [];
-
-  return {
-    data: featuredData,
-    isLoading,
-    error,
-  };
-}
-
-// Search Knowledge Hook
-export function useSearchKnowledge(query: string, params: Omit<KnowledgeQueryParams, 'search'> = {}) {
-  return useKnowledge({
-    ...params,
-    search: query,
-  });
-}
-
-// Create Knowledge Mutation Hook
-export function useCreateKnowledge() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: knowledgeApi.createKnowledge,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
-    },
-    onError: (error) => {
-      console.error('Failed to create knowledge:', error);
-    },
-  });
-}
-
-// Update Knowledge Mutation Hook
-export function useUpdateKnowledge() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Knowledge> }) =>
-      knowledgeApi.updateKnowledge(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge', id] });
-    },
-    onError: (error) => {
-      console.error('Failed to update knowledge:', error);
-    },
-  });
-}
-
-// Delete Knowledge Mutation Hook
-export function useDeleteKnowledge() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: knowledgeApi.deleteKnowledge,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
-    },
-    onError: (error) => {
-      console.error('Failed to delete knowledge:', error);
-    },
-  });
-}
-
-// Toggle Like Knowledge Mutation Hook
-export function useToggleLikeKnowledge() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: knowledgeApi.toggleLikeKnowledge,
-    onSuccess: (_, knowledgeId) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge', knowledgeId] });
-    },
-    onError: (error) => {
-      console.error('Failed to toggle like:', error);
-    },
-  });
-}
-
-// Increment Views Mutation Hook
-export function useIncrementViews() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: knowledgeApi.incrementViews,
-    onSuccess: (_, knowledgeId) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge'] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge', knowledgeId] });
-    },
-    onError: (error) => {
-      console.error('Failed to increment views:', error);
-    },
-  });
-}
-
-// Utility Hook for Knowledge Stats
-export function useKnowledgeStats() {
-  const { analytics, isLoading, error } = useKnowledgeAnalytics();
-
-  const stats = analytics ? {
-    totalKnowledge: analytics.total_knowledge,
-    totalWebinars: analytics.total_webinars,
-    totalViews: analytics.total_views,
-    totalLikes: analytics.total_likes,
-    popularSubjects: analytics.top_subjects.slice(0, 5),
-    monthlyGrowth: [], // Not available in new type
-  } : null;
-
-  return {
-    stats,
-    isLoading,
-    error,
-  };
-}
-
-// Utility Hook for Knowledge Filters
-export function useKnowledgeFilters() {
-  const [filters, setFilters] = React.useState<KnowledgeQueryParams>({});
-
-  const updateFilter = React.useCallback((key: keyof KnowledgeQueryParams, value: unknown) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-  }, []);
-
-  const clearFilters = React.useCallback(() => {
-    setFilters({});
-  }, []);
-
-  const hasActiveFilters = React.useMemo(() => {
-    return Object.keys(filters).some(key => {
-      const value = filters[key as keyof KnowledgeQueryParams];
-      return value !== undefined && value !== null && value !== '' &&
-             (Array.isArray(value) ? value.length > 0 : true);
-    });
-  }, [filters]);
-
-  return {
-    filters,
-    updateFilter,
-    clearFilters,
-    hasActiveFilters,
-  };
-}
-
-// Utility Hook for Pagination
-export function useKnowledgePagination(totalPages: number, onPageChange: (page: number) => void) {
-  const [currentPage, setCurrentPage] = React.useState(1);
-
-  const handlePageChange = React.useCallback((page: number) => {
-    setCurrentPage(page);
-    onPageChange(page);
-    // Scroll to top on page change
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [onPageChange]);
-
-  const resetPage = React.useCallback(() => {
-    setCurrentPage(1);
-    onPageChange(1);
-  }, [onPageChange]);
-
-  return {
-    currentPage,
-    handlePageChange,
-    resetPage,
-    canGoPrevious: currentPage > 1,
-    canGoNext: currentPage < totalPages,
-  };
-}
-
-// Detail Knowledge Hooks
-export function useRelatedKnowledge(id: string, limit: number = 6) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getRelatedKnowledgeQueryOptions(id, limit));
-
-  return {
-    relatedKnowledge: data || [],
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-export function useKnowledgeByAuthor(author: string, limit: number = 5) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getKnowledgeByAuthorQueryOptions(author, limit));
-
-  return {
-    authorKnowledge: data || [],
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-export function useReadingProgress(userId: string, knowledgeId: string) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getReadingProgressQueryOptions(userId, knowledgeId));
-
-  return {
-    progress: data,
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-export function useKnowledgeComments(knowledgeId: string) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getKnowledgeCommentsQueryOptions(knowledgeId));
-
-  return {
-    comments: data || [],
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-export function useKnowledgeRecommendations(userId: string, limit: number = 8) {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getKnowledgeRecommendationsQueryOptions(userId, limit));
-
-  return {
-    recommendations: data || [],
-    isLoading,
-    error,
-    refetch,
-  };
-}
-
-// Mutation Hooks for Detail Page
-export function useUpdateReadingProgress() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ userId, knowledgeId, progress }: {
-      userId: string;
-      knowledgeId: string;
-      progress: number
-    }) => knowledgeApi.updateReadingProgress(userId, knowledgeId, progress),
-    onSuccess: (_, { userId, knowledgeId }) => {
-      queryClient.invalidateQueries({ queryKey: ['reading-progress', userId, knowledgeId] });
-    },
-    onError: (error) => {
-      console.error('Failed to update reading progress:', error);
-    },
-  });
-}
-
-export function useAddComment() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ knowledgeId, content, userId }: {
-      knowledgeId: string;
-      content: string;
-      userId: string
-    }) => knowledgeApi.addKnowledgeComment(knowledgeId, content, userId),
-    onSuccess: (_, { knowledgeId }) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-comments', knowledgeId] });
-    },
-    onError: (error) => {
-      console.error('Failed to add comment:', error);
-    },
-  });
-}
-
-// Utility Hook for Detail Page
-export function useKnowledgeDetail(id: string, userId?: string) {
-  const { data: knowledge, isLoading: knowledgeLoading, error: knowledgeError } = useKnowledgeById(id);
-  const { relatedKnowledge, isLoading: relatedLoading } = useRelatedKnowledge(id);
-  const { authorKnowledge, isLoading: authorLoading } = useKnowledgeByAuthor(knowledge?.author || '');
-  const { progress, isLoading: progressLoading } = useReadingProgress(userId || '', id);
-  const { comments, isLoading: commentsLoading } = useKnowledgeComments(id);
-  const { recommendations, isLoading: recommendationsLoading } = useKnowledgeRecommendations(userId || '');
-
-  return {
-    knowledge,
-    relatedKnowledge,
-    authorKnowledge,
-    progress,
-    comments,
-    recommendations,
-    isLoading: knowledgeLoading || relatedLoading || authorLoading || progressLoading || commentsLoading || recommendationsLoading,
-    error: knowledgeError,
-  };
-}
-
-// Hook for managing detail page interactions
-export function useKnowledgeDetailInteractions(id: string, userId?: string) {
-  const [showComments, setShowComments] = React.useState(false);
-  const [showRecommendations, setShowRecommendations] = React.useState(false);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
-  const [volume, setVolume] = React.useState(1);
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
-
-  const incrementViewsMutation = useIncrementViews();
-  const updateProgressMutation = useUpdateReadingProgress();
-  const addCommentMutation = useAddComment();
-
-  const handleIncrementViews = React.useCallback(() => {
-    incrementViewsMutation.mutate(id);
-  }, [id, incrementViewsMutation]);
-
-  const handleUpdateProgress = React.useCallback((progress: number) => {
-    if (userId) {
-      updateProgressMutation.mutate({ userId, knowledgeId: id, progress });
-    }
-  }, [userId, id, updateProgressMutation]);
-
-  const handleAddComment = React.useCallback((content: string) => {
-    if (userId) {
-      addCommentMutation.mutate({ knowledgeId: id, content, userId });
-    }
-  }, [userId, id, addCommentMutation]);
-
-  const toggleComments = React.useCallback(() => {
-    setShowComments(prev => !prev);
-  }, []);
-
-  const toggleRecommendations = React.useCallback(() => {
-    setShowRecommendations(prev => !prev);
-  }, []);
-
-  const togglePlayback = React.useCallback(() => {
-    setIsPlaying(prev => !prev);
-  }, []);
-
-  const handleSpeedChange = React.useCallback((speed: number) => {
-    setPlaybackSpeed(speed);
-  }, []);
-
-  const handleVolumeChange = React.useCallback((newVolume: number) => {
-    setVolume(newVolume);
-  }, []);
-
-  const toggleFullscreen = React.useCallback(() => {
-    setIsFullscreen(prev => !prev);
-  }, []);
-
-  return {
-    // State
-    showComments,
-    showRecommendations,
-    isPlaying,
-    playbackSpeed,
-    volume,
-    isFullscreen,
-
-    // Mutation states
-    isUpdatingViews: incrementViewsMutation.isPending,
-    isUpdatingProgress: updateProgressMutation.isPending,
-    isAddingComment: addCommentMutation.isPending,
-
-    // Actions
-    handleIncrementViews,
-    handleUpdateProgress,
-    handleAddComment,
-    toggleComments,
-    toggleRecommendations,
-    togglePlayback,
-    handleSpeedChange,
-    handleVolumeChange,
-    toggleFullscreen,
-  };
-}
-
-// Create Knowledge Hooks
-export function useSubjects() {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getSubjectsQueryOptions());
-
-  return {
-    subjects: data || [],
-    isLoading,
-    error,
-    refetch,
   };
 }
 
@@ -622,21 +198,6 @@ export function useDeleteSubject() {
   });
 }
 
-export function usePenyelenggara() {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery(getPenyelenggaraQueryOptions());
-
-  return {
-    penyelenggara: data || [],
-    isLoading,
-    error,
-    refetch,
-  };
-}
 
 // Knowledge Subjects Hooks
 export function useKnowledgeSubjects() {
@@ -711,6 +272,96 @@ export function useDeleteKnowledgeSubject(onSuccess?: (message: string) => void,
   });
 }
 
+// Knowledge Centers Hooks (New API)
+export function useKnowledgeCenters() {
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(getKnowledgeCentersQueryOptions());
+
+  return {
+    centers: data || [],
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useKnowledgeCenter(id: string) {
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(getKnowledgeCenterByIdQueryOptions(id));
+
+  return {
+    center: data,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useCreateKnowledgeCenter(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (centerData: CreateKnowledgeCenterRequest) =>
+      knowledgeApi.createKnowledgeCenter(centerData),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      const successMessage = `Knowledge "${data.title}" berhasil dibuat!`;
+      onSuccess?.(successMessage);
+    },
+    onError: (error) => {
+      console.error('Failed to create knowledge center:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal membuat knowledge. Silakan coba lagi.';
+      onError?.(errorMessage);
+    },
+  });
+}
+
+export function useUpdateKnowledgeCenter(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateKnowledgeCenterRequest }) =>
+      knowledgeApi.updateKnowledgeCenter(id, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      queryClient.invalidateQueries({ queryKey: ['knowledge-center', data.id] });
+      const successMessage = `Knowledge "${data.title}" berhasil diperbarui!`;
+      onSuccess?.(successMessage);
+    },
+    onError: (error) => {
+      console.error('Failed to update knowledge center:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal memperbarui knowledge. Silakan coba lagi.';
+      onError?.(errorMessage);
+    },
+  });
+}
+
+export function useDeleteKnowledgeCenter(onSuccess?: (message: string) => void, onError?: (message: string) => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: knowledgeApi.deleteKnowledgeCenter,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      const successMessage = 'Knowledge berhasil dihapus!';
+      onSuccess?.(successMessage);
+    },
+    onError: (error) => {
+      console.error('Failed to delete knowledge center:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus knowledge. Silakan coba lagi.';
+      onError?.(errorMessage);
+    },
+  });
+}
+
 // Hook for managing create knowledge form state
 export function useCreateKnowledgeForm() {
   const [formData, setFormData] = React.useState({
@@ -720,55 +371,90 @@ export function useCreateKnowledgeForm() {
     penyelenggara: '',
     knowledge_type: undefined as 'webinar' | 'konten' | undefined,
     author: '',
-    tags: [] as string[],
     published_at: new Date().toISOString(),
-    status: 'draft' as 'draft' | 'published',
+    tags: [] as string[],
     // Webinar specific fields
     tgl_zoom: '',
     link_zoom: '',
     link_youtube: '',
     link_record: '',
     link_vb: '',
-    file_notulensi_pdf: undefined as File | undefined,
+    file_notulensi_pdf: undefined as string | undefined,
     jumlah_jp: undefined as number | undefined,
     // Content specific fields
-    media_resource: undefined as File | undefined,
-    media_type: undefined as 'video' | 'audio' | 'pdf' | 'article' | undefined,
+    media_resource: undefined as string | undefined,
     content_richtext: '',
-    thumbnail: undefined as File | undefined,
+    thumbnail: undefined as string | undefined,
   });
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [thumbnailPreview, setThumbnailPreview] = React.useState<string | null>(null);
-  const [currentTagInput, setCurrentTagInput] = React.useState<string>('');
   const [contentType, setContentType] = React.useState<'article' | 'video' | 'podcast' | 'pdf' | null>(null);
+  const [currentTagInput, setCurrentTagInput] = React.useState('');
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = React.useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = React.useState(false);
+  const [isUploadingPDF, setIsUploadingPDF] = React.useState(false);
 
   const updateFormData = React.useCallback((field: string, value: unknown) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    setFormData(prev => {
+      const prevValue = (prev as Record<string, unknown>)[field];
+      if (Object.is(prevValue, value)) {
+        return prev;
+      }
+      if (errors[field]) {
+        setErrors(prevErrors => ({ ...prevErrors, [field]: '' }));
+      }
+      return { ...prev, [field]: value };
+    });
   }, [errors]);
 
   const validateStep = React.useCallback((step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Validation logic can be added here based on step requirements
-    // For now, we'll return true as the current form has validation commented out
+    // Step 2 validation
+    if (step === 2) {
+      if (!formData.title.trim()) {
+        newErrors.title = 'Title is required';
+      }
+      if (!formData.description.trim()) {
+        newErrors.description = 'Description is required';
+      }
+      if (!formData.subject) {
+        newErrors.subject = 'Subject is required';
+      }
+      if (!formData.penyelenggara) {
+        newErrors.penyelenggara = 'Penyelenggara is required';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, []);
+  }, [formData]);
 
-  const handleThumbnailSelect = React.useCallback((file: File) => {
-    updateFormData('thumbnail', file);
+  const handleThumbnailSelect = React.useCallback(async (file: File) => {
+    try {
+      // Show loading state
+      setIsUploadingThumbnail(true);
+      setThumbnailPreview(null);
 
-    // Create preview URL for image
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setThumbnailPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+      // Upload image to external API
+      const imageUrl = await knowledgeApi.uploadImage(file);
+
+      // Store the image URL instead of the file
+      updateFormData('thumbnail', imageUrl);
+
+      // Set preview URL
+      setThumbnailPreview(imageUrl);
+    } catch (error) {
+      console.error('Failed to upload thumbnail:', error);
+      // Reset preview on error
+      setThumbnailPreview(null);
+      // Reset thumbnail data
+      updateFormData('thumbnail', undefined);
+      // Could also show error toast here
+    } finally {
+      setIsUploadingThumbnail(false);
+    }
   }, [updateFormData]);
 
   const handleThumbnailRemove = React.useCallback(() => {
@@ -776,21 +462,91 @@ export function useCreateKnowledgeForm() {
     setThumbnailPreview(null);
   }, [updateFormData]);
 
-  const handleAddTag = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const newTag = currentTagInput.trim();
+  const handleAddTag = React.useCallback((e: React.KeyboardEvent<HTMLInputElement> | string) => {
+    let tagValue = '';
 
-      if (newTag && !formData.tags.includes(newTag)) {
-        updateFormData('tags', [...formData.tags, newTag]);
-        setCurrentTagInput('');
+    if (typeof e === 'string') {
+      // Direct string input (for programmatic calls)
+      tagValue = e;
+    } else {
+      // Check if key pressed is Enter or comma
+      if (e.key !== 'Enter' && e.key !== ',') {
+        return; // Don't add tag for other keys
       }
+
+      if (e.key === ',') {
+        // Prevent comma from being typed in the input
+        e.preventDefault();
+      }
+
+      tagValue = currentTagInput.trim();
     }
-  }, [currentTagInput, formData.tags, updateFormData]);
+
+    if (!tagValue) return;
+
+    // Split by comma if present (in case of paste or multiple tags)
+    const newTags = tagValue.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+    setFormData(prev => ({
+      ...prev,
+      tags: [...prev.tags, ...newTags].filter((tag, index, arr) => arr.indexOf(tag) === index)
+    }));
+
+    setCurrentTagInput('');
+  }, [currentTagInput]);
 
   const handleRemoveTag = React.useCallback((tagToRemove: string) => {
-    updateFormData('tags', formData.tags.filter(tag => tag !== tagToRemove));
-  }, [formData.tags, updateFormData]);
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  }, []);
+
+  // Multimedia upload handlers
+  const handleMediaUpload = React.useCallback(async (file: File, type: 'video' | 'audio' | 'pdf') => {
+    try {
+      setIsUploadingMedia(true);
+      let uploadUrl = '';
+
+      // Upload based on file type
+      switch (type) {
+        case 'video':
+          uploadUrl = await knowledgeApi.uploadVideo(file);
+          break;
+        case 'audio':
+          uploadUrl = await knowledgeApi.uploadAudio(file);
+          break;
+        case 'pdf':
+          uploadUrl = await knowledgeApi.uploadPDF(file);
+          break;
+      }
+
+      // Store the uploaded file URL instead of the file object
+      updateFormData('media_resource', uploadUrl);
+      return uploadUrl;
+    } catch (error) {
+      console.error(`Failed to upload ${type} file:`, error);
+      updateFormData('media_resource', undefined);
+      throw error;
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  }, [updateFormData]);
+
+  const handlePDFUpload = React.useCallback(async (file: File) => {
+    try {
+      setIsUploadingPDF(true);
+      const uploadUrl = await knowledgeApi.uploadPDF(file);
+      updateFormData('file_notulensi_pdf', uploadUrl);
+      return uploadUrl;
+    } catch (error) {
+      console.error('Failed to upload PDF file:', error);
+      updateFormData('file_notulensi_pdf', undefined);
+      throw error;
+    } finally {
+      setIsUploadingPDF(false);
+    }
+  }, [updateFormData]);
 
   const resetForm = React.useCallback(() => {
     setFormData({
@@ -800,9 +556,8 @@ export function useCreateKnowledgeForm() {
       penyelenggara: '',
       knowledge_type: undefined,
       author: '',
-      tags: [],
       published_at: new Date().toISOString(),
-      status: 'draft',
+      tags: [],
       tgl_zoom: '',
       link_zoom: '',
       link_youtube: '',
@@ -811,14 +566,13 @@ export function useCreateKnowledgeForm() {
       file_notulensi_pdf: undefined,
       jumlah_jp: undefined,
       media_resource: undefined,
-      media_type: undefined,
       content_richtext: '',
       thumbnail: undefined,
     });
     setErrors({});
     setThumbnailPreview(null);
-    setCurrentTagInput('');
     setContentType(null);
+    setCurrentTagInput('');
   }, []);
 
   return {
@@ -826,19 +580,390 @@ export function useCreateKnowledgeForm() {
     formData,
     errors,
     thumbnailPreview,
-    currentTagInput,
     contentType,
+    currentTagInput,
+    isUploadingThumbnail,
+    isUploadingMedia,
+    isUploadingPDF,
 
     // Actions
     updateFormData,
     validateStep,
     handleThumbnailSelect,
     handleThumbnailRemove,
+    setContentType,
+    resetForm,
     handleAddTag,
     handleRemoveTag,
     setCurrentTagInput,
-    setContentType,
-    resetForm,
+    handleMediaUpload,
+    handlePDFUpload,
+  };
+}
+
+// Hook for Knowledge Grid that transforms KnowledgeCenter data to Knowledge format
+export function useKnowledgeGrid(params: {
+  search?: string;
+  knowledge_type?: ('webinar' | 'konten')[];
+  subject?: string[];
+  sort?: string;
+  page?: number;
+  limit?: number;
+}) {
+  const {
+    centers,
+    isLoading,
+    error,
+    refetch,
+  } = useKnowledgeCenters();
+
+  // Transform the data based on filters and sorting
+  const transformedData = React.useMemo(() => {
+    let filteredCenters = [...centers];
+
+    // Apply search filter
+    if (params.search) {
+      const searchLower = params.search.toLowerCase();
+      filteredCenters = filteredCenters.filter(center =>
+        center.title.toLowerCase().includes(searchLower) ||
+        center.description.toLowerCase().includes(searchLower) ||
+        center.subject?.name.toLowerCase().includes(searchLower) ||
+        center.penyelenggara.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply type filter
+    if (params.knowledge_type && params.knowledge_type.length > 0) {
+      filteredCenters = filteredCenters.filter(center => {
+        const centerType = center.type === 'webinar' ? 'webinar' : 'konten';
+        return params.knowledge_type!.includes(centerType);
+      });
+    }
+
+    // Apply subject filter
+    if (params.subject && params.subject.length > 0) {
+      filteredCenters = filteredCenters.filter(center =>
+        center.subject && params.subject!.includes(center.subject.name)
+      );
+    }
+
+    // Apply sorting
+    switch (params.sort) {
+      case 'most_liked':
+        filteredCenters.sort((a, b) => b.likeCount - a.likeCount);
+        break;
+      case 'most_viewed':
+        filteredCenters.sort((a, b) => b.viewCount - a.viewCount);
+        break;
+      case 'newest':
+        filteredCenters.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'oldest':
+        filteredCenters.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case 'upcoming_webinar':
+        const now = new Date();
+        filteredCenters = filteredCenters.filter(center =>
+          center.type === 'webinar' &&
+          center.webinar?.zoomDate &&
+          new Date(center.webinar.zoomDate) > now
+        );
+        filteredCenters.sort((a, b) => {
+          const dateA = a.webinar?.zoomDate ? new Date(a.webinar.zoomDate).getTime() : 0;
+          const dateB = b.webinar?.zoomDate ? new Date(b.webinar.zoomDate).getTime() : 0;
+          return dateA - dateB;
+        });
+        break;
+      case 'popular':
+        // Sort by a combination of likes and views
+        filteredCenters.sort((a, b) =>
+          (b.likeCount * 10 + b.viewCount) - (a.likeCount * 10 + a.viewCount)
+        );
+        break;
+      default:
+        // Default to newest
+        filteredCenters.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    // Transform to Knowledge format
+    return filteredCenters.map(center => ({
+      id: center.id,
+      title: center.title,
+      description: center.description,
+      subject: center.subject?.name || '',
+      knowledge_type: center.type === 'webinar' ? 'webinar' : 'konten',
+      penyelenggara: center.penyelenggara,
+      thumbnail: center.thumbnail,
+      author: center.createdBy,
+      like_count: center.likeCount,
+      dislike_count: 0,
+      view_count: center.viewCount,
+      tags: [],
+      published_at: center.publishedAt,
+      created_at: center.createdAt,
+      updated_at: center.updatedAt,
+      // Webinar specific fields
+      ...(center.type === 'webinar' && center.webinar ? {
+        tgl_zoom: center.webinar.zoomDate,
+        link_zoom: center.webinar.zoomLink,
+        link_record: center.webinar.recordLink,
+        link_youtube: center.webinar.youtubeLink,
+        link_vb: center.webinar.vbLink,
+        content_richtext: center.webinar.contentText,
+        jumlah_jp: center.webinar.jpCount,
+      } : {}),
+      // Content specific fields
+      ...(center.type === 'content' && center.knowledgeContent ? {
+        media_resource: center.knowledgeContent.mediaUrl,
+        media_type: center.knowledgeContent.contentType,
+        content_richtext: center.knowledgeContent.text,
+      } : {}),
+    } as Knowledge));
+  }, [centers, params]);
+
+  // Apply pagination
+  const paginatedData = React.useMemo(() => {
+    const page = params.page || 1;
+    const limit = params.limit || 12;
+    const startIndex = (page - 1) * limit;
+    return transformedData.slice(startIndex, startIndex + limit);
+  }, [transformedData, params.page, params.limit]);
+
+  return {
+    data: paginatedData,
+    total: transformedData.length,
+    page: params.page || 1,
+    limit: params.limit || 12,
+    totalPages: Math.ceil(transformedData.length / (params.limit || 12)),
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+// Hook for knowledge detail page that transforms KnowledgeCenter data to Knowledge format
+export function useKnowledgeDetail(id: string) {
+  const { center, isLoading, error } = useKnowledgeCenter(id);
+
+  // Transform the data to Knowledge format for compatibility with components
+  const knowledge = React.useMemo(() => {
+    if (!center) return null;
+
+    return {
+      id: center.id,
+      title: center.title,
+      description: center.description,
+      subject: center.subject?.name || '',
+      knowledge_type: center.type === 'webinar' ? 'webinar' : 'konten',
+      type: center.type, // Add the original type field
+      penyelenggara: center.penyelenggara,
+      thumbnail: center.thumbnail,
+      author: center.createdBy,
+      like_count: center.likeCount,
+      dislike_count: 0,
+      view_count: center.viewCount,
+      tags: [],
+      published_at: center.publishedAt,
+      created_at: center.createdAt,
+      updated_at: center.updatedAt,
+      // Webinar specific fields
+      ...(center.type === 'webinar' && center.webinar ? {
+        tgl_zoom: center.webinar.zoomDate,
+        link_zoom: center.webinar.zoomLink,
+        link_record: center.webinar.recordLink,
+        link_youtube: center.webinar.youtubeLink,
+        link_vb: center.webinar.vbLink,
+        content_richtext: center.webinar.contentText,
+        jumlah_jp: center.webinar.jpCount,
+      } : {}),
+      // Content specific fields - include the full knowledgeContent object
+      ...(center.type === 'content' && center.knowledgeContent ? {
+        media_resource: center.knowledgeContent.mediaUrl,
+        media_type: center.knowledgeContent.contentType,
+        content_richtext: center.knowledgeContent.document, // Use document instead of text
+        knowledgeContent: center.knowledgeContent, // Include the full object
+      } : {}),
+    } as Knowledge;
+  }, [center]);
+
+  // Get related knowledge based on the same subject or type
+  const { centers: allCenters } = useKnowledgeCenters();
+  const relatedKnowledge = React.useMemo(() => {
+    if (!knowledge || !allCenters.length) return [];
+
+    return allCenters
+      .filter(center =>
+        center.id !== knowledge.id && // Exclude the current item
+        (
+          center.subject?.name === knowledge.subject || // Same subject
+          center.type === knowledge.knowledge_type // Same type
+        )
+      )
+      .slice(0, 6) // Limit to 6 related items
+      .map(center => ({
+        id: center.id,
+        title: center.title,
+        description: center.description,
+        subject: center.subject?.name || '',
+        knowledge_type: center.type === 'webinar' ? 'webinar' : 'konten',
+        penyelenggara: center.penyelenggara,
+        thumbnail: center.thumbnail,
+        author: center.createdBy,
+        like_count: center.likeCount,
+        dislike_count: 0,
+        view_count: center.viewCount,
+        tags: [],
+        published_at: center.publishedAt,
+        created_at: center.createdAt,
+        updated_at: center.updatedAt,
+        ...(center.type === 'webinar' && center.webinar ? {
+          tgl_zoom: center.webinar.zoomDate,
+          link_zoom: center.webinar.zoomLink,
+          link_record: center.webinar.recordLink,
+          link_youtube: center.webinar.youtubeLink,
+          link_vb: center.webinar.vbLink,
+          content_richtext: center.webinar.contentText,
+          jumlah_jp: center.webinar.jpCount,
+        } : {}),
+        ...(center.type === 'content' && center.knowledgeContent ? {
+          media_resource: center.knowledgeContent.mediaUrl,
+          media_type: center.knowledgeContent.contentType,
+          content_richtext: center.knowledgeContent.text,
+        } : {}),
+      } as Knowledge));
+  }, [knowledge, allCenters]);
+
+  return {
+    knowledge,
+    relatedKnowledge,
+    isLoading,
+    error,
+  };
+}
+
+// Hook for knowledge detail interactions (like increment views)
+export function useKnowledgeDetailInteractions(id: string) {
+  const queryClient = useQueryClient();
+
+  const handleIncrementViews = React.useCallback(() => {
+    // This would typically make an API call to increment views
+    // For now, we'll just update the local cache optimistically
+    queryClient.setQueryData(['knowledge-center', id], (old: any) => {
+      if (!old?.data) return old;
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          viewCount: old.data.viewCount + 1,
+        },
+      };
+    });
+  }, [queryClient, id]);
+
+  return {
+    handleIncrementViews,
+  };
+}
+
+// Hook for toggling like on knowledge
+export function useToggleLikeKnowledge() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (id: string) => {
+      // This would make an API call to toggle like
+      // For now, we'll just simulate it with optimistic update
+      return id;
+    },
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['knowledge-center', id] });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['knowledge-center', id]);
+
+      // Optimistically update
+      queryClient.setQueryData(['knowledge-center', id], (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            likeCount: old.data.likeCount + 1,
+          },
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, id, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['knowledge-center', id], context.previousData);
+      }
+    },
+    onSettled: (_, __, id) => {
+      // Refetch to ensure server state
+      queryClient.invalidateQueries({ queryKey: ['knowledge-center', id] });
+    },
+  });
+
+  return mutation;
+}
+
+// Hook for related knowledge (alias for usePopularKnowledge with different logic)
+export function useRelatedKnowledge(currentKnowledgeId: string, limit: number = 6) {
+  const { centers } = useKnowledgeCenters();
+
+  const relatedKnowledge = React.useMemo(() => {
+    const currentCenter = centers.find(c => c.id === currentKnowledgeId);
+    if (!currentCenter) return [];
+
+    return centers
+      .filter(center =>
+        center.id !== currentKnowledgeId && // Exclude the current item
+        (
+          center.subject?.name === currentCenter.subject?.name || // Same subject
+          center.type === currentCenter.type // Same type
+        )
+      )
+      .slice(0, limit)
+      .map(center => ({
+        id: center.id,
+        title: center.title,
+        description: center.description,
+        subject: center.subject?.name || '',
+        knowledge_type: center.type === 'webinar' ? 'webinar' : 'konten',
+        penyelenggara: center.penyelenggara,
+        thumbnail: center.thumbnail,
+        author: center.createdBy,
+        like_count: center.likeCount,
+        dislike_count: 0,
+        view_count: center.viewCount,
+        tags: [],
+        published_at: center.publishedAt,
+        created_at: center.createdAt,
+        updated_at: center.updatedAt,
+        ...(center.type === 'webinar' && center.webinar ? {
+          tgl_zoom: center.webinar.zoomDate,
+          link_zoom: center.webinar.zoomLink,
+          link_record: center.webinar.recordLink,
+          link_youtube: center.webinar.youtubeLink,
+          link_vb: center.webinar.vbLink,
+          content_richtext: center.webinar.contentText,
+          jumlah_jp: center.webinar.jpCount,
+        } : {}),
+        ...(center.type === 'content' && center.knowledgeContent ? {
+          media_resource: center.knowledgeContent.mediaUrl,
+          media_type: center.knowledgeContent.contentType,
+          content_richtext: center.knowledgeContent.text,
+        } : {}),
+      } as Knowledge));
+  }, [centers, currentKnowledgeId, limit]);
+
+  return {
+    relatedKnowledge,
+    isLoading: false, // Since we're using client-side filtering
   };
 }
 

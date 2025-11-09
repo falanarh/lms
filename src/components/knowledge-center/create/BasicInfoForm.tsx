@@ -15,10 +15,11 @@ interface BasicInfoFormProps {
     author: string;
     published_at: string;
     tags: string[];
-    thumbnail?: File;
+    thumbnail?: string;
   };
   thumbnailPreview: string | null;
   currentTagInput: string;
+  isUploadingThumbnail?: boolean;
   subjects: (Subject | KnowledgeSubject)[];
   penyelenggara: Penyelenggara[];
   errors: Record<string, string>;
@@ -42,6 +43,7 @@ export default function BasicInfoForm({
   formData,
   thumbnailPreview,
   currentTagInput,
+  isUploadingThumbnail = false,
   subjects,
   penyelenggara,
   errors,
@@ -231,7 +233,11 @@ export default function BasicInfoForm({
             </div>
           </div>
         ) : (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-400 transition-colors bg-white">
+          <div className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white ${
+            isUploadingThumbnail
+              ? 'border-yellow-400 bg-yellow-50'
+              : 'border-gray-300 hover:border-blue-400'
+          }`}>
             <input
               type="file"
               accept="image/*"
@@ -241,16 +247,29 @@ export default function BasicInfoForm({
               }}
               className="hidden"
               id="thumbnail-upload"
+              disabled={isUploadingThumbnail}
             />
             <label
               htmlFor="thumbnail-upload"
-              className="cursor-pointer block text-center"
+              className={`block text-center ${isUploadingThumbnail ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Upload className="w-7 h-7 text-gray-600" />
+              <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
+                isUploadingThumbnail
+                  ? 'bg-yellow-100'
+                  : 'bg-gray-100'
+              }`}>
+                {isUploadingThumbnail ? (
+                  <div className="w-7 h-7 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Upload className="w-7 h-7 text-gray-600" />
+                )}
               </div>
-              <p className="text-base font-medium text-gray-900 mb-1">
-                Upload Thumbnail
+              <p className={`text-base font-medium mb-1 ${
+                isUploadingThumbnail
+                  ? 'text-yellow-700'
+                  : 'text-gray-900'
+              }`}>
+                {isUploadingThumbnail ? 'Uploading...' : 'Upload Thumbnail'}
               </p>
               <p className="text-sm text-gray-500">
                 PNG, JPG, JPEG up to 10MB • Recommended size: 1200x630px
@@ -268,9 +287,9 @@ export default function BasicInfoForm({
           Tags
         </label>
         <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg p-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all scrollbar-thin scrollbar-track-gray-50 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full max-h-[120px] overflow-y-auto">
-          {formData.tags.length > 0 && (
+          {formData.tags && formData.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {formData.tags.map((tag, index) => (
+              {formData.tags?.map((tag, index) => (
                 <span
                   key={index}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all"
@@ -294,7 +313,7 @@ export default function BasicInfoForm({
             onChange={(e) => onTagInput(e.target.value)}
             onKeyDown={onAddTag}
             placeholder={
-              formData.tags.length === 0
+              (!formData.tags || formData.tags.length === 0)
                 ? 'Type a tag and press Enter or comma'
                 : 'Add another tag...'
             }

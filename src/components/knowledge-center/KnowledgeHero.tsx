@@ -7,7 +7,7 @@
 
 import { Search, LayoutGrid, Calendar, BookOpen } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
-import { useKnowledgeCategories } from '@/hooks/useKnowledge';
+import { useSubjects } from '@/hooks/useKnowledgeCenter';
 import { KnowledgeType } from '@/types/knowledge-center';
 
 interface KnowledgeHeroProps {
@@ -23,7 +23,7 @@ export default function KnowledgeHero({
   selectedType,
   onTypeChange,
 }: KnowledgeHeroProps) {
-  const { categories } = useKnowledgeCategories();
+  const { subjects } = useSubjects();
 
   const typeButtons = [
     {
@@ -100,7 +100,7 @@ export default function KnowledgeHero({
               <div className="text-left">
                 <div className="text-xs text-blue-600 font-semibold mb-0.5">Categories</div>
                 <div className="text-sm font-bold text-gray-900">
-                  {categories.length} Topics
+                  {subjects.length} Topics
                 </div>
               </div>
             </div>

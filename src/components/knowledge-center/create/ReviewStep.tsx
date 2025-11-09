@@ -36,6 +36,8 @@ export default function ReviewStep({
   thumbnailPreview,
 }: ReviewStepProps) {
   const [showPreview, setShowPreview] = useState(false);
+  const hasWebinarDetails =
+    formData.knowledge_type === "webinar" && Boolean(formData.tgl_zoom);
   const getTypeLabel = () => {
     if (formData.knowledge_type === "webinar") {
       return "Webinar";
@@ -124,21 +126,23 @@ export default function ReviewStep({
           </div>
         )}
 
-        {formData.knowledge_type === "webinar" && formData.tgl_zoom && (
-          <div className="flex justify-between pt-4 border-t border-blue-200/50">
+        <div className="flex flex-col gap-4 pt-4 border-t border-blue-200/50 sm:flex-row sm:items-center sm:justify-between">
+          {hasWebinarDetails && (
             <div>
               <span className="text-xs font-semibold text-green-600 block mb-2">
                 Webinar Details
               </span>
               <div className="text-sm space-y-1">
                 <p className="text-gray-700">
-                  Date: {new Date(formData.tgl_zoom).toLocaleString("id-ID")}
+                  Date: {new Date(formData.tgl_zoom as string).toLocaleString("id-ID")}
                 </p>
                 {formData.jumlah_jp && (
                   <p className="text-gray-700">JP: {formData.jumlah_jp}</p>
                 )}
               </div>
             </div>
+          )}
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setShowPreview(true)}
@@ -148,7 +152,7 @@ export default function ReviewStep({
               <span>Preview</span>
             </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Preview Modal */}
