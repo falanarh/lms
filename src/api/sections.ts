@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Content } from "./contents";
 
 type Group = {
     id: string,
@@ -21,14 +22,15 @@ export type Section  = {
     sequence: number,
     createdAt: Date,
     updatedAt: Date,
-    group: Group
+    listContents?: Content[],
+    // group: Group
 }
 
 
-const BASE_URL = "http://10.101.20.150:3000"
+const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000"
 
 export const getSections = async (): Promise<Section[]> => {
-    const response = await axios.get<Section[]>(`${BASE_URL}/sections`, {
+    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=b8d1607e-4edf-4f7a-8a0b-0552191bdd71&orderBy[0][sequence]=asc`, {
       withCredentials: false,
     })
     return response.data
