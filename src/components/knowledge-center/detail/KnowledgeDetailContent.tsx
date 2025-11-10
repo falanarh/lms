@@ -3,10 +3,10 @@
 import React from 'react';
 import MediaViewer from '../MediaViewer';
 import BlockNoteViewer from './BlockNoteViewer';
-import { Knowledge } from '@/types/knowledge-center';
+import { KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailContentProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter;
 }
 
 export default function KnowledgeDetailContent({ knowledge }: KnowledgeDetailContentProps) {

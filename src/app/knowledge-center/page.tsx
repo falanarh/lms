@@ -7,7 +7,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KnowledgeType, SortOption } from '@/types/knowledge-center';
+import { SortOption, SORT_OPTIONS, KNOWLEDGE_TYPES, KnowledgeType } from '@/types/knowledge-center';
 import {
   KnowledgeHero,
   KnowledgeStats,
@@ -20,9 +20,9 @@ import {
 export default function KnowledgeCenterPage() {
   // UI State Management
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<KnowledgeType | 'all'>('all');
+  const [selectedType, setSelectedType] = useState<typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT | 'all'>('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST);
 
   // UI Handlers
   const handleSearchChange = (query: string) => {

@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreateDiscussionRequest, discussionsApi } from "@/api/discussions";
 import { getDiscussionsQueryOptions, getDiscussionsQueryKey } from "@/api/topics";
 import type { TopicWithDiscussions, DiscussionResponse } from "@/api/topics";
 import type { Discussion, TopicMeta } from "@/components/shared/DiscussionCard/Topic";
-import { VoteType, VoteTypeEnum, type LocalVoteState } from "@/types/voting";
+import { VoteType, VoteTypeEnum } from "@/types/voting";
 import { formatTimeAgo } from "@/utils/timeUtils";
 import { getInitials, generateAuthorName } from "@/utils/userUtils";
 
@@ -88,7 +88,6 @@ const transformTopic = (topic: TopicWithDiscussions): TopicMeta => {
 
 // Hook for fetching discussions by topic (individual topic)
 export function useDiscussion(topicId: string, forumId?: string) {
-  const queryClient = useQueryClient();
 
   // Query untuk discussions by topic
   const {
@@ -434,39 +433,19 @@ export function useDiscussionActions(forumId?: string, sortBy: 'latest' | 'most-
     text: string;
     replyingToDiscussion?: Discussion;
   }) => {
-    try {
-      return await createDiscussionMutation.mutateAsync(data);
-    } catch (error) {
-      // Re-throw error to let component handle it
-      throw error;
-    }
+    return await createDiscussionMutation.mutateAsync(data);
   };
 
   const voteDiscussion = async (discussionId: string, voteType: VoteType) => {
-    try {
-      return await voteDiscussionMutation.mutateAsync({ discussionId, voteType });
-    } catch (error) {
-      // Re-throw error to let component handle it
-      throw error;
-    }
+    return await voteDiscussionMutation.mutateAsync({ discussionId, voteType });
   };
 
   const editDiscussion = async (discussionId: string, newContent: string) => {
-    try {
-      return await editDiscussionMutation.mutateAsync({ discussionId, newContent });
-    } catch (error) {
-      // Re-throw error to let component handle it
-      throw error;
-    }
+    return await editDiscussionMutation.mutateAsync({ discussionId, newContent });
   };
 
   const deleteDiscussion = async (discussionId: string) => {
-    try {
-      return await deleteDiscussionMutation.mutateAsync(discussionId);
-    } catch (error) {
-      // Re-throw error to let component handle it
-      throw error;
-    }
+    return await deleteDiscussionMutation.mutateAsync(discussionId);
   };
 
   return {

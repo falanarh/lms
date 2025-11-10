@@ -8,8 +8,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 // @ts-expect-error: CSS module has no type declarations
 import "@blocknote/mantine/style.css";
 import { Block } from "@blocknote/core";
-
-type KnowledgeType = "article" | "file" | "video" | "audio";
+import { ContentType } from "@/types";
 
 interface BlockTemplate {
   id: string;
@@ -25,12 +24,12 @@ interface TemplateConfig {
 }
 
 interface BlockNoteEditorProps {
-  type?: KnowledgeType;
+  type?: ContentType;
   onContentChange?: (contentJson: string) => void;
   initialContent?: Block[];
 }
 
-const KNOWLEDGE_TEMPLATES: Record<KnowledgeType, TemplateConfig> = {
+const CONTENT_TEMPLATES: Record<ContentType, TemplateConfig> = {
   article: {
     title: "Template Artikel",
     description: "Struktur artikel lengkap dengan heading, pembahasan, dan referensi",
@@ -256,9 +255,9 @@ const KNOWLEDGE_TEMPLATES: Record<KnowledgeType, TemplateConfig> = {
       },
     ],
   },
-  audio: {
-    title: "Template Audio",
-    description: "Template untuk konten audio dengan transkrip dan timeline",
+  podcast: {
+    title: "Template Podcast/Audio",
+    description: "Template untuk konten podcast dengan transkrip dan timeline",
     blocks: [
       {
         id: crypto.randomUUID(),
@@ -367,8 +366,8 @@ export default function BlockNoteEditor({
     return (await ret.json()).data.imageUrl;
   }
 
-  const createEditor = (knowledgeType: KnowledgeType) => {
-    const template = KNOWLEDGE_TEMPLATES[knowledgeType];
+  const createEditor = (contentType: ContentType) => {
+    const template = CONTENT_TEMPLATES[contentType];
     const content = initialContent || template.blocks;
 
     const editor = useCreateBlockNote({
@@ -389,10 +388,10 @@ export default function BlockNoteEditor({
     return editor;
   };
 
-  const currentType: KnowledgeType = type || "article";
+  const currentType: ContentType = type || "article";
   const editor = createEditor(currentType);
 
-  const currentTemplate = KNOWLEDGE_TEMPLATES[currentType];
+  const currentTemplate = CONTENT_TEMPLATES[currentType];
 
   // Initialize content when editor is ready and onContentChange is provided
   useEffect(() => {
@@ -407,7 +406,7 @@ export default function BlockNoteEditor({
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden min-h-screen py-8">
-      <div className="px-6 pb-4 border-b border-gray-200">
+      <div className="px-12 pb-8 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
@@ -424,7 +423,7 @@ export default function BlockNoteEditor({
           </div>
         </div>
       </div>
-      <div className="p-6">
+      <div className="px-16 py-4">
         <BlockNoteView
           editor={editor}
         />

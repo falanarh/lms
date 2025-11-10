@@ -1,52 +1,27 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { X } from "lucide-react";
 import {
   KnowledgeDetailInfo,
   KnowledgeDetailActionBar,
   KnowledgeDetailContent,
   KnowledgeDetailResources,
   KnowledgeDetailTags,
-} from '@/components/knowledge-center/detail';
-import { Knowledge } from '@/types/knowledge-center';
+} from "@/components/knowledge-center/detail";
+import {
+  ContentType,
+  KNOWLEDGE_TYPES,
+  KnowledgeCenter,
+} from "@/types/knowledge-center";
 
 interface KnowledgePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  formData: {
-    title: string;
-    description: string;
-    subject: string;
-    penyelenggara: string;
-    author: string;
-    knowledge_type: 'webinar' | 'konten' | undefined;
-    published_at: string;
-    tags: string[];
-    thumbnail?: string | File;
-    tgl_zoom?: string;
-    link_zoom?: string;
-    link_youtube?: string;
-    link_record?: string;
-    link_vb?: string;
-    file_notulensi_pdf?: string | File;
-    jumlah_jp?: number;
-    media_resource?: string | File;
-    media_type?: 'video' | 'audio' | 'pdf' | 'article';
-    content_richtext?: string;
-  };
+  formData: KnowledgeCenter;
   thumbnailPreview: string | null;
-  contentType: 'article' | 'video' | 'podcast' | 'pdf' | null;
+  contentType: ContentType | null;
 }
-
-type PreviewKnowledge = Knowledge & {
-  type: 'webinar' | 'content';
-  knowledgeContent?: {
-    contentType: 'article' | 'video' | 'podcast' | 'pdf';
-    mediaUrl?: string;
-    document: string;
-  };
-};
 
 export default function KnowledgePreviewModal({
   isOpen,
@@ -59,7 +34,7 @@ export default function KnowledgePreviewModal({
 
   const getResourceUrl = useCallback((value?: string | File) => {
     if (!value) return undefined;
-    if (typeof value === 'string') return value;
+    if (typeof value === "string") return value;
     const objectUrl = URL.createObjectURL(value);
     objectUrlRef.current.push(objectUrl);
     return objectUrl;
@@ -70,18 +45,18 @@ export default function KnowledgePreviewModal({
     if (!isOpen) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
     // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.body.style.overflow = 'unset';
-      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = "unset";
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen, onClose]);
 
@@ -100,65 +75,63 @@ export default function KnowledgePreviewModal({
   }, []);
 
   const resolvedMediaUrl = useMemo(
-    () => (isOpen ? getResourceUrl(formData.media_resource) : undefined),
-    [isOpen, formData.media_resource, getResourceUrl]
+    () => (isOpen ? getResourceUrl(formData.type === KNOWLEDGE_TYPES.CONTENT ? formData.knowledgeContent?.mediaUrl : undefined) : undefined),
+    [isOpen, formData.knowledgeContent?.mediaUrl, getResourceUrl]
   );
   const resolvedNotulensiUrl = useMemo(
-    () => (isOpen ? getResourceUrl(formData.file_notulensi_pdf) : undefined),
-    [isOpen, formData.file_notulensi_pdf, getResourceUrl]
+    () => (isOpen ? getResourceUrl(formData.type === KNOWLEDGE_TYPES.WEBINAR ? formData.webinar?.noteFile : undefined) : undefined),
+    [isOpen, formData.webinar?.noteFile, getResourceUrl]
   );
   const resolvedThumbnail = useMemo(
-    () => thumbnailPreview || (isOpen ? getResourceUrl(formData.thumbnail) : undefined),
+    () =>
+      thumbnailPreview ||
+      (isOpen ? getResourceUrl(formData.thumbnail) : undefined),
     [isOpen, thumbnailPreview, formData.thumbnail, getResourceUrl]
   );
 
   if (!isOpen) return null;
 
-  const isWebinar = formData.knowledge_type === 'webinar';
-  const resolvedContentType = contentType || 'article';
-  const blockNoteDocument = formData.content_richtext ?? '[]';
-
+  const isWebinar = formData.type === KNOWLEDGE_TYPES.WEBINAR;
+  
   // Transform formData to Knowledge type for preview
   const baseKnowledge = {
-    id: 'preview-' + Date.now(),
-    title: formData.title || 'Untitled Knowledge',
-    description: formData.description || 'No description provided',
-    subject: formData.subject || 'General',
-    knowledge_type: formData.knowledge_type || 'konten',
-    type: isWebinar ? 'webinar' : 'content',
-    penyelenggara: formData.penyelenggara || 'Pusdiklat BPS',
-    thumbnail: resolvedThumbnail || '',
-    author: formData.author || 'Anonymous',
-    like_count: 0,
-    dislike_count: 0,
-    view_count: 0,
+    id: "preview-" + Date.now(),
+    title: formData.title || "Untitled Knowledge",
+    description: formData.description || "No description provided",
+    idSubject: formData.id,
+    subject: formData.subject || "General",
+    type: formData.type || "konten",
+    penyelenggara: formData.penyelenggara || "Pusdiklat BPS",
+    thumbnail: formData.thumbnail || "",
+    createdBy: formData.createdBy || "Anonymous",
+    likeCount: 0,
+    isFinal: false,
+    viewCount: 0,
     tags: formData.tags || [],
-    published_at: formData.published_at || new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    publishedAt: formData.publishedAt || new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
-  const previewKnowledge: PreviewKnowledge = isWebinar
+  const previewKnowledge: KnowledgeCenter = isWebinar
     ? {
         ...baseKnowledge,
-        tgl_zoom: formData.tgl_zoom,
-        link_zoom: formData.link_zoom,
-        link_youtube: formData.link_youtube,
-        link_record: formData.link_record,
-        link_vb: formData.link_vb,
-        file_notulensi_pdf: resolvedNotulensiUrl,
-        jumlah_jp: formData.jumlah_jp,
-        content_richtext: formData.content_richtext || '<p>No content provided</p>',
+        webinar: {
+          zoomDate: formData.webinar?.zoomDate || "",
+          zoomLink: formData.webinar?.zoomLink || "",
+          youtubeLink: formData.webinar?.youtubeLink || "",
+          recordLink: formData.webinar?.recordLink || "",
+          vbLink: formData.webinar?.vbLink || "",
+          noteFile: resolvedNotulensiUrl || "",
+          jpCount: formData.webinar?.jpCount || 0,
+        },
       }
     : {
         ...baseKnowledge,
-        media_resource: resolvedMediaUrl,
-        media_type: resolvedContentType,
-        content_richtext: blockNoteDocument,
         knowledgeContent: {
-          contentType: resolvedContentType,
-          document: blockNoteDocument,
-          ...(resolvedMediaUrl && resolvedContentType !== 'article' ? { mediaUrl: resolvedMediaUrl } : {}),
+          mediaUrl: resolvedMediaUrl || "",
+          contentType: contentType || "file",
+          document: formData.knowledgeContent?.document || "[]",
         },
       };
 
@@ -173,12 +146,15 @@ export default function KnowledgePreviewModal({
       {/* Modal Container */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="relative w-full max-w-7xl bg-white rounded-xl shadow-2xl my-8 max-h-[90vh] overflow-hidden flex flex-col">
-
           {/* Header */}
           <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Preview Knowledge</h2>
-              <p className="text-sm text-gray-600 mt-0.5">Lihat tampilan sebelum dipublikasikan</p>
+              <h2 className="text-xl font-bold text-gray-900">
+                Preview Knowledge
+              </h2>
+              <p className="text-sm text-gray-600 mt-0.5">
+                Lihat tampilan sebelum dipublikasikan
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -212,9 +188,7 @@ export default function KnowledgePreviewModal({
                 <KnowledgeDetailActionBar
                   knowledge={previewKnowledge}
                   isLiking={false}
-                  isDisliking={false}
                   onLike={() => {}}
-                  onDislike={() => {}}
                 />
 
                 {/* Content */}

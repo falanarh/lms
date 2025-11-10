@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { LucideProps, LucideIcon } from 'lucide-react';
 import { DynamicIcon, dynamicIconImports, IconName } from 'lucide-react/dynamic';

@@ -1,81 +1,158 @@
-// Knowledge Center Types
+// Knowledge Center Types - 100% API Types
 // Based on prompt_templates/knowledge-center-specs.md
+//
+// 🎯 DESIGN PRINCIPLE: NO CUSTOM WRAPPER TYPES
+// All types should match API structure 100% without transformation
+//
+// ✅ RULES:
+// - NO KnowledgeCommon, Webinar, Konten (these are legacy wrapper types)
+// - Use KnowledgeCenter, KnowledgeWebinar, KnowledgeContent directly from API
+// - Components consume API data without transformation
+// - No mapping/conversion between API and frontend types
+//
+// 🏗️ STRUCTURE:
+// 1. Base Types (ContentType, KnowledgeType, etc.)
+// 2. Generic API Response Types (ApiResponse, PaginatedApiResponse)
+// 3. API Entity Types (KnowledgeCenter, KnowledgeWebinar, KnowledgeContent)
+// 4. API Request Types (Create*, Update* for backend)
+// 5. Component Props (directly use API types)
+// 6. Filter/Query Types (API parameters)
+//
+// 🚀 BENEFITS:
+// ✅ Zero transformation overhead - direct API data usage
+// ✅ Perfect type safety - compile-time errors when API changes
+// ✅ Single source of truth - no type duplication
+// ✅ Ultimate maintainability - one file update covers all changes
+// ✅ Consistency guarantee - frontend/backend identical
 
-export type KnowledgeType = 'webinar' | 'konten';
+// Import generic API response types
+import type {
+  ApiResponse,
+  PaginatedApiResponse,
+  PaginatedResponse,
+  DetailResponse,
+} from './api-response';
 
-export type MediaType = 'video' | 'pdf' | 'audio' | 'article';
+// Base Types - aligned with API structure
+export type KnowledgeType = 'webinar' | 'content'; // API uses 'content', not 'konten'
+export type ContentType = 'video' | 'file' | 'podcast' | 'article';
+export type MediaType = ContentType; // Type alias for backward compatibility - both point to same type
+export type KnowledgeStatus = 'draft' | 'published' | 'archived';
+export type SortOption = 'newest' | 'oldest' | 'mostLiked' | 'mostViewed' | 'upcomingWebinar' | 'popular' | 'likes' | 'title';
 
-export type KnowledgeStatus = 'draft' | 'scheduled' | 'published' | 'archived';
+// Type constants to avoid hardcoded values
+export const KNOWLEDGE_TYPES = {
+  WEBINAR: 'webinar' as const,
+  CONTENT: 'content' as const,
+} as const;
 
-export type SortOption = 'newest' | 'oldest' | 'most_liked' | 'most_viewed' | 'upcoming_webinar' | 'popular' | 'likes' | 'title';
+export const CONTENT_TYPES = {
+  VIDEO: 'video' as const,
+  FILE: 'file' as const,
+  PODCAST: 'podcast' as const,
+  ARTICLE: 'article' as const,
+} as const;
 
-export interface KnowledgeCommon {
-  id?: string;
+export const KNOWLEDGE_STATUS = {
+  DRAFT: 'draft' as const,
+  SCHEDULED: 'scheduled' as const,
+  PUBLISHED: 'published' as const,
+  ARCHIVED: 'archived' as const,
+} as const;
+
+export const SORT_OPTIONS = {
+  NEWEST: 'newest' as const,
+  OLDEST: 'oldest' as const,
+  MOST_LIKED: 'mostLiked' as const,
+  MOST_VIEWED: 'mostViewed' as const,
+  UPCOMING_WEBINAR: 'upcomingWebinar' as const,
+  POPULAR: 'popular' as const,
+  LIKES: 'likes' as const,
+  TITLE: 'title' as const,
+} as const;
+
+// Generic API Response Types have been moved to api-response.ts for better reusability
+
+// API Entity Types
+export interface KnowledgeCenter {
+  id: string;
   title: string;
   description: string;
-  subject: string; // nomenklatur BPS
-  knowledge_type: KnowledgeType;
-  penyelenggara: string; // pusdiklat, bps sumbar, bps jakarta, ...
-  thumbnail: string; // url/blob
-  author: string; // user ref
-  like_count: number;
-  dislike_count: number;
-  view_count: number;
+  idSubject: string;
+  subject: string; // Changed from object to string
+  penyelenggara: string;
+  createdBy: string;
+  type: KnowledgeType;
+  publishedAt: string;
   tags: string[];
-  published_at?: string; // ISO datetime
-  status?: KnowledgeStatus;
-  created_at?: string;
-  updated_at?: string;
+  thumbnail: string;
+  viewCount: number;
+  likeCount: number;
+  isFinal: boolean;
+  createdAt: string;
+  updatedAt: string;
+  webinar?: KnowledgeWebinar | null;
+  knowledgeContent?: KnowledgeContent | null;
 }
 
-export interface Webinar extends KnowledgeCommon {
-  tgl_zoom?: string;
-  link_zoom?: string;
-  link_record?: string;
-  link_youtube?: string;
-  link_vb?: string;
-  file_notulensi_pdf?: string; // URL to single PDF
-  content_richtext?: string; // sanitized HTML
-  jumlah_jp?: number;
-  gojags_ref?: string;
+export interface KnowledgeWebinar {
+  zoomDate: string;
+  zoomLink: string;
+  youtubeLink?: string;
+  recordLink: string;
+  vbLink?: string;
+  noteFile?: string;
+  contentText?: string;
+  jpCount: number;
 }
 
-export interface Konten extends KnowledgeCommon {
-  media_resource?: string; // single: video|pdf|audio
-  media_type?: MediaType;
-  content_richtext?: string; // sanitized HTML
+export interface KnowledgeContent {
+  contentType: ContentType;
+  mediaUrl: string;
+  document: string; // JSON string representing BlockNote editor document
 }
 
-export type Knowledge = Webinar | Konten;
+// KnowledgeSubject types have been moved to knowledge-subject.ts for better maintainability
 
-// Taxonomy types
-export interface Subject {
-  id: string;
-  name: string;
-  description?: string;
-  created_at?: string;
+export interface CreateKnowledgeCenterRequest {
+  createdBy: string;
+  idSubject: string;
+  title: string;
+  description: string;
+  type: KnowledgeType;
+  penyelenggara?: string;
+  thumbnail?: string;
+  isFinal: boolean;
+  publishedAt: string;
+  webinar?: Omit<KnowledgeWebinar, 'youtubeLink' | 'vbLink' | 'contentText'>;
+  knowledgeContent?: KnowledgeContent;
 }
 
+export type UpdateKnowledgeCenterRequest = Partial<CreateKnowledgeCenterRequest>;
+
+// Taxonomy types - Using main types to avoid duplication
+// Penyelenggara type (keeping separate for now as it doesn't have main equivalent yet)
 export interface Penyelenggara {
   id: string;
   name: string;
   description?: string;
-  created_at?: string;
+  createdAt?: string;
 }
 
+// Tag type (keeping separate for now as it doesn't have main equivalent yet)
 export interface Tag {
   id: string;
   name: string;
   color?: string;
-  created_at?: string;
+  createdAt?: string;
 }
 
 // Filter types
 export interface KnowledgeFilters {
   subject?: string[];
   penyelenggara?: string[];
-  knowledge_type?: KnowledgeType[];
-  media_type?: MediaType[];
+  knowledgeType?: KnowledgeType[];
+  mediaType?: ContentType[]; // Changed from MediaType to ContentType to match API
   tags?: string[];
   search?: string;
 }
@@ -89,67 +166,68 @@ export interface KnowledgeQueryParams extends KnowledgeFilters, PaginationParams
   sort?: SortOption;
 }
 
-// API Response types
-export interface KnowledgeListResponse {
-  data: Knowledge[];
-  total: number;
-  page: number;
-  limit: number;
-  total_pages: number;
+// API Response Types (using generic types)
+export type KnowledgeListResponse = PaginatedResponse<KnowledgeCenter>;
+export type KnowledgeDetailResponse = DetailResponse<KnowledgeCenter>;
+
+// Backend API Response Types (Full structured responses)
+export type KnowledgeCentersResponse = PaginatedApiResponse<KnowledgeCenter>;
+export type KnowledgeCenterResponse = ApiResponse<KnowledgeCenter>;
+// KnowledgeSubject response types have been moved to knowledge-subject.ts
+
+// Additional types from api/knowledge.ts (consolidated here)
+export interface WebinarSchedule {
+  id: string;
+  title: string;
+  description: string;
+  tglZoom: string;
+  zoomLink: string;
+  youtubeLink: string;
+  speaker: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  isActive: boolean;
 }
 
-export interface KnowledgeDetailResponse {
-  data: Knowledge;
+export interface Comment {
+  id: string;
+  knowledgeId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: string;
+  likes: number;
+  replies: number;
 }
 
-// Analytics types
-export interface KnowledgeAnalytics {
-  total_knowledge: number;
-  total_webinars: number;
-  total_published: number;
-  total_likes: number;
-  total_dislikes: number;
-  total_views: number;
-  upcoming_webinars: number;
-  top_subjects: Array<{
-    subject: string;
-    count: number;
-  }>;
-  popular_knowledge: Knowledge[];
-}
+// Analytics types have been removed - analytics page deleted
 
 // Create Knowledge types
 export type CreateKnowledgeStep = 1 | 2 | 3 | 4;
 
 export interface CreateKnowledgeFormData {
   // Step 1
-  knowledge_type?: KnowledgeType;
+  type: KnowledgeType | undefined; // Matches API 'type' field
 
-  // Step 2 - Common fields
+  // Step 2 - Common fields (matches CreateKnowledgeCenterRequest)
+  idSubject: string;
   title: string;
   description: string;
-  subject: string;
-  penyelenggara: string;
+  penyelenggara?: string;
   thumbnail?: File | string;
-  author: string;
-  tags: string[];
-  published_at?: string;
-  status: KnowledgeStatus;
+  isFinal?: boolean;
+  publishedAt?: string;
 
-  // Step 3A - Webinar specific
-  tgl_zoom?: string;
-  link_zoom?: string;
-  link_record?: string;
-  link_youtube?: string;
-  link_vb?: string;
-  file_notulensi_pdf?: File;
-  content_richtext?: string;
-  jumlah_jp?: number;
-  gojags_ref?: string;
+  // Step 3A - Webinar specific (using main type with all optional fields)
+  webinar?: Partial<KnowledgeWebinar>;
 
-  // Step 3B - Konten specific
-  media_resource?: File;
-  media_type?: MediaType;
+  // Step 3B - Content specific (using main type with all optional fields)
+  knowledgeContent?: Partial<KnowledgeContent>;
+
+  // UI State fields (not sent to API)
+  createdBy: string; // For display only
+  tags?: string[]; // For display only (API doesn't have tags yet)
+  status?: KnowledgeStatus; // For display only
 }
 
 // Form validation types
@@ -159,17 +237,17 @@ export interface FormErrors {
 
 // Component props types
 export interface KnowledgeCardProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter; // 100% API type
   showActions?: boolean;
   onLike?: (id: string) => void;
   onDislike?: (id: string) => void;
-  onShare?: (knowledge: Knowledge) => void;
+  onShare?: (knowledge: KnowledgeCenter) => void;
   className?: string;
 }
 
 export interface MediaViewerProps {
   src: string;
-  type: MediaType;
+  type: ContentType; // Use ContentType from API
   title?: string;
   className?: string;
 }
@@ -185,26 +263,20 @@ export interface RichTextEditorProps {
 // Schedule types
 export interface WebinarSchedule {
   id: string;
-  webinar_id: string;
+  webinarId: string;
   title: string;
-  tgl_zoom: string;
-  link_zoom?: string;
+  tglZoom: string;
+  linkZoom?: string;
   status: 'upcoming' | 'ongoing' | 'ended' | 'live';
-  participants_count?: number;
+  participantsCount?: number;
 }
 
-// Settings types
-export interface KnowledgeCenterSettings {
-  rte_whitelist_tags: string[];
-  rte_allowed_attributes: Record<string, string[]>;
-  max_file_size: number; // in bytes
-  allowed_file_types: {
-    video: string[];
-    pdf: string[];
-    audio: string[];
-    image: string[];
-  };
-  thumbnail_min_width: number;
-  thumbnail_min_height: number;
-  thumbnail_aspect_ratio: string;
-}
+// Settings types have been removed - settings page deleted
+
+// Re-export generic API response types for backward compatibility
+export type {
+  ApiResponse,
+  PaginatedApiResponse,
+  PaginatedResponse,
+  DetailResponse,
+} from './api-response';

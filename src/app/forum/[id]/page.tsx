@@ -15,7 +15,6 @@ import { TopicCreationForm } from "@/components/forum/TopicCreationForm";
 import { useForums } from "@/hooks/useForums";
 import { useTopic } from "@/hooks/useTopic";
 import { useDiscussionForum, useDiscussionActions } from "@/hooks/useDiscussion";
-import { VoteType, VoteTypeEnum, type LocalVoteState } from "@/types/voting";
 import { createToastState } from "@/utils/toastUtils";
 
 // Helper function untuk get current user ID
@@ -273,15 +272,15 @@ export default function ForumDetailPage() {
                       isResolvingTopic={topicActions.isResolvingTopic && topicActions.resolvingTopicId === topicMeta.id}
                       isVotingDiscussion={discussionActions.isVoting}
                       canEditTopic={true}
-                      onEditTopic={(topicId, newTitle, newDescription) => {
+                      onEditTopic={() => {
                         // Edit topic functionality
                       }}
-                      onDeleteTopic={(topicId) => {
+                      onDeleteTopic={() => {
                         // Delete topic functionality
                       }}
                       canEditDiscussion={true}
                       onEditDiscussion={handleEditDiscussion}
-                      onDeleteDiscussion={(discussionId) => {
+                      onDeleteDiscussion={() => {
                         // Delete discussion functionality
                       }}
                       editingDiscussionId={discussionActions.editingDiscussionId}

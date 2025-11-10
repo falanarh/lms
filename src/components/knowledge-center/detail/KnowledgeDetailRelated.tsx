@@ -2,11 +2,11 @@
 
 import React from 'react';
 import KnowledgeCard from '../KnowledgeCard';
-import { Knowledge } from '@/types/knowledge-center';
+import { KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailRelatedProps {
-  knowledge: Knowledge;
-  relatedKnowledge: Knowledge[];
+  knowledge: KnowledgeCenter;
+  relatedKnowledge: KnowledgeCenter[];
 }
 
 export default function KnowledgeDetailRelated({ knowledge, relatedKnowledge }: KnowledgeDetailRelatedProps) {

@@ -5,7 +5,6 @@ import { X, Plus, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Toast } from "@/components/ui/Toast/Toast";
 import { useCreateForum, useUpdateForum } from "@/api/forums";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Forum, CreateForumRequest, UpdateForumRequest } from "@/api/forums";

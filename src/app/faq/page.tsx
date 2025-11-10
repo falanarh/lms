@@ -1,4 +1,4 @@
-import { Search, HelpCircle, BookOpen, CreditCard, Settings, Users, Shield } from "lucide-react";
+import { Search, HelpCircle, BookOpen, Settings, Users, Shield } from "lucide-react";
 import { FAQList } from "@/features/home/FaqList";
 import type { FAQItemType } from "@/features/home/FaqItem";
 

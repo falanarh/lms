@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
-import { id } from 'date-fns/locale/id';
 
 // Utility function to get proper thumbnail URL
 const getThumbnailUrl = (thumbnail: string) => {
@@ -48,61 +46,37 @@ import {
   Calendar,
   Eye,
   ThumbsUp,
-  ThumbsDown,
   Play,
   FileText,
   Headphones,
   Package,
-  ExternalLink,
   Clock,
-  Award,
-  Users,
 } from 'lucide-react';
-import { Knowledge, MediaType, KnowledgeType } from '@/types/knowledge-center';
-import { useKnowledgeInteraction } from '@/hooks/useKnowledgeCenter';
+import { KnowledgeCenter, ContentType } from '@/types/knowledge-center';
 
 interface KnowledgeCardProps {
-  knowledge: Knowledge;
-  showActions?: boolean;
+  knowledge: KnowledgeCenter;
   className?: string;
 }
 
 export default function KnowledgeCard({
   knowledge,
-  showActions = true,
   className = ''
 }: KnowledgeCardProps) {
-  const { like, dislike, isLiking, isDisliking } = useKnowledgeInteraction();
   const [imageError, setImageError] = useState(false);
 
-  const handleLike = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (knowledge.id) {
-      like(knowledge.id);
-    }
-  };
-
-  const handleDislike = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (knowledge.id) {
-      dislike(knowledge.id);
-    }
-  };
-
   const getMediaIcon = () => {
-    if (knowledge.knowledge_type === 'webinar') {
+    if (knowledge.type === 'webinar') {
       return <Calendar className="w-4 h-4" />;
     }
 
-    const mediaType = (knowledge as any).media_type as MediaType;
-    switch (mediaType) {
+    const contentType = knowledge.knowledgeContent?.contentType as ContentType;
+    switch (contentType) {
       case 'video':
         return <Play className="w-4 h-4" />;
       case 'pdf':
         return <FileText className="w-4 h-4" />;
-      case 'audio':
+      case 'podcast':
         return <Headphones className="w-4 h-4" />;
       default:
         return <Package className="w-4 h-4" />;
@@ -110,17 +84,17 @@ export default function KnowledgeCard({
   };
 
   const getMediaColor = () => {
-    if (knowledge.knowledge_type === 'webinar') {
+    if (knowledge.type === 'webinar') {
       return 'bg-purple-100 text-purple-700 border-purple-200';
     }
 
-    const mediaType = (knowledge as any).media_type as MediaType;
-    switch (mediaType) {
+    const contentType = knowledge.knowledgeContent?.contentType as ContentType;
+    switch (contentType) {
       case 'video':
         return 'bg-red-100 text-red-700 border-red-200';
       case 'pdf':
         return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'audio':
+      case 'podcast':
         return 'bg-green-100 text-green-700 border-green-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -128,17 +102,17 @@ export default function KnowledgeCard({
   };
 
   const getMediaTypeLabel = () => {
-    if (knowledge.knowledge_type === 'webinar') {
+    if (knowledge.type === 'webinar') {
       return 'Webinar';
     }
 
-    const mediaType = (knowledge as any).media_type as MediaType;
-    switch (mediaType) {
+    const contentType = knowledge.knowledgeContent?.contentType as ContentType;
+    switch (contentType) {
       case 'video':
         return 'Video';
       case 'pdf':
         return 'PDF';
-      case 'audio':
+      case 'podcast':
         return 'Podcast';
       default:
         return 'Article';
@@ -146,17 +120,17 @@ export default function KnowledgeCard({
   };
 
   const getPlaceholderGradient = () => {
-    if (knowledge.knowledge_type === 'webinar') {
+    if (knowledge.type === 'webinar') {
       return 'from-purple-100 via-purple-200 to-purple-300';
     }
 
-    const mediaType = (knowledge as any).media_type as MediaType;
-    switch (mediaType) {
+    const contentType = knowledge.knowledgeContent?.contentType as ContentType;
+    switch (contentType) {
       case 'video':
         return 'from-red-100 via-red-200 to-red-300';
       case 'pdf':
         return 'from-blue-100 via-blue-200 to-blue-300';
-      case 'audio':
+      case 'podcast':
         return 'from-green-100 via-green-200 to-green-300';
       default:
         return 'from-gray-100 via-gray-200 to-gray-300';
@@ -164,27 +138,9 @@ export default function KnowledgeCard({
   };
 
   const isUpcomingWebinar =
-    knowledge.knowledge_type === 'webinar' &&
-    (knowledge as any).tgl_zoom &&
-    new Date((knowledge as any).tgl_zoom) > new Date();
-
-  const isPastWebinar =
-    knowledge.knowledge_type === 'webinar' &&
-    (knowledge as any).tgl_zoom &&
-    new Date((knowledge as any).tgl_zoom) <= new Date();
-
-  const formatWebinarDate = () => {
-    if (!(knowledge as any).tgl_zoom) return '';
-
-    const date = new Date((knowledge as any).tgl_zoom);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const hasZoomLink = knowledge.knowledge_type === 'webinar' && (knowledge as any).link_zoom;
+    knowledge.type === 'webinar' &&
+    knowledge.webinar?.zoomDate &&
+    new Date(knowledge.webinar.zoomDate) > new Date();
 
   return (
     <Link href={`/knowledge-center/${knowledge.id}`} className="block group h-full">
@@ -210,10 +166,10 @@ export default function KnowledgeCard({
               <div className="text-gray-600 opacity-70">
                 <div className="w-16 h-16 flex items-center justify-center">
                   {(() => {
-                    const Icon = knowledge.knowledge_type === 'webinar' ? Calendar :
-                                 (knowledge as any).media_type === 'video' ? Play :
-                                 (knowledge as any).media_type === 'pdf' ? FileText :
-                                 (knowledge as any).media_type === 'audio' ? Headphones : Package;
+                    const Icon = knowledge.type === 'webinar' ? Calendar :
+                                 knowledge.knowledgeContent?.contentType === 'video' ? Play :
+                                 knowledge.knowledgeContent?.contentType === 'pdf' ? FileText :
+                                 knowledge.knowledgeContent?.contentType === 'podcast' ? Headphones : Package;
                     return <Icon className="w-16 h-16" />;
                   })()}
                 </div>
@@ -255,7 +211,7 @@ export default function KnowledgeCard({
           </p>
 
           {/* Webinar Status - Only for webinars with date */}
-          {knowledge.knowledge_type === 'webinar' && (knowledge as any).tgl_zoom && (
+          {knowledge.type === 'webinar' && knowledge.webinar?.zoomDate && (
             <div className="mb-3">
               {isUpcomingWebinar ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-md">
@@ -271,25 +227,9 @@ export default function KnowledgeCard({
             </div>
           )}
 
-          {/* Tags - Fixed height */}
+          {/* Tags - Fixed height - Removed since KnowledgeCenter doesn't have tags field */}
           <div className="mb-3 min-h-[1.5rem]">
-            {knowledge.tags && knowledge.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {knowledge.tags.slice(0, 2).map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-                {knowledge.tags.length > 2 && (
-                  <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">
-                    +{knowledge.tags.length - 2}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Tags will be available when backend adds support for them */}
           </div>
 
           {/* Spacer to push footer to bottom */}
@@ -300,11 +240,11 @@ export default function KnowledgeCard({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <Eye className="w-3 h-3" />
-                <span>{knowledge.view_count}</span>
+                <span>{knowledge.viewCount}</span>
               </div>
               <div className="flex items-center gap-1">
                 <ThumbsUp className="w-3 h-3" />
-                <span>{knowledge.like_count}</span>
+                <span>{knowledge.likeCount}</span>
               </div>
             </div>
             <span className="text-gray-400 truncate max-w-[200px]">{knowledge.penyelenggara}</span>

@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { X, ChevronDown, Filter, Search } from 'lucide-react';
 import {
-  KnowledgeType,
-  MediaType,
+  ContentType,
   type KnowledgeFilters,
+  KNOWLEDGE_TYPES,
+  CONTENT_TYPES,
 } from '@/types/knowledge-center';
 import { useSubjects, usePenyelenggara } from '@/hooks/useKnowledgeCenter';
 import { useTags } from '@/hooks/useKnowledgeCenter';
@@ -58,15 +59,16 @@ export default function KnowledgeFilters({
     return value !== undefined && value !== '';
   });
 
-  const knowledgeTypes: { value: KnowledgeType; label: string }[] = [
-    { value: 'webinar', label: 'Webinar' },
-    { value: 'konten', label: 'Konten' },
+  const knowledgeTypes: { value: typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT; label: string }[] = [
+    { value: KNOWLEDGE_TYPES.WEBINAR, label: 'Webinar' },
+    { value: KNOWLEDGE_TYPES.CONTENT, label: 'Content' },
   ];
 
-  const mediaTypes: { value: MediaType; label: string }[] = [
-    { value: 'video', label: 'Video' },
-    { value: 'pdf', label: 'PDF' },
-    { value: 'audio', label: 'Podcast' },
+  const mediaTypes: { value: ContentType; label: string }[] = [
+    { value: CONTENT_TYPES.VIDEO, label: 'Video' },
+    { value: CONTENT_TYPES.PDF, label: 'PDF' },
+    { value: CONTENT_TYPES.PODCAST, label: 'Podcast' },
+    { value: CONTENT_TYPES.ARTICLE, label: 'Article' },
   ];
 
   const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -162,14 +164,14 @@ export default function KnowledgeFilters({
               </div>
             )}
 
-            {filters.knowledge_type?.map(type => (
+            {filters.knowledgeType?.map(type => (
               <div
                 key={type}
                 className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
               >
                 {knowledgeTypes.find(t => t.value === type)?.label}
                 <button
-                  onClick={() => handleArrayFilterChange('knowledge_type', type, false)}
+                  onClick={() => handleArrayFilterChange('knowledgeType', type, false)}
                   className="hover:text-blue-900"
                 >
                   <X className="w-3 h-3" />
@@ -177,14 +179,14 @@ export default function KnowledgeFilters({
               </div>
             ))}
 
-            {filters.media_type?.map(type => (
+            {filters.mediaType?.map(type => (
               <div
                 key={type}
                 className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm"
               >
                 {mediaTypes.find(t => t.value === type)?.label}
                 <button
-                  onClick={() => handleArrayFilterChange('media_type', type, false)}
+                  onClick={() => handleArrayFilterChange('mediaType', type, false)}
                   className="hover:text-green-900"
                 >
                   <X className="w-3 h-3" />
@@ -250,7 +252,7 @@ export default function KnowledgeFilters({
                 key={type.value}
                 id={`type-${type.value}`}
                 label={type.label}
-                checked={filters.knowledge_type?.includes(type.value) || false}
+                checked={filters.knowledgeType?.includes(type.value) || false}
                 onChange={(checked) =>
                   handleArrayFilterChange('knowledge_type', type.value, checked)
                 }
@@ -265,7 +267,7 @@ export default function KnowledgeFilters({
                 key={type.value}
                 id={`media-${type.value}`}
                 label={type.label}
-                checked={filters.media_type?.includes(type.value) || false}
+                checked={filters.mediaType?.includes(type.value) || false}
                 onChange={(checked) =>
                   handleArrayFilterChange('media_type', type.value, checked)
                 }

@@ -1,36 +1,47 @@
-'use client';
+/**
+ * Basic Info Form - Clean Implementation with TanStack Form Best Practices
+ *
+ * Key improvements:
+ * - Native Zod validation integration
+ * - No duplicate state management
+ * - Clean, readable component structure
+ * - Proper TypeScript typing
+ * - Optimized rendering performance
+ */
 
-import React, { useState } from 'react';
-import { User, Upload, X, Settings } from 'lucide-react';
-import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
-import { Subject, Penyelenggara, KnowledgeSubject } from '@/api/knowledge';
-import SubjectManager from './SubjectManager';
+"use client";
+
+import React, { useState } from "react";
+import { User, X, Settings } from "lucide-react";
+import type { UseKnowledgeWizardFormReturn } from "@/hooks/useKnowledgeWizardForm";
+import { Dropdown } from "@/components/ui/Dropdown/Dropdown";
+import type { Penyelenggara } from "@/types/knowledge-center";
+import type { KnowledgeSubject } from "@/types/knowledge-subject";
+import {
+  EnhancedFormInput,
+  FormTextarea,
+  FormFileUpload,
+  FormInput,
+  getErrorMessage,
+  FormDropdown,
+} from "@/lib/validation/form-utils";
+import SubjectManager from "./SubjectManagerTanStack";
+import {
+  basicInfoSchema,
+  imageFileValidator,
+} from "@/lib/validation/knowledge-schemas";
+import { FieldApi } from "@tanstack/react-form";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface BasicInfoFormProps {
-  formData: {
-    title: string;
-    description: string;
-    subject: string;
-    penyelenggara: string;
-    author: string;
-    published_at: string;
-    tags: string[];
-    thumbnail?: string;
-  };
-  thumbnailPreview: string | null;
-  currentTagInput: string;
-  isUploadingThumbnail?: boolean;
-  subjects: (Subject | KnowledgeSubject)[];
+  wizard: UseKnowledgeWizardFormReturn;
+  subjects: KnowledgeSubject[];
   penyelenggara: Penyelenggara[];
-  errors: Record<string, string>;
-  onFieldChange: (field: string, value: unknown) => void;
-  onThumbnailSelect: (file: File) => void;
-  onThumbnailRemove: () => void;
-  onTagInput: (value: string) => void;
-  onAddTag: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onRemoveTag: (tag: string) => void;
-  onSubjectAdd?: (subject: { name: string; icon?: string }) => void;
-  onSubjectUpdate?: (id: string, subject: { name?: string; icon?: string }) => void;
+  onSubjectAdd?: (subject: KnowledgeSubject) => void;
+  onSubjectUpdate?: (id: string, subject: Partial<KnowledgeSubject>) => void;
   onSubjectDelete?: (id: string) => void;
   isSubjectManagementPending?: {
     adding: boolean;
@@ -39,264 +50,236 @@ interface BasicInfoFormProps {
   };
 }
 
+// ============================================================================
+// Component
+// ============================================================================
+
 export default function BasicInfoForm({
-  formData,
-  thumbnailPreview,
-  currentTagInput,
-  isUploadingThumbnail = false,
+  wizard,
   subjects,
   penyelenggara,
-  errors,
-  onFieldChange,
-  onThumbnailSelect,
-  onThumbnailRemove,
-  onTagInput,
-  onAddTag,
-  onRemoveTag,
   onSubjectAdd,
   onSubjectUpdate,
   onSubjectDelete,
-  isSubjectManagementPending = { adding: false, updating: false, deleting: false },
+  isSubjectManagementPending = {
+    adding: false,
+    updating: false,
+    deleting: false,
+  },
 }: BasicInfoFormProps) {
   const [showSubjectManager, setShowSubjectManager] = useState(false);
+
+  const { form, thumbnailPreview, currentTagInput, currentTags } = wizard;
+  const { handleThumbnailSelect, handleThumbnailRemove, setCurrentTagInput } =
+    wizard;
+  const { handleAddTag, handleRemoveTag } = wizard;
+
   return (
     <div className="space-y-5">
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Title <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Enter a clear, descriptive title"
-          value={formData.title}
-          onChange={(e) => onFieldChange('title', e.target.value)}
-          className={`w-full px-4 h-12 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 ${
-            errors.title ? 'border-red-500' : 'border-[var(--border,rgba(0,0,0,0.12))]'
-          }`}
-        />
-        {errors.title && (
-          <p className="text-red-600 text-xs mt-1.5">{errors.title}</p>
+      {/* Title Field with Zod Validation */}
+      <form.Field
+        name="title"
+        validators={{
+          onChange: basicInfoSchema.shape.title,
+          onBlur: basicInfoSchema.shape.title,
+        }}
+      >
+        {(field) => (
+          <FormInput
+            field={field}
+            label="Title"
+            placeholder="Enter a clear, descriptive title"
+            required
+          />
         )}
-      </div>
+      </form.Field>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Description <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          placeholder="Describe what learners will gain from this content"
-          value={formData.description}
-          onChange={(e) => onFieldChange('description', e.target.value)}
-          rows={4}
-          className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 resize-y min-h-[48px] max-h-[200px] scrollbar-thin scrollbar-track-gray-50 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full ${
-            errors.description ? 'border-red-500' : 'border-[var(--border,rgba(0,0,0,0.12))]'
-          }`}
-        />
-        {errors.description && (
-          <p className="text-red-600 text-xs mt-1.5">{errors.description}</p>
+      {/* Description Field with Zod Validation */}
+      <form.Field
+        name="description"
+        validators={{
+          onChange: basicInfoSchema.shape.description,
+          onBlur: basicInfoSchema.shape.description,
+        }}
+      >
+        {(field) => (
+          <FormTextarea
+            field={field}
+            label="Description"
+            placeholder="Describe what learners will gain from this content"
+            required
+          />
         )}
-      </div>
+      </form.Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Organizer <span className="text-red-500">*</span>
-          </label>
-          <Dropdown
-            items={penyelenggara.map((p) => ({
-              value: p.name,
-              label: p.name,
-            }))}
-            value={formData.penyelenggara}
-            onChange={(value) => onFieldChange('penyelenggara', value)}
-            placeholder="Select organizer"
-            error={!!errors.penyelenggara}
-            size="lg"
-            variant="solid"
-            className="w-full"
-          />
-          {errors.penyelenggara && (
-            <p className="text-red-600 text-xs mt-1.5">{errors.penyelenggara}</p>
+        {/* Organizer Field with Zod Validation */}
+        <form.Field
+          name="penyelenggara"
+          validators={{
+            onChange: basicInfoSchema.shape.penyelenggara,
+            onBlur: basicInfoSchema.shape.penyelenggara,
+          }}
+        >
+          {(field) => (
+            <FormDropdown
+              field={field}
+              label="Organizer"
+              placeholder="Select organizer"
+              options={penyelenggara.map((p) => ({
+                value: p.name,
+                label: p.name,
+              }))}
+              required
+            />
           )}
-        </div>
+        </form.Field>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Author <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <User className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
+        {/* Author Field with Zod Validation */}
+        <form.Field
+          name="createdBy"
+          validators={{
+            onChange: basicInfoSchema.shape.createdBy,
+            onBlur: basicInfoSchema.shape.createdBy,
+          }}
+        >
+          {(field) => (
+            <FormInput
+              field={field}
+              label="Author"
               placeholder="Enter author name"
-              value={formData.author}
-              onChange={(e) => onFieldChange('author', e.target.value)}
-              className={`w-full pl-10 pr-4 h-12 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 ${
-                errors.author ? 'border-red-500' : 'border-[var(--border,rgba(0,0,0,0.12))]'
-              }`}
+              required
+              icon={<User className="w-4 h-4 text-gray-400" />}
             />
-          </div>
-          {errors.author && (
-            <p className="text-red-600 text-xs mt-1.5">{errors.author}</p>
           )}
-        </div>
+        </form.Field>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-900">
-              Subject <span className="text-red-500">*</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => setShowSubjectManager(!showSubjectManager)}
-              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+        {/* Subject Field with Zod Validation */}
+        <form.Field
+          name="idSubject"
+          validators={{
+            onChange: basicInfoSchema.shape.idSubject,
+            onBlur: basicInfoSchema.shape.idSubject,
+          }}
+        >
+          {(field) => (
+            <FormDropdown
+              field={field}
+              label="Subject"
+              placeholder="Select subject"
+              options={subjects.map((s) => ({
+                value: s.id,
+                label: s.name,
+              }))}
+              required
+              actionButton={
+                <button
+                  type="button"
+                  onClick={() => setShowSubjectManager(!showSubjectManager)}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  <Settings className="w-3 h-3" />
+                  Manage Subjects
+                </button>
+              }
             >
-              <Settings className="w-3 h-3" />
-              Manage Subjects
-            </button>
-          </div>
-          <Dropdown
-            items={subjects.map((s) => ({
-              value: s.name,
-              label: s.name,
-            }))}
-            value={formData.subject}
-            onChange={(value) => onFieldChange('subject', value)}
-            placeholder="Select subject"
-            error={!!errors.subject}
-            size="lg"
-            variant="solid"
-            className="w-full"
-          />
-          {errors.subject && (
-            <p className="text-red-600 text-xs mt-1.5">{errors.subject}</p>
-          )}
-
-          {/* Subject Manager */}
-          {showSubjectManager && onSubjectAdd && onSubjectUpdate && onSubjectDelete && (
-            <div className="mt-3">
-              <SubjectManager
-                subjects={subjects.filter(s => 'id' in s && 'createdAt' in s) as KnowledgeSubject[]}
-                onSubjectAdd={onSubjectAdd}
-                onSubjectUpdate={onSubjectUpdate}
-                onSubjectDelete={onSubjectDelete}
-                isAdding={isSubjectManagementPending.adding}
-                isUpdating={isSubjectManagementPending.updating}
-                isDeleting={isSubjectManagementPending.deleting}
-              />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Published Date
-          </label>
-          <input
-            type="datetime-local"
-            value={
-              formData.published_at
-                ? new Date(formData.published_at).toISOString().slice(0, 16)
-                : ''
-            }
-            onChange={(e) => onFieldChange('published_at', e.target.value)}
-            className="w-full px-4 h-12 border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Thumbnail <span className="text-red-500">*</span>
-        </label>
-        {thumbnailPreview ? (
-          <div className="relative border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden bg-gray-50">
-            <img
-              src={thumbnailPreview}
-              alt="Thumbnail preview"
-              className="w-full h-64 object-cover"
-            />
-            <button
-              onClick={onThumbnailRemove}
-              className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-lg"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-              <p className="text-white text-sm font-medium truncate">
-                {formData.thumbnail?.name}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white ${
-            isUploadingThumbnail
-              ? 'border-yellow-400 bg-yellow-50'
-              : 'border-gray-300 hover:border-blue-400'
-          }`}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onThumbnailSelect(file);
-              }}
-              className="hidden"
-              id="thumbnail-upload"
-              disabled={isUploadingThumbnail}
-            />
-            <label
-              htmlFor="thumbnail-upload"
-              className={`block text-center ${isUploadingThumbnail ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
-                isUploadingThumbnail
-                  ? 'bg-yellow-100'
-                  : 'bg-gray-100'
-              }`}>
-                {isUploadingThumbnail ? (
-                  <div className="w-7 h-7 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Upload className="w-7 h-7 text-gray-600" />
+              {/* Subject Manager */}
+              {showSubjectManager &&
+                onSubjectAdd &&
+                onSubjectUpdate &&
+                onSubjectDelete && (
+                  <div className="mt-3">
+                    <SubjectManager
+                      subjects={subjects}
+                      onSubjectAdd={(subject) =>
+                        onSubjectAdd({
+                          ...subject,
+                          id: "",
+                          icon: subject.icon || "",
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                        })
+                      }
+                      onSubjectUpdate={onSubjectUpdate}
+                      onSubjectDelete={onSubjectDelete}
+                      isAdding={isSubjectManagementPending.adding}
+                      isUpdating={isSubjectManagementPending.updating}
+                      isDeleting={isSubjectManagementPending.deleting}
+                    />
+                  </div>
                 )}
-              </div>
-              <p className={`text-base font-medium mb-1 ${
-                isUploadingThumbnail
-                  ? 'text-yellow-700'
-                  : 'text-gray-900'
-              }`}>
-                {isUploadingThumbnail ? 'Uploading...' : 'Upload Thumbnail'}
-              </p>
-              <p className="text-sm text-gray-500">
-                PNG, JPG, JPEG up to 10MB • Recommended size: 1200x630px
-              </p>
-            </label>
-          </div>
-        )}
-        {errors.thumbnail && (
-          <p className="text-red-600 text-xs mt-1.5">{errors.thumbnail}</p>
-        )}
+            </FormDropdown>
+          )}
+        </form.Field>
+
+        {/* Published Date Field with Zod Validation */}
+        <form.Field
+          name="publishedAt"
+          validators={{
+            onChange: basicInfoSchema.shape.publishedAt,
+            onBlur: basicInfoSchema.shape.publishedAt,
+          }}
+        >
+          {(field) => (
+            <FormInput
+              field={field as any}
+              label="Published Date"
+              type="datetime-local"
+            />
+          )}
+        </form.Field>
       </div>
 
+      {/* Thumbnail Field with Zod Validation */}
+      <form.Field
+        name="thumbnail"
+        validators={{
+          onChange: imageFileValidator,
+          onBlur: imageFileValidator,
+        }}
+      >
+        {(field) => (
+          <FormFileUpload
+            field={field as any}
+            label="Thumbnail"
+            accept="image/*"
+            maxSize={20 * 1024 * 1024}
+            required
+            previewUrl={thumbnailPreview || ""}
+            recommendations={{
+              minWidth: 800,
+              minHeight: 450,
+              aspectRatio: "16:9",
+              formats: ["JPEG", "PNG", "WebP"],
+              optimalSize: "1200x675px (16:9 ratio)",
+            }}
+            onRemove={() => {
+              handleThumbnailRemove();
+              field.handleChange(undefined as any);
+            }}
+            onThumbnailSelect={handleThumbnailSelect}
+          />
+        )}
+      </form.Field>
+
+      {/* Tags Field - Custom Implementation */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-2">
           Tags
         </label>
-        <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg p-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all scrollbar-thin scrollbar-track-gray-50 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full max-h-[120px] overflow-y-auto">
-          {formData.tags && formData.tags.length > 0 && (
+        <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg p-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all max-h-[120px] overflow-y-auto">
+          {currentTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {formData.tags?.map((tag, index) => (
+              {currentTags.map((tag, index) => (
                 <span
                   key={index}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all"
                 >
                   <span>#{tag}</span>
                   <button
-                    onClick={() => onRemoveTag(tag)}
+                    onClick={() => handleRemoveTag(tag)}
                     className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
                     type="button"
                   >
@@ -310,12 +293,17 @@ export default function BasicInfoForm({
           <input
             type="text"
             value={currentTagInput}
-            onChange={(e) => onTagInput(e.target.value)}
-            onKeyDown={onAddTag}
+            onChange={(e) => setCurrentTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                handleAddTag();
+              }
+            }}
             placeholder={
-              (!formData.tags || formData.tags.length === 0)
-                ? 'Type a tag and press Enter or comma'
-                : 'Add another tag...'
+              currentTags.length === 0
+                ? "Type a tag and press Enter or comma"
+                : "Add another tag..."
             }
             className="w-full h-12 px-4 outline-none text-gray-900 placeholder:text-gray-400 text-sm"
           />

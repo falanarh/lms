@@ -5,19 +5,19 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search, BookOpen } from 'lucide-react';
 import { KnowledgeCard, Subject } from '@/components/knowledge-center';
 import { Pagination } from '@/components/shared/Pagination/Pagination';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Input } from '@/components/ui/Input/Input';
-import { useKnowledgeGrid } from '@/hooks/useKnowledge';
-import { SortOption } from '@/types/knowledge-center';
+import { useKnowledge } from '@/hooks/useKnowledgeCenter';
+import { SortOption, KnowledgeQueryParams, SORT_OPTIONS, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 
 interface KnowledgeGridProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  selectedType: 'webinar' | 'konten' | 'all';
+  selectedType: typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT | 'all';
   selectedSubject: string;
   onSubjectChange: (subject: string) => void;
   sortBy: SortOption;
@@ -35,27 +35,30 @@ export default function KnowledgeGrid({
 }: KnowledgeGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Build query params for API
+  const queryparams: KnowledgeQueryParams = useMemo(() => ({
+    search: searchQuery || undefined,
+    knowledgeType: selectedType !== 'all' ? [selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT] : undefined,
+    subject: selectedSubject !== 'all' ? [selectedSubject] : undefined,
+    sort: sortBy,
+    page: currentPage,
+    limit: 12,
+  }), [searchQuery, selectedType, selectedSubject, sortBy, currentPage]);
+
   const {
     data: knowledgeItems,
     isLoading,
     error,
     total,
     totalPages,
-  } = useKnowledgeGrid({
-    search: searchQuery || undefined,
-    knowledge_type: selectedType !== 'all' ? [selectedType as 'webinar' | 'konten'] : undefined,
-    subject: selectedSubject !== 'all' ? [selectedSubject] : undefined,
-    sort: sortBy,
-    page: currentPage,
-    limit: 12,
-  });
+  } = useKnowledge(queryparams);
 
   const sortOptions = [
-    { value: 'newest', label: 'Recently Added' },
-    { value: 'most_liked', label: 'Most Popular' },
-    { value: 'most_viewed', label: 'Most Viewed' },
-    { value: 'upcoming_webinar', label: 'Upcoming Events' },
-    { value: 'popular', label: 'Trending Now' },
+    { value: SORT_OPTIONS.NEWEST, label: 'Recently Added' },
+    { value: SORT_OPTIONS.MOST_LIKED, label: 'Most Popular' },
+    { value: SORT_OPTIONS.MOST_VIEWED, label: 'Most Viewed' },
+    { value: SORT_OPTIONS.UPCOMING_WEBINAR, label: 'Upcoming Events' },
+    { value: SORT_OPTIONS.POPULAR, label: 'Trending Now' },
   ];
 
   const sortDropdownItems = sortOptions.map((option) => ({

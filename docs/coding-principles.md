@@ -292,6 +292,254 @@ export default function ForumPage() {
 }
 ```
 
+## 11. Type System Principles
+
+### 🎯 Filosofi Tipe: API-First TypeScript
+
+**Desain Principle**: **100% API Types - Tanpa Custom Wrapper Types**
+
+Semua types harus mencerminkan struktur API persis tanpa transformasi. Frontend dan backend harus menggunakan struktur identik.
+
+### ✅ Aturan Type System
+
+#### 1. **No Custom Wrapper Types**
+- ❌ **DILARANG**: Membuat tipe wrapper seperti `KnowledgeCommon`, `Webinar`, `Konten`
+- ✅ **WAJIB**: Gunakan tipe API langsung: `KnowledgeCenter`, `KnowledgeWebinar`, `KnowledgeContent`
+- **Alasan**: Menghindari transformasi data dan overhead mapping
+
+#### 2. **Structure Alignment**
+```typescript
+// ✅ Benar: Langsung dari API structure
+export interface KnowledgeCenter {
+  id: string;
+  createdBy: string;
+  idSubject: string;
+  title: string;
+  // ... sesuai API response
+}
+
+// ❌ Salah: Custom wrapper
+interface KnowledgeCommon {
+  data: KnowledgeCenter; // Tidak perlu wrapper
+  metadata: KnowledgeMeta; // Tidak perlu extra layer
+}
+```
+
+#### 3. **Generic API Response Types**
+Gunakan tipe response generik yang reusable:
+```typescript
+// ✅ Benar: Generic response types
+export type KnowledgeListResponse = PaginatedApiResponse<KnowledgeCenter>;
+export type KnowledgeDetailResponse = ApiResponse<KnowledgeCenter>;
+
+// ❌ Salah: Specific response types
+interface KnowledgeListResponse {
+  success: boolean;
+  data: KnowledgeCenter[];
+  // ... duplikasi structure
+}
+```
+
+### 🏗️ Type Structure Hierarchy
+
+#### **Layer 1: Base Types**
+```typescript
+export type KnowledgeType = 'webinar' | 'content';
+export type ContentType = 'video' | 'file' | 'podcast' | 'article';
+export type KnowledgeStatus = 'draft' | 'scheduled' | 'published' | 'archived';
+```
+
+#### **Layer 2: Entity Types**
+```typescript
+// 100% API structure
+export interface KnowledgeCenter {
+  id: string;
+  createdBy: string;
+  idSubject: string;
+  subject?: string; // API response field
+  title: string;
+  webinar?: KnowledgeWebinar | null;
+  knowledgeContent?: KnowledgeContent | null;
+}
+```
+
+#### **Layer 3: Request/Response Types**
+```typescript
+// API request types
+export type CreateKnowledgeCenterRequest = Omit<KnowledgeCenter, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateKnowledgeCenterRequest = Partial<CreateKnowledgeCenterRequest>;
+
+// Generic response types
+export type KnowledgeListResponse = PaginatedApiResponse<KnowledgeCenter>;
+```
+
+#### **Layer 4: Component Props**
+```typescript
+// Langsung gunakan API types
+export interface KnowledgeCardProps {
+  knowledge: KnowledgeCenter; // 100% API type
+  showActions?: boolean;
+}
+```
+
+### 🚀 Benefits Approach
+
+#### **Zero Transformation Overhead**
+```typescript
+// ✅ Benar: Direct API data usage
+const { data: knowledge } = useKnowledgeDetail(id);
+return <KnowledgeCard knowledge={knowledge} />; // Langsung passing
+
+// ❌ Salah: Transformasi tidak perlu
+const transformedData = transformApiData(knowledge); // Tidak perlu!
+return <KnowledgeCard knowledge={transformedData} />;
+```
+
+#### **Perfect Type Safety**
+```typescript
+// ✅ Compile-time error saat API berubah
+const { data: knowledge } = useQuery(['knowledge'], fetchKnowledge);
+knowledge.newField; // Error jika field tidak ada di API
+```
+
+### 📁 File Organization
+
+#### **Domain-Based Type Files**
+```
+src/types/
+├── api-response.ts          # Generic API response types (reusable)
+├── knowledge-center.ts      # Knowledge Center domain types
+├── knowledge-subject.ts     # Knowledge Subject domain types
+├── index.ts                 # Barrel exports
+└── forum.ts                 # Forum domain types
+```
+
+#### **Principle Separation**
+- **api-response.ts**: Generic types reusable across domains
+- **Domain files**: Specific types untuk setiap entitas domain
+- **index.ts**: Centralized exports untuk clean imports
+
+### 🔧 Type Patterns
+
+#### **1. Constants for Type Safety**
+```typescript
+export const KNOWLEDGE_TYPES = {
+  WEBINAR: 'webinar' as const,
+  CONTENT: 'content' as const,
+} as const;
+
+// Usage dengan type safety
+function handleKnowledgeType(type: KnowledgeType) {
+  if (type === KNOWLEDGE_TYPES.WEBINAR) {
+    // Type narrowing otomatis
+  }
+}
+```
+
+#### **2. Generic Response Composition**
+```typescript
+// ✅ Benar: Generic composition
+export type KnowledgeSubjectsResponse = PaginatedApiResponse<KnowledgeSubject>;
+
+// ✅ Benar: Specialized response types
+export type SearchResponse<T> = ApiResponse<T> & {
+  searchMeta: SearchMetadata;
+};
+```
+
+#### **3. Form Data Types**
+```typescript
+// ✅ Benar: Separate form data from API types
+export interface CreateKnowledgeFormData {
+  // API fields
+  title: string;
+  description: string;
+
+  // UI-only fields
+  thumbnail?: File | string; // Bisa File object atau URL string
+  tags?: string[]; // Display only, API belum support
+
+  // Optional API fields dengan validasi form
+  webinar?: Partial<KnowledgeWebinar>;
+}
+```
+
+### ⚡ Implementation Examples
+
+#### **Complete Type Flow**
+```typescript
+// 1. API Layer
+export interface KnowledgeCenter {
+  id: string;
+  title: string;
+  // ... 100% API structure
+}
+
+// 2. Hook Layer
+export function useKnowledgeList(params: KnowledgeQueryParams) {
+  return useQuery({
+    queryKey: ['knowledge', params],
+    queryFn: () => knowledgeApi.getList(params),
+  });
+}
+
+// 3. Component Layer
+export default function KnowledgePage() {
+  const { data: knowledgeList } = useKnowledgeList({ subject: ['tech'] });
+
+  return (
+    <KnowledgeGrid>
+      {knowledgeList?.data.map(knowledge => (
+        <KnowledgeCard key={knowledge.id} knowledge={knowledge} />
+      ))}
+    </KnowledgeGrid>
+  );
+}
+```
+
+#### **Error Handling Types**
+```typescript
+// ✅ Benar: Generic error handling
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public data?: any
+  ) {
+    super(message);
+  }
+}
+
+// Usage dalam hooks
+export function useKnowledgeDetail(id: string) {
+  return useQuery({
+    queryKey: ['knowledge', id],
+    queryFn: () => knowledgeApi.getById(id),
+    onError: (error) => {
+      if (error instanceof ApiError) {
+        // Type-safe error handling
+      }
+    },
+  });
+}
+```
+
+### 🎯 Type Quality Checklist
+
+#### **Sebelum Commit Type Definitions:**
+- [ ] Tipe mencerminkan 100% struktur API
+- [ ] Tidak ada custom wrapper types
+- [ ] Gunakan generic response types untuk konsistensi
+- [ ] Export types dengan proper naming
+- [ ] Include proper JSDoc comments untuk complex types
+- [ ] Separate domain types ke dedicated files
+
+#### **Runtime Type Safety:**
+- [ ] Gunakan type guards untuk API response validation
+- [ ] Handle optional fields dengan proper null checks
+- [ ] Implement proper error types untuk API failures
+- [ ] Validate form data sebelum API calls
+
 ---
 
 **Ingat**: Kode yang baik adalah kode yang sederhana, mudah dipahami, dan efektif menyelesaikan masalah.

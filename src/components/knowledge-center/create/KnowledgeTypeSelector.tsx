@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { Calendar, FileText, Check } from 'lucide-react';
-import { KnowledgeType } from '@/types/knowledge-center';
+import { KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 
 interface KnowledgeTypeSelectorProps {
-  selectedType: KnowledgeType | undefined;
-  onTypeSelect: (type: KnowledgeType) => void;
+  selectedType: typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT | undefined;
+  onTypeSelect: (type: typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT) => void;
   error?: string;
 }
 
@@ -19,9 +19,9 @@ export default function KnowledgeTypeSelector({
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <button
-          onClick={() => onTypeSelect('webinar')}
+          onClick={() => onTypeSelect(KNOWLEDGE_TYPES.WEBINAR)}
           className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left ${
-            selectedType === 'webinar'
+            selectedType === KNOWLEDGE_TYPES.WEBINAR
               ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50'
               : 'border-[var(--border,rgba(0,0,0,0.12))] hover:border-green-300 bg-white'
           }`}
@@ -62,23 +62,23 @@ export default function KnowledgeTypeSelector({
         </button>
 
         <button
-          onClick={() => onTypeSelect('konten')}
+          onClick={() => onTypeSelect(KNOWLEDGE_TYPES.CONTENT)}
           className={`group relative p-8 rounded-xl border-2 transition-all duration-200 text-left ${
-            selectedType === 'konten'
+            selectedType === KNOWLEDGE_TYPES.CONTENT
               ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50'
               : 'border-[var(--border,rgba(0,0,0,0.12))] hover:border-blue-300 bg-white'
           }`}
         >
           <div
             className={`w-12 h-12 rounded-lg flex items-center justify-center mb-5 transition-colors ${
-              selectedType === 'konten'
+              selectedType === KNOWLEDGE_TYPES.CONTENT
                 ? 'bg-gradient-to-br from-blue-500 to-cyan-600'
                 : 'bg-gray-100 group-hover:bg-blue-50'
             }`}
           >
             <FileText
               className={`w-6 h-6 ${
-                selectedType === 'konten' ? 'text-white' : 'text-gray-700 group-hover:text-blue-600'
+                selectedType === KNOWLEDGE_TYPES.CONTENT ? 'text-white' : 'text-gray-700 group-hover:text-blue-600'
               }`}
             />
           </div>
@@ -97,7 +97,7 @@ export default function KnowledgeTypeSelector({
               Audio
             </span>
           </div>
-          {selectedType === 'konten' && (
+          {selectedType === KNOWLEDGE_TYPES.CONTENT && (
             <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
               <Check className="w-4 h-4 text-white" />
             </div>

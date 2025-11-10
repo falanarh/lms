@@ -6,22 +6,10 @@ import {
   ChevronUp,
   ChevronDown,
   SearchX,
-  BookOpen,
-  Database,
-  BarChart3,
-  Globe,
-  Briefcase,
-  GraduationCap,
-  Lightbulb,
-  Target,
-  Cpu,
-  Building2,
-  MapPin,
-  Users2,
-  LayoutGrid,
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input/Input';
-import { useKnowledgeSubjects } from '@/hooks/useKnowledge';
+import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
+import { Icon, IconName } from '../ui/icon-picker';
 
 interface SubjectProps {
   selectedSubject: string;
@@ -40,33 +28,33 @@ export default function Subject({
   const containerRef = useRef<HTMLDivElement>(null);
   const { subjects, isLoading } = useKnowledgeSubjects();
 
-  const getSubjectIconByName = (subjectName: string) => {
-    if (subjectName === 'all') return LayoutGrid;
+  // const getSubjectIconByName = (subjectName: string) => {
+  //   if (subjectName === 'all') return LayoutGrid;
 
-    const name = subjectName.toLowerCase();
-    if (name.includes('statistik') || name.includes('data') || name.includes('database')) return Database;
-    if (name.includes('ekonomi') || name.includes('business') || name.includes('finance')) return BarChart3;
-    if (name.includes('global') || name.includes('internasional') || name.includes('dunia')) return Globe;
-    if (name.includes('kerja') || name.includes('pekerjaan') || name.includes('karir')) return Briefcase;
-    if (name.includes('pelatihan') || name.includes('education') || name.includes('belajar')) return GraduationCap;
-    if (name.includes('inovasi') || name.includes('teknologi') || name.includes('riset')) return Lightbulb;
-    if (name.includes('target') || name.includes('goal') || name.includes('sasaran')) return Target;
-    if (name.includes('sistem') || name.includes('komputer') || name.includes('it')) return Cpu;
-    if (name.includes('organisasi') || name.includes('instansi') || name.includes('lembaga')) return Building2;
-    if (name.includes('wilayah') || name.includes('daerah') || name.includes('regional')) return MapPin;
-    if (name.includes('sosial') || name.includes('masyarakat') || name.includes('people')) return Users2;
-    return BookOpen;
-  };
+  //   const name = subjectName.toLowerCase();
+  //   if (name.includes('statistik') || name.includes('data') || name.includes('database')) return Database;
+  //   if (name.includes('ekonomi') || name.includes('business') || name.includes('finance')) return BarChart3;
+  //   if (name.includes('global') || name.includes('internasional') || name.includes('dunia')) return Globe;
+  //   if (name.includes('kerja') || name.includes('pekerjaan') || name.includes('karir')) return Briefcase;
+  //   if (name.includes('pelatihan') || name.includes('education') || name.includes('belajar')) return GraduationCap;
+  //   if (name.includes('inovasi') || name.includes('teknologi') || name.includes('riset')) return Lightbulb;
+  //   if (name.includes('target') || name.includes('goal') || name.includes('sasaran')) return Target;
+  //   if (name.includes('sistem') || name.includes('komputer') || name.includes('it')) return Cpu;
+  //   if (name.includes('organisasi') || name.includes('instansi') || name.includes('lembaga')) return Building2;
+  //   if (name.includes('wilayah') || name.includes('daerah') || name.includes('regional')) return MapPin;
+  //   if (name.includes('sosial') || name.includes('masyarakat') || name.includes('people')) return Users2;
+  //   return BookOpen;
+  // };
 
-const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
-    // Use icon from API if available, fallback to name-based logic
-    if (subjectIcon && subjectIcon.trim()) {
-      // For now, use name-based logic even with icon from API
-      // In the future, you could map icon strings to Lucide icons here
-      return getSubjectIconByName(subjectName);
-    }
-    return getSubjectIconByName(subjectName);
-  };
+// const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
+//     // Use icon from API if available, fallback to name-based logic
+//     if (subjectIcon && subjectIcon.trim()) {
+//       // For now, use name-based logic even with icon from API
+//       // In the future, you could map icon strings to Lucide icons here
+//       return getSubjectIconByName(subjectName);
+//     }
+//     return getSubjectIconByName(subjectName);
+//   };
 
   const subjectOptions = useMemo(() => {
     // Get unique subjects from API data
@@ -82,12 +70,11 @@ const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return [
-      { value: 'all', label: 'All Subjects', icon: LayoutGrid },
+      { value: 'all', label: 'All Subjects', icon: <Icon name='layout-grid' /> },
       ...uniqueSubjects.map((subject) => ({
         value: subject.name,
         label: subject.name,
-        icon: getSubjectIcon(subject.name, subject.icon),
-        // Store original subject data for future use
+        icon: <Icon name={(subject.icon as IconName)} />,
         originalSubject: subject,
       })),
     ];
@@ -291,8 +278,6 @@ const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
               const inactiveClasses =
                 'text-gray-600 border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white';
 
-              const IconComponent = subject.icon;
-
               return (
                 <button
                   key={subject.value}
@@ -302,7 +287,7 @@ const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
                     isActive ? activeClasses : inactiveClasses
                   }`}
                 >
-                  <IconComponent className="w-4 h-4" />
+                  {subject.icon}
                   <span>{subject.label}</span>
                 </button>
               );

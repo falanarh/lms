@@ -294,7 +294,7 @@ export const getDiscussionsByForum = async (forumId: string, sortBy: 'latest' | 
       throw new Error(response.data.message || "Failed to fetch discussions");
     }
 
-    let data = response.data.data;
+    const data = response.data.data;
 
     // Sort discussions based on sortBy parameter
     if (sortBy === 'latest') {
@@ -345,7 +345,7 @@ export const getTopicsQueryOptions = (forumId?: string) => {
 export const useCreateTopic = () => {
   return useMutation({
     mutationFn: createTopic,
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Topic created successfully
     },
     onError: (error) => {
@@ -358,7 +358,7 @@ export const useVoteDiscussion = () => {
   return useMutation({
     mutationFn: ({ discussionId, voteData }: { discussionId: string; voteData: VoteRequest }) =>
       voteDiscussion(discussionId, voteData),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Vote successful
     },
     onError: (error) => {
@@ -371,7 +371,7 @@ export const useVoteTopic = () => {
   return useMutation({
     mutationFn: ({ topicId, voteData }: { topicId: string; voteData: TopicVoteRequest }) =>
       voteTopic(topicId, voteData),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Topic vote successful
     },
     onError: (error) => {
@@ -384,7 +384,7 @@ export const useEditDiscussion = () => {
   return useMutation({
     mutationFn: ({ discussionId, editData }: { discussionId: string; editData: EditDiscussionRequest }) =>
       editDiscussion(discussionId, editData),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Discussion edited successfully
     },
     onError: (error) => {

@@ -3,17 +3,16 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bookmark, Share2 } from 'lucide-react';
-import { Knowledge } from '@/types/knowledge-center';
+import { KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailHeaderProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter;
   isBookmarked: boolean;
   onBookmark: () => void;
   onShare: () => void;
 }
 
 export default function KnowledgeDetailHeader({
-  knowledge,
   isBookmarked,
   onBookmark,
   onShare,

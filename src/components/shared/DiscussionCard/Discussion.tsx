@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ThumbsUp, ThumbsDown, Edit2, MoreVertical, Trash2, X, Check } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Edit2, MoreVertical, Trash2 } from "lucide-react";
 import type { Discussion as DiscussionType } from "./Topic";
 import { Button } from "../../ui/Button";
 import { Textarea } from "../../ui/Textarea";

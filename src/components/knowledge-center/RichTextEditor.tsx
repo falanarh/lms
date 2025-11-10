@@ -17,7 +17,6 @@ import {
   Heading3,
 } from 'lucide-react';
 import { RichTextEditorProps } from '@/types/knowledge-center';
-import { useKnowledgeSettings } from '@/hooks/useKnowledgeCenter';
 
 // Basic rich text editor implementation using contentEditable
 // In production, consider using a library like TipTap, Quill, or Mantine RTE
@@ -30,7 +29,6 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const { settings } = useKnowledgeSettings();
 
   // Update editor content when value changes
   useEffect(() => {
@@ -38,13 +36,6 @@ export default function RichTextEditor({
       editorRef.current.innerHTML = value;
     }
   }, [value]);
-
-  // Sanitize HTML to prevent XSS
-  const sanitizeHTML = (html: string): string => {
-    const div = document.createElement('div');
-    div.textContent = html;
-    return div.innerHTML;
-  };
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);

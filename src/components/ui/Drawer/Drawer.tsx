@@ -15,7 +15,6 @@ interface DrawerProps {
   onSave?: () => void;
   saveLabel?: string;
   cancelLabel?: string;
-  loading?: boolean;
 }
 
 const sizeClasses = {
@@ -36,7 +35,6 @@ export function Drawer({
   onSave,
   saveLabel = "Save",
   cancelLabel = "Cancel",
-  loading = false,
 }: DrawerProps) {
   return (
     <Transition.Root show={isOpen} as={Fragment}>

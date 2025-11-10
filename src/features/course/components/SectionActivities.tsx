@@ -51,7 +51,7 @@ export function SectionActivities({ onAddActivity, groupId }: SectionActivitiesP
   const { data: contentsData, isPending: isContentsPending, isFetching: isContentsFetching,   error: contentsError,
     refetch: refetchContents} = useContents();
 
-  const { mutate: createSection, isPending: isCreating } = useCreateSection({
+  const { mutate: createSection } = useCreateSection({
       onSuccess: async () => {
         setShowToast(true);
         setToastMessage("Activity berhasil ditambahkan!");
@@ -71,7 +71,7 @@ export function SectionActivities({ onAddActivity, groupId }: SectionActivitiesP
       },
     });
   
-  const { mutate: deleteContent, isPending: isDeleting } = useDeleteContent({
+  const { mutate: deleteContent } = useDeleteContent({
     onSuccess: async () => {
       showToastMessage("success", "Activity berhasil dihapus!");
       await queryClient.refetchQueries({ queryKey: ["contents"] });
@@ -82,7 +82,7 @@ export function SectionActivities({ onAddActivity, groupId }: SectionActivitiesP
     },
   });
 
-    const { mutate: deleteSection, isPending: isDeletingSection } = useDeleteSection({
+    const { mutate: deleteSection } = useDeleteSection({
     onSuccess: async () => {
       showToastMessage("success", "Section berhasil dihapus!");
       await queryClient.refetchQueries({ queryKey: ["sections"] });

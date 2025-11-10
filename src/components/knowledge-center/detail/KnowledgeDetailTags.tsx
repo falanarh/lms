@@ -1,13 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Knowledge } from '@/types/knowledge-center';
+import { KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailTagsProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter;
 }
 
 export default function KnowledgeDetailTags({ knowledge }: KnowledgeDetailTagsProps) {
+  // Tags are not available in the current API structure
+  // This component is temporarily disabled until tags are implemented
+  return null;
+
+  // Original implementation (commented out until tags are available):
+  /*
   if (!knowledge.tags || knowledge.tags.length === 0) {
     return null;
   }
@@ -27,4 +33,5 @@ export default function KnowledgeDetailTags({ knowledge }: KnowledgeDetailTagsPr
       </div>
     </div>
   );
+  */
 }

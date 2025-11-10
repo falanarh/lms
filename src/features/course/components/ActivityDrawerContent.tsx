@@ -15,7 +15,6 @@ import { getContentQueryKey, useCreateContent } from "@/hooks/useContent";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { queryClient } from "@/lib/queryClient";
 import { getSectionQueryKey } from "@/hooks/useSections";
-import { randomUUID } from "crypto";
 
 type ActivityType = "VIDEO" | "LINK" | "PDF" | "QUIZ" | "SCORM" | "jadwal_kurikulum" | null;
 type ContentSource = "new" | "curriculum" | null;
@@ -606,10 +605,6 @@ export function ActivityDrawerContent({ onClose, onSave, sectionId }: ActivityDr
                 <Label className="mb-3 block">Materi Pembelajaran</Label>
                 <div className="space-y-2">
                   {selectedSession.materials.map((material, index) => {
-                    const isVideo = material.type === 'video';
-                    const isPdf = material.type === 'pdf';
-                    const MaterialIcon = isVideo ? Video : FileText;
-                    const colorClass = isVideo ? 'blue' : 'green';
                     
                     return (
                       // <Card key={index} className="p-4">

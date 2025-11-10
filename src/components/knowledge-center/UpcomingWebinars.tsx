@@ -5,12 +5,13 @@
 
 'use client';
 
+import { useUpcomingWebinars } from '@/hooks/useUpcomingWebinars';
 import { Calendar, Clock, User, ArrowRight, Video } from 'lucide-react';
 import Link from 'next/link';
-import { useUpcomingWebinars } from '@/hooks/useKnowledge';
+
 
 export default function UpcomingWebinars() {
-  const { upcomingWebinars, isLoading } = useUpcomingWebinars(6);
+  const { upcomingWebinars, isLoading } = useUpcomingWebinars();
 
   if (isLoading) {
     return (
@@ -74,7 +75,7 @@ export default function UpcomingWebinars() {
         {/* Calendar-style Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
           {upcomingWebinars.map((webinar) => {
-            const webinarDate = new Date(webinar.tgl_zoom ?? new Date());
+            const webinarDate = new Date(webinar.webinar?.zoomDate ?? new Date());
             const dayName = webinarDate.toLocaleDateString('id-ID', { weekday: 'long' });
             const day = webinarDate.getDate();
             const month = webinarDate.toLocaleDateString('id-ID', { month: 'short' });
@@ -151,7 +152,7 @@ export default function UpcomingWebinars() {
                         <User className="w-3.5 h-3.5 text-gray-600" />
                       </div>
                       <span className="text-xs text-gray-600 line-clamp-1 font-medium">
-                        {webinar.author}
+                        {webinar.createdBy}
                       </span>
                     </div>
 

@@ -2,25 +2,24 @@
 
 import React from 'react';
 import { PlayCircle, FileText, Award } from 'lucide-react';
-import { Knowledge } from '@/types/knowledge-center';
+import { KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailResourcesProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter;
 }
 
 export default function KnowledgeDetailResources({ knowledge }: KnowledgeDetailResourcesProps) {
-  const isWebinar = knowledge.knowledge_type === 'webinar';
-  const webinarData = knowledge as any;
+  const isWebinar = knowledge.type === 'webinar';
 
   if (!isWebinar) {
     return null;
   }
 
-  const hasResources = webinarData.link_record ||
-                      webinarData.link_youtube ||
-                      webinarData.link_vb ||
-                      webinarData.file_notulensi_pdf ||
-                      webinarData.jumlah_jp;
+  const hasResources = knowledge.webinar?.recordLink ||
+                      knowledge.webinar?.youtubeLink ||
+                      knowledge.webinar?.vbLink ||
+                      knowledge.webinar?.contentText ||
+                      knowledge.webinar?.jpCount;
 
   if (!hasResources) {
     return null;
@@ -30,9 +29,9 @@ export default function KnowledgeDetailResources({ knowledge }: KnowledgeDetailR
     <div className="mb-12">
       <h3 className="text-lg font-bold text-gray-900 mb-4">Resources</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {webinarData.link_record && (
+        {knowledge.webinar?.recordLink && (
           <a
-            href={webinarData.link_record}
+            href={knowledge.webinar.recordLink}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -42,9 +41,9 @@ export default function KnowledgeDetailResources({ knowledge }: KnowledgeDetailR
           </a>
         )}
 
-        {webinarData.link_youtube && (
+        {knowledge.webinar?.youtubeLink && (
           <a
-            href={webinarData.link_youtube}
+            href={knowledge.webinar.youtubeLink}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -54,9 +53,9 @@ export default function KnowledgeDetailResources({ knowledge }: KnowledgeDetailR
           </a>
         )}
 
-        {webinarData.link_vb && (
+        {knowledge.webinar?.vbLink && (
           <a
-            href={webinarData.link_vb}
+            href={knowledge.webinar.vbLink}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -66,22 +65,17 @@ export default function KnowledgeDetailResources({ knowledge }: KnowledgeDetailR
           </a>
         )}
 
-        {webinarData.file_notulensi_pdf && (
-          <a
-            href={webinarData.file_notulensi_pdf}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
+        {knowledge.webinar?.contentText && (
+          <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
             <FileText className="w-5 h-5 text-gray-600" />
-            <span className="font-medium">Notulensi PDF</span>
-          </a>
+            <span className="font-medium">PDF Notes</span>
+          </div>
         )}
 
-        {webinarData.jumlah_jp && (
+        {knowledge.webinar?.jpCount && (
           <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
             <Award className="w-5 h-5 text-gray-600" />
-            <span className="font-medium">JP: {webinarData.jumlah_jp}</span>
+            <span className="font-medium">JP: {knowledge.webinar.jpCount}</span>
           </div>
         )}
       </div>

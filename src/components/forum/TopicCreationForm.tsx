@@ -47,7 +47,7 @@ export function TopicCreationForm({ onSubmit, isSubmitting = false }: TopicCreat
       formState.resetForm();
       setSubmitAttempted(false);
       setTouchedFields({ title: false, content: false });
-    } catch (error) {
+    } catch {
       // Error handling dilakukan di parent component
     }
   };

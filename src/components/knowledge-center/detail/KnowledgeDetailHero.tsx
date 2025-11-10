@@ -2,10 +2,10 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Knowledge } from '@/types/knowledge-center';
+import { KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailHeroProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter;
 }
 
 export default function KnowledgeDetailHero({ knowledge }: KnowledgeDetailHeroProps) {

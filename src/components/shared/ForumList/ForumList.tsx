@@ -40,7 +40,6 @@ export interface ForumListProps {
 
 export interface ForumListContainerProps {
   forums: Forum[];
-  className?: string;
   title?: string;
   showSearch?: boolean;
   searchPlaceholder?: string;
@@ -86,7 +85,6 @@ function timeAgo(dateString: string): string {
 
 export function ForumList({
   forum,
-  className,
   viewMode = "card",
   onEdit,
 }: ForumListProps) {
@@ -315,7 +313,6 @@ export function ForumList({
 // Container component with search, filter, and view toggle
 export function ForumListContainer({
   forums,
-  className,
   title = "Forum Diskusi",
   showSearch = true,
   searchPlaceholder = "Search forums by title or description...",
@@ -606,23 +603,3 @@ export default ForumList;
 
 // ThreadsIcon is no longer used in the updated horizontal layout
 // Keeping for reference in case needed for future use
-
-function ArrowRightIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M3.333 8h9.334M8.667 4l4 4-4 4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}

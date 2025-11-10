@@ -4,55 +4,61 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
 import { Users, Calendar, BookOpen, PlayCircle, FileText, Headphones } from 'lucide-react';
-import { Knowledge, MediaType } from '@/types/knowledge-center';
+import { KnowledgeCenter, ContentType } from '@/types/knowledge-center';
 
 interface KnowledgeDetailInfoProps {
-  knowledge: Knowledge;
+  knowledge: KnowledgeCenter;
 }
 
 export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoProps) {
+  // Helper function to get content type from KnowledgeCenter structure
+  const getContentType = (): ContentType => {
+    return knowledge.knowledgeContent?.contentType || 'article';
+  };
+
   const getMediaIcon = () => {
-    if (knowledge.knowledge_type === 'webinar') {
+    if (knowledge.type === 'webinar') {
       return <Calendar className="w-6 h-6 text-purple-600" />;
     }
 
-    const mediaType = (knowledge as any).media_type as MediaType;
-    switch (mediaType) {
+    const contentType = getContentType();
+    switch (contentType) {
       case 'video':
         return <PlayCircle className="w-6 h-6 text-red-600" />;
       case 'pdf':
         return <FileText className="w-6 h-6 text-blue-600" />;
-      case 'audio':
+      case 'podcast':
         return <Headphones className="w-6 h-6 text-green-600" />;
+      case 'article':
       default:
         return <FileText className="w-6 h-6 text-gray-600" />;
     }
   };
 
-  const isWebinar = knowledge.knowledge_type === 'webinar';
+  const isWebinar = knowledge.type === 'webinar';
 
   return (
     <header className="mb-4">
       {/* Meta Information */}
       <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-gray-600">
         <span className="font-medium text-gray-900">
-          {isWebinar ? 'Webinar' : (knowledge as any).media_type?.toUpperCase()}
+          {isWebinar ? 'Webinar' : getContentType().toUpperCase()}
         </span>
         <span>•</span>
         <span>
           {formatDistanceToNow(
-            new Date(knowledge.published_at || knowledge.created_at || ''),
+            new Date(knowledge.publishedAt || knowledge.createdAt || ''),
             { addSuffix: true, locale: idLocale }
           )}
         </span>
         {knowledge.subject && (
           <>
             <span>•</span>
-            <span>{knowledge.subject}</span>
+            <span>{typeof knowledge.subject === 'string' ? knowledge.subject : 'General'}</span>
           </>
         )}
         <span>•</span>
-        <span>{knowledge.view_count.toLocaleString()} views</span>
+        <span>{knowledge.viewCount.toLocaleString()} views</span>
       </div>
 
       {/* Title */}
@@ -67,15 +73,15 @@ export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoPr
             <Users className="w-5 h-5 text-gray-600" />
           </div>
           <div>
-            <div className="font-medium text-gray-900">{knowledge.author}</div>
-            <div className="text-sm text-gray-600">{knowledge.penyelenggara}</div>
+            <div className="font-medium text-gray-900">{knowledge.createdBy || 'Unknown Author'}</div>
+            <div className="text-sm text-gray-600">{knowledge.penyelenggara || 'Unknown Organizer'}</div>
           </div>
         </div>
       </div>
 
       {/* Description */}
       <p className="text-xl text-gray-700 leading-relaxed mt-6">
-        {knowledge.description}
+        {knowledge.description || 'No description available'}
       </p>
 
       {/* Metadata Grid - All Required Fields */}
@@ -86,7 +92,7 @@ export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoPr
           <div className="flex-1">
             <div className="text-xs text-gray-500 mb-1">Knowledge Type</div>
             <div className="font-medium text-gray-900">
-              {isWebinar ? 'Webinar' : `Content - ${(knowledge as any).media_type || 'Article'}`}
+              {isWebinar ? 'Webinar' : `Content - ${getContentType().toUpperCase()}`}
             </div>
           </div>
         </div>
@@ -99,7 +105,9 @@ export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoPr
             </div>
             <div className="flex-1">
               <div className="text-xs text-gray-500 mb-1">Subject</div>
-              <div className="font-medium text-gray-900 capitalize">{knowledge.subject}</div>
+              <div className="font-medium text-gray-900 capitalize">
+              {typeof knowledge.subject === 'string' ? knowledge.subject : 'General'}
+            </div>
             </div>
           </div>
         )}
@@ -112,13 +120,13 @@ export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoPr
             </div>
             <div className="flex-1">
               <div className="text-xs text-gray-500 mb-1">Organizer</div>
-              <div className="font-medium text-gray-900">{knowledge.penyelenggara}</div>
+              <div className="font-medium text-gray-900">{knowledge.penyelenggara || 'Unknown Organizer'}</div>
             </div>
           </div>
         )}
 
         {/* Published Date */}
-        {knowledge.published_at && (
+        {knowledge.publishedAt && (
           <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div className="mt-0.5">
               <Calendar className="w-5 h-5 text-gray-600" />
@@ -126,7 +134,7 @@ export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoPr
             <div className="flex-1">
               <div className="text-xs text-gray-500 mb-1">Published</div>
               <div className="font-medium text-gray-900">
-                {new Date(knowledge.published_at).toLocaleDateString('id-ID', {
+                {new Date(knowledge.publishedAt).toLocaleDateString('id-ID', {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric'

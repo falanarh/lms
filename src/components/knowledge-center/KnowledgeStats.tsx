@@ -5,11 +5,12 @@
 
 'use client';
 
-import { BookOpen, Users, Eye, ThumbsUp } from 'lucide-react';
-import { useKnowledgeStats } from '@/hooks/useKnowledge';
+import { BookOpen, Users, Eye, ThumbsUp, TrendingUp } from 'lucide-react';
+import { useKnowledgeStats } from '@/hooks/useKnowledgeStats';
 
 export default function KnowledgeStats() {
   const { stats, isLoading } = useKnowledgeStats();
+  const topSubjects = stats.topSubjects;
 
   if (isLoading) {
     return (
@@ -17,7 +18,10 @@ export default function KnowledgeStats() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, index) => (
-              <div key={index} className="h-32 bg-gray-200 rounded-2xl animate-pulse"></div>
+              <div
+                key={index}
+                className="h-32 bg-white/80 border border-gray-100 rounded-2xl animate-pulse shadow-sm"
+              ></div>
             ))}
           </div>
         </div>
@@ -28,7 +32,7 @@ export default function KnowledgeStats() {
   const statCards = [
     {
       title: 'Total Resources',
-      value: stats?.totalKnowledge || 0,
+      value: stats.totalKnowledge,
       icon: BookOpen,
       background: 'bg-gradient-to-br from-blue-500 to-blue-600',
       textColor: 'text-white',
@@ -36,7 +40,7 @@ export default function KnowledgeStats() {
     },
     {
       title: 'Webinars',
-      value: stats?.totalWebinars || 0,
+      value: stats.totalWebinars,
       icon: Users,
       background: 'bg-white border-2 border-green-100',
       textColor: 'bg-gradient-to-br from-green-600 to-green-700 bg-clip-text text-transparent',
@@ -45,7 +49,7 @@ export default function KnowledgeStats() {
     },
     {
       title: 'Total Views',
-      value: (stats?.totalViews || 0).toLocaleString(),
+      value: stats.totalViews.toLocaleString(),
       icon: Eye,
       background: 'bg-gradient-to-br from-purple-50 to-white border-2 border-purple-200/50',
       textColor: 'bg-gradient-to-br from-purple-600 to-purple-700 bg-clip-text text-transparent',
@@ -54,7 +58,7 @@ export default function KnowledgeStats() {
     },
     {
       title: 'Total Likes',
-      value: stats?.totalLikes || 0,
+      value: stats.totalLikes,
       icon: ThumbsUp,
       background: 'bg-white border-2 border-orange-100',
       textColor: 'bg-gradient-to-br from-orange-600 to-orange-700 bg-clip-text text-transparent',
@@ -65,7 +69,7 @@ export default function KnowledgeStats() {
 
   return (
     <section className="py-16 bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card, index) => {
             const Icon = card.icon;
@@ -137,6 +141,73 @@ export default function KnowledgeStats() {
             );
           })}
         </div>
+
+        {(topSubjects.length > 0 || stats.averageViews > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {topSubjects.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Top Subjects</p>
+                    <p className="text-lg font-semibold text-gray-900">Most Published</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {topSubjects.map((subject) => {
+                    const percentage = stats.totalKnowledge
+                      ? Math.round((subject.count / stats.totalKnowledge) * 100)
+                      : 0;
+
+                    return (
+                      <div key={subject.subject}>
+                        <div className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+                          <span>{subject.subject}</span>
+                          <span className="text-gray-500">{subject.count} items</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-6 shadow-lg space-y-6">
+              <div>
+                <p className="text-sm text-blue-100">Engagement Insights</p>
+                <p className="text-xl font-semibold">Audience Metrics</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/10 rounded-xl p-4">
+                  <p className="text-sm text-blue-100">Avg Views</p>
+                  <p className="text-3xl font-bold">{stats.averageViews}</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-4">
+                  <p className="text-sm text-blue-100">Avg Likes</p>
+                  <p className="text-3xl font-bold">{stats.averageLikes}</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-4 col-span-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-100">Published</p>
+                    <p className="text-2xl font-semibold">{stats.publishedCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-100">Draft</p>
+                    <p className="text-2xl font-semibold">{stats.draftCount}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

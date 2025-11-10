@@ -33,7 +33,6 @@ interface TopicsListProps {
 
 export const TopicsList: React.FC<TopicsListProps> = ({
   topics,
-  forumId,
   getDiscussionsByTopicId,
   isLoading,
   error,

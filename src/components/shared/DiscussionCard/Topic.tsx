@@ -153,11 +153,8 @@ export function Topic({
   onSubmitReply,
   onUpvoteReply,
   onDownvoteReply,
-  onLoadMoreDiscussions,
   onVoteTopic,
   topicVotes,
-  isVotingTopic = false,
-  isVotingDiscussion = false,
   canEditTopic = false,
   onEditTopic,
   onDeleteTopic,
@@ -193,30 +190,6 @@ export function Topic({
     entry: { previous: DiscussionVoteSnapshot; expected: DiscussionVoteSnapshot }
   ) => {
     pendingDiscussionVotesRef.current.set(discussionId, entry);
-    setPendingDiscussionVersion((version) => version + 1);
-  };
-
-  const updatePendingDiscussionEntry = (
-    discussionId: string,
-    updater: (entry: { previous: DiscussionVoteSnapshot; expected: DiscussionVoteSnapshot }) =>
-      { previous?: DiscussionVoteSnapshot; expected?: DiscussionVoteSnapshot } | null | undefined
-  ) => {
-    const currentEntry = pendingDiscussionVotesRef.current.get(discussionId);
-    if (!currentEntry) {
-      return;
-    }
-
-    const updates = updater(currentEntry);
-    if (!updates) {
-      return;
-    }
-
-    const nextEntry = {
-      previous: updates.previous ?? currentEntry.previous,
-      expected: updates.expected ?? currentEntry.expected,
-    };
-
-    pendingDiscussionVotesRef.current.set(discussionId, nextEntry);
     setPendingDiscussionVersion((version) => version + 1);
   };
 
@@ -571,21 +544,6 @@ export function Topic({
       return;
     }
     onResolveTopic?.(meta.id);
-  };
-
-  const getOptimisticTopicVote = (currentVotes: LocalVoteState, voteType: VoteType): LocalVoteState => {
-    const result = calculateVoteChange(
-      currentVotes.upvotes || 0,
-      currentVotes.downvotes || 0,
-      currentVotes.userVote ?? null,
-      voteType
-    );
-
-    return {
-      upvotes: result.upvotes,
-      downvotes: result.downvotes,
-      userVote: result.userVote,
-    };
   };
 
   const handleTopicVote = async (voteType: VoteType) => {

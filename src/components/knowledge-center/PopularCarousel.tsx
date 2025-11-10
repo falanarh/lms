@@ -8,13 +8,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { KnowledgeCard } from '@/components/knowledge-center';
-import { usePopularKnowledge } from '@/hooks/useKnowledge';
+import { usePopularKnowledge } from '@/hooks/usePopularKnowledge';
 
 export default function PopularCarousel() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
 
-  const { data: popularKnowledge, isLoading } = usePopularKnowledge(10);
+  const { popularKnowledge, isLoading } = usePopularKnowledge();
 
   // Auto-scroll effect
   useEffect(() => {

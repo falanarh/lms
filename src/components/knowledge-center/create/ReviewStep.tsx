@@ -3,30 +3,11 @@
 import React, { useState } from "react";
 import { Eye } from "lucide-react";
 import KnowledgePreviewModal from "./KnowledgePreviewModal";
+import { ContentType, KNOWLEDGE_TYPES, KnowledgeCenter } from "@/types";
 
 interface ReviewStepProps {
-  formData: {
-    title: string;
-    description: string;
-    subject: string;
-    penyelenggara: string;
-    author: string;
-    knowledge_type: "webinar" | "konten" | undefined;
-    published_at: string;
-    tags: string[];
-    thumbnail?: File;
-    tgl_zoom?: string;
-    link_zoom?: string;
-    link_youtube?: string;
-    link_record?: string;
-    link_vb?: string;
-    file_notulensi_pdf?: File;
-    jumlah_jp?: number;
-    media_resource?: File;
-    media_type?: "video" | "audio" | "pdf" | "article";
-    content_richtext?: string;
-  };
-  contentType: "article" | "video" | "podcast" | "pdf" | null;
+  formData: KnowledgeCenter;
+  contentType: ContentType | null;
   thumbnailPreview: string | null;
 }
 
@@ -37,9 +18,9 @@ export default function ReviewStep({
 }: ReviewStepProps) {
   const [showPreview, setShowPreview] = useState(false);
   const hasWebinarDetails =
-    formData.knowledge_type === "webinar" && Boolean(formData.tgl_zoom);
+    formData.type === KNOWLEDGE_TYPES.WEBINAR && Boolean(formData.webinar?.zoomDate);
   const getTypeLabel = () => {
-    if (formData.knowledge_type === "webinar") {
+    if (formData.type === KNOWLEDGE_TYPES.WEBINAR) {
       return "Webinar";
     }
     if (contentType) {
@@ -75,7 +56,7 @@ export default function ReviewStep({
           </div>
           <div>
             <span className="text-xs font-semibold text-blue-600">Author</span>
-            <p className="font-medium text-gray-900">{formData.author}</p>
+            <p className="font-medium text-gray-900">{formData.createdBy}</p>
           </div>
         </div>
 
@@ -134,10 +115,10 @@ export default function ReviewStep({
               </span>
               <div className="text-sm space-y-1">
                 <p className="text-gray-700">
-                  Date: {new Date(formData.tgl_zoom as string).toLocaleString("id-ID")}
+                  Date: {new Date(formData.webinar?.zoomDate as string).toLocaleString("id-ID")}
                 </p>
-                {formData.jumlah_jp && (
-                  <p className="text-gray-700">JP: {formData.jumlah_jp}</p>
+                {formData.webinar?.jpCount && (
+                  <p className="text-gray-700">JP: {formData.webinar?.jpCount}</p>
                 )}
               </div>
             </div>
