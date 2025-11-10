@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useMemo } from "react";
 import {
-  CourseHeader,
+  CourseBreadcrumb,
+  CourseTitle,
   CourseTabNavigation,
   CourseInformationTab,
   DiscussionForumTab,
@@ -12,7 +13,7 @@ import {
 import { mockReviews } from "@/features/detail-course/constants/reviews";
 import { mockEnrolledCourseDetail, mockEnrolledSections, mockEnrolledActivities } from "@/features/my-course/constant/mockEnrolledCourse";
 import { CourseTabType } from "@/features/detail-course/types/tab";
-import { ContentPlayer, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton } from "@/features/my-course/components";
+import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton } from "@/features/my-course/components";
 import { Content } from "@/api/contents";
 
 interface MyCoursePageProps {
@@ -26,12 +27,17 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [activeTab, setActiveTab] = useState<CourseTabType>('information');
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Default: sidebar open
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
 
-  // Menggunakan data dummy dari constants
   const course = mockEnrolledCourseDetail;
   const sections = mockEnrolledSections;
   const activities = mockEnrolledActivities;
+
+  // Flatten all contents for navigation
+  const allContents = useMemo(() => {
+    return sections.flatMap(section => activities[section.id] || []);
+  }, [sections, activities]);
 
   // Auto-select first content on mount
   useEffect(() => {
@@ -46,11 +52,11 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   // Auto-switch tab ketika sidebar toggle
   useEffect(() => {
     if (isSidebarOpen && activeTab === 'course_contents') {
-      // Jika sidebar dibuka dan user di tab course_contents, switch ke information
       setActiveTab('information');
     }
   }, [isSidebarOpen]);
 
+  // Handle expand/collapse section
   const handleToggleSection = (sectionId: string) => {
     setExpandedSections(prev =>
       prev.includes(sectionId)
@@ -59,10 +65,42 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     );
   };
 
+  // Navigation handlers
+  const handlePrevious = () => {
+    if (!selectedContent) return;
+    const currentIndex = allContents.findIndex(c => c.id === selectedContent.id);
+    if (currentIndex > 0) {
+      setSelectedContent(allContents[currentIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (!selectedContent) return;
+    const currentIndex = allContents.findIndex(c => c.id === selectedContent.id);
+    if (currentIndex < allContents.length - 1) {
+      setSelectedContent(allContents[currentIndex + 1]);
+    }
+  };
+
+  const handleMarkAsDone = () => {
+    if (!selectedContent) return;
+    setCompletedContentIds(prev =>
+      prev.includes(selectedContent.id)
+        ? prev.filter(id => id !== selectedContent.id)
+        : [...prev, selectedContent.id]
+    );
+  };
+
+  // Check navigation availability
+  const currentIndex = selectedContent ? allContents.findIndex(c => c.id === selectedContent.id) : -1;
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < allContents.length - 1;
+  const isCompleted = selectedContent ? completedContentIds.includes(selectedContent.id) : false;
+
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "My Courses", href: "/my-course" },
-    { label: course.title, isActive: true },
+    { label: course.course.title, isActive: true },
   ];
 
   const handleCloseSidebar = () => {
@@ -75,18 +113,30 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
   return (
     <>
-      {/* Main Content with Dynamic Margin */}
       <div 
         className={`
           transition-all duration-300 ease-in-out
-          ${isSidebarOpen ? 'lg:mr-[350px]' : 'mr-0'}
+          ${isSidebarOpen ? 'lg:mr-[300px] xl:mr-[350px] 2xl:mr-[400px]' : 'mr-0'}
         `}
       >
         <PageContainer>
-          <CourseHeader title={course.title} breadcrumbItems={breadcrumbItems} />
+          <CourseBreadcrumb items={breadcrumbItems} />
 
-          {/* Content Player */}
           <ContentPlayer content={selectedContent} />
+
+          {/* Navigation Buttons */}
+          {selectedContent && (
+            <ContentNavigation
+              onPrevious={handlePrevious}
+              onNext={handleNext}
+              onMarkAsDone={handleMarkAsDone}
+              hasPrevious={hasPrevious}
+              hasNext={hasNext}
+              isCompleted={isCompleted}
+            />
+          )}
+
+          <CourseTitle title={course.course.title} />
 
           {/* Tabs & Content */}
           <div className="space-y-6 pb-8 mt-8">
@@ -98,11 +148,11 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.metode}
-              syllabusFile={course.silabus}
-              totalJP={course.jp}
-              quota={course.kuota}
-              description={course.description}
+              method={course.course.description.method}
+              syllabusFile={course.course.description.silabus}
+              totalJP={course.course.description.totalJp}
+              quota={course.course.description.quota}
+              description={course.course.description.description}
             />
           )}
 
@@ -114,6 +164,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               onToggleSection={handleToggleSection}
               selectedContentId={selectedContent?.id}
               onSelectContent={setSelectedContent}
+              completedContentIds={completedContentIds}
             />
           )}
 
@@ -123,7 +174,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               <RatingsReviewsTab
                 averageRating={course.rating}
                 totalRatings={mockReviews.length}
-                ratingDistribution={{5: 2, 4: 1, 3: 0, 2: 0, 1: 0}}
+                ratingDistribution={{5: 2, 4: 1, 3: 3, 2: 0, 1: 0}}
                 reviews={mockReviews}
               />
             )}
@@ -131,7 +182,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         </PageContainer>
       </div>
 
-      {/* Fixed Sidebar - Rendered outside main content */}
       {isSidebarOpen && (
         <CourseContentsSidebar
           sections={sections}
@@ -141,10 +191,11 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           selectedContentId={selectedContent?.id}
           onSelectContent={setSelectedContent}
           onClose={handleCloseSidebar}
+          completedContentIds={completedContentIds}
         />
       )}
 
-      {/* Floating Toggle Button - Show when sidebar closed */}
+      {/* Floating Toggle Button */}
       {!isSidebarOpen && (
         <SidebarToggleButton onClick={handleOpenSidebar} />
       )}

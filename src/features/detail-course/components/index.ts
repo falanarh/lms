@@ -1,5 +1,6 @@
-export { CourseHeader } from "./CourseHeader";
+export { CourseBreadcrumb } from "./CourseBreadcrumb";
 export { CourseThumbnail } from "./CourseThumbnail";
+export { CourseTitle } from "./CourseTitle";
 export { CourseInfoCard } from "./CourseInfoCard";
 export { EnrollButton } from "./EnrollButton";
 export { CourseTabNavigation } from "./CourseTabNavigation";

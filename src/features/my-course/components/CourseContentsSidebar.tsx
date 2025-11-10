@@ -13,6 +13,7 @@ interface CourseContentsSidebarProps {
   selectedContentId?: string;
   onSelectContent: (content: Content) => void;
   onClose: () => void;
+  completedContentIds?: string[];
 }
 
 export const CourseContentsSidebar = ({
@@ -23,6 +24,7 @@ export const CourseContentsSidebar = ({
   selectedContentId,
   onSelectContent,
   onClose,
+  completedContentIds = [],
 }: CourseContentsSidebarProps) => {
   // Calculate total activities
   const totalActivities = Object.values(activities).reduce(
@@ -38,8 +40,8 @@ export const CourseContentsSidebar = ({
         onClick={onClose}
       />
 
-      {/* Fixed Sidebar */}
-      <div className="fixed right-0 top-16 w-full lg:w-[350px] h-[calc(100vh-4rem)] bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col">
+      {/* Fixed Sidebar - Responsive Width */}
+      <div className="fixed right-0 top-16 w-full lg:w-[300px] xl:w-[350px] 2xl:w-[400px] h-[calc(100vh-4rem)] bg-white border-l border-gray-200 shadow-2xl z-40 flex flex-col">
         {/* Top Header - Course Content + Close Button */}
         <div className="flex-shrink-0 h-14 border-b border-gray-200 px-4 flex items-center justify-between bg-white">
           <h3 className="font-semibold text-base text-gray-900">Course Content</h3>
@@ -82,6 +84,7 @@ export const CourseContentsSidebar = ({
                 selectedContentId={selectedContentId}
                 onSelectContent={onSelectContent}
                 variant="sidebar"
+                completedContentIds={completedContentIds}
               />
             ))}
           </div>

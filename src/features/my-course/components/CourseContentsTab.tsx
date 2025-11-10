@@ -10,6 +10,7 @@ interface CourseContentsTabProps {
   onToggleSection: (sectionId: string) => void;
   selectedContentId?: string;
   onSelectContent: (content: Content) => void;
+  completedContentIds?: string[];
 }
 
 export const CourseContentsTab = ({
@@ -19,6 +20,7 @@ export const CourseContentsTab = ({
   onToggleSection,
   selectedContentId,
   onSelectContent,
+  completedContentIds = [],
 }: CourseContentsTabProps) => {
   // Calculate total activities
   const totalActivities = Object.values(activities).reduce(
@@ -56,6 +58,7 @@ export const CourseContentsTab = ({
             selectedContentId={selectedContentId}
             onSelectContent={onSelectContent}
             variant="tab"
+            completedContentIds={completedContentIds}
           />
         ))}
       </div>

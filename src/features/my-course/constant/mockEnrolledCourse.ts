@@ -5,19 +5,24 @@ import { Content } from "@/api/contents";
 // Mock data untuk enrolled course detail
 export const mockEnrolledCourseDetail: GroupCourseDetail = {
   id: "enrolled-course-1",
-  idCourse: "course-123",
-  title: "Complete Web Development Bootcamp 2024",
-  kategori: "Programming",
+  idTeacher: "teacher-001",
   rating: 4.8,
-  total_rating: 1250,
-  id_teacher: "teacher-001",
-  total_user: 3420,
-  type_course: "Online",
-  metode: "Self-paced with live sessions",
-  jp: 120,
-  silabus: "https://example.com/syllabus/web-dev-bootcamp.pdf",
-  kuota: 5000,
-  description: `
+  totalUserRating: 1250,
+  _count: {
+    listActivity: 25,
+  },
+  course: {
+    id: "course-123",
+    title: "Complete Web Development Bootcamp 2024",
+    thumbnail: null,
+    typeCourse: "Online",
+    description: {
+      method: "Self-paced with live sessions",
+      silabus: "https://example.com/syllabus/web-dev-bootcamp.pdf",
+      totalJp: 120,
+      quota: 5000,
+      category: "Programming",
+      description: `
     <h2>Course Overview</h2>
     <p>Welcome to the Complete Web Development Bootcamp! This comprehensive course will take you from beginner to advanced level in modern web development.</p>
     
@@ -38,6 +43,8 @@ export const mockEnrolledCourseDetail: GroupCourseDetail = {
     <h3>Course Format</h3>
     <p>This course includes video lectures, hands-on projects, quizzes, and live coding sessions. You'll build 10+ real-world projects throughout the course.</p>
   `,
+    },
+  },
 };
 
 // Mock data untuk sections yang sudah dienroll
@@ -50,7 +57,7 @@ export const mockEnrolledSections: Section[] = [
   },
   {
     id: "section-2",
-    name: "HTML & CSS Fundamentals",
+    name: "HTML & CSS Fundamentals yayayayayayayayya",
     description: "Master the building blocks of web pages",
     sequence: 2,
   },
@@ -110,7 +117,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     {
       id: "content-1-1",
       type: "video",
-      name: "Welcome to Web Development",
+      name: "Welcome to Web Development yayyayayayayayayyaya",
       description: "Introduction to the course and what you'll learn",
       contentUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       contentStart: "2024-01-01T00:00:00Z",
@@ -120,19 +127,19 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     {
       id: "content-1-2",
       type: "pdf",
-      name: "Course Syllabus",
+      name: "Course Syllabus yayayayayayayayayayayayyayayayayay",
       description: "Complete course outline and learning objectives",
-      contentUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      contentUrl: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",
       sequence: 2,
     },
     {
       id: "content-1-3",
-      type: "quiz",
-      name: "Pre-Assessment Quiz",
-      description: "Test your current knowledge level",
-      contentUrl: "/quiz/pre-assessment",
+      type: "scorm",
+      name: "Interactive Learning Module",
+      description: "H5P Interactive Content - Course Presentation",
+      contentUrl: "https://h5p.org/h5p/embed/617",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",
       sequence: 3,
@@ -174,7 +181,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
       type: "document",
       name: "CSS Cheat Sheet",
       description: "Quick reference guide for CSS properties",
-      contentUrl: "https://example.com/css-cheatsheet.pdf",
+      contentUrl: "https://www.africau.edu/images/default/sample.pdf",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",
       sequence: 4,
@@ -290,7 +297,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
       type: "document",
       name: "Next.js Best Practices",
       description: "Tips and tricks for Next.js development",
-      contentUrl: "https://example.com/nextjs-best-practices.pdf",
+      contentUrl: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",
       sequence: 3,
@@ -396,7 +403,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
       type: "document",
       name: "API Documentation Guide",
       description: "How to document your APIs",
-      contentUrl: "https://example.com/api-docs-guide.pdf",
+      contentUrl: "https://www.africau.edu/images/default/sample.pdf",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",
       sequence: 3,
@@ -460,7 +467,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
       type: "document",
       name: "Production Checklist",
       description: "Things to check before going live",
-      contentUrl: "https://example.com/production-checklist.pdf",
+      contentUrl: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",
       sequence: 3,

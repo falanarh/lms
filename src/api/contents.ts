@@ -21,7 +21,7 @@ export const getContents = async (): Promise<Content[]> => {
 
 export const getContentsBySectionId = async (sectionId: string): Promise<Content[]> => {
   const response = await axios.get(`${API_BASE_URL}/sections/${sectionId}/content`);
-  const content = response.data.data;
+  const content = response.data.data.listContent;
   return content;
 };
 

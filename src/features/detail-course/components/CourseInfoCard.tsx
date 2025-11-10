@@ -36,7 +36,6 @@ export const CourseInfoCard = ({
   };
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Header Section */}
       <div className="p-5 border-b border-gray-100">
         <Badge variant="secondary" size="sm" className="mb-3">
           {category}
@@ -50,8 +49,6 @@ export const CourseInfoCard = ({
           Based on {totalRatings} ratings
         </p>
       </div>
-
-      {/* Details Section */}
       <div className="p-5 space-y-4">
         {/* Instructor */}
         {/* //TODO: PERBAIKI KETIKA SUDAH ADA TEACHER */}

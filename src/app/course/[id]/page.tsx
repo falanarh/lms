@@ -2,8 +2,9 @@
 
 import { use, useState } from "react";
 import {
-  CourseHeader,
+  CourseBreadcrumb,
   CourseThumbnail,
+  CourseTitle,
   CourseInfoCard,
   CourseTabNavigation,
   CourseInformationTab,
@@ -48,10 +49,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
     return <div>Error: {error.message}</div>;
   }
 
-  const course = courseDetail[0];
+  const course = courseDetail;
 
   const handleEnrollToggle = () => {
-    // Hanya handle enroll action, redirect sudah dihandle di CourseInfoCard
     setIsEnrolled(true);
   };
 
@@ -66,30 +66,28 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "All Courses", href: "/course" },
-    { label: course.title, isActive: true },
+    { label: course.course.title, isActive: true },
   ];
 
   return (
     <PageContainer>
-        <CourseHeader title={course.title} breadcrumbItems={breadcrumbItems} />
+      <CourseBreadcrumb items={breadcrumbItems} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Thumbnail */}
-          <div className="lg:col-span-2">
-            <CourseThumbnail 
-              thumbnail={(course as any).thumbnail || "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&h=450&fit=crop"}
-              trailerUrl={(course as any).trailerUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
-              title={course.title} 
-            />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2 space-y-4">
+          <CourseThumbnail 
+            thumbnail={course.course.thumbnail || undefined}
+            title={course.course.title}
+          />
+          <CourseTitle title={course.course.title} />
+        </div>
 
-          {/* Course Info */}
-          <div className="space-y-4">
+        <div className="space-y-4">
             <CourseInfoCard
-              category={course.kategori}
+              category={course.course.description.category}
               rating={course.rating}
-              totalRatings={course.total_user}
-              type={course.type_course}
+              totalRatings={course.totalUserRating}
+              type={course.course.typeCourse}
               isEnrolled={isEnrolled}
               onToggle={handleEnrollToggle}
               courseId={id}
@@ -103,11 +101,11 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.metode}
-              syllabusFile={course.silabus}
-              totalJP={course.jp}
-              quota={course.kuota}
-              description={course.description}
+              method={course.course.description.method}
+              syllabusFile={course.course.description.silabus}
+              totalJP={course.course.description.totalJp}
+              quota={course.course.description.quota}
+              description={course.course.description.description}
             />
           )}
 

@@ -1,4 +1,4 @@
-import { ChevronDown, FileText, Video, Link as LinkIcon, Package, ClipboardList, FileCheck } from "lucide-react";
+import { ChevronDown, FileText, Video, Link as LinkIcon, Package, ClipboardList, FileCheck, File, Check } from "lucide-react";
 import { Content } from "@/api/contents";
 
 interface Section {
@@ -17,6 +17,7 @@ interface CourseSectionItemProps {
   selectedContentId?: string;
   onSelectContent: (content: Content) => void;
   variant?: 'sidebar' | 'tab';
+  completedContentIds?: string[];
 }
 
 const getContentIcon = (type: string, isTabVariant: boolean = false) => {
@@ -26,14 +27,14 @@ const getContentIcon = (type: string, isTabVariant: boolean = false) => {
   switch (type.toLowerCase()) {
     case "video":
       return (
-        <div className={`${boxSize} rounded-md bg-red-100 flex items-center justify-center flex-shrink-0`}>
-          <Video className={`${iconSize} text-red-600`} />
+        <div className={`${boxSize} rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0`}>
+          <Video className={`${iconSize} text-blue-600`} />
         </div>
       );
     case "pdf":
       return (
-        <div className={`${boxSize} rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0`}>
-          <FileText className={`${iconSize} text-blue-600`} />
+        <div className={`${boxSize} rounded-md bg-red-100 flex items-center justify-center flex-shrink-0`}>
+          <FileText className={`${iconSize} text-red-600`} />
         </div>
       );
     case "link":
@@ -51,19 +52,19 @@ const getContentIcon = (type: string, isTabVariant: boolean = false) => {
     case "quiz":
       return (
         <div className={`${boxSize} rounded-md bg-orange-100 flex items-center justify-center flex-shrink-0`}>
-          <ClipboardList className={`${iconSize} text-orange-600`} />
+          <FileCheck className={`${iconSize} text-orange-600`} />
         </div>
       );
     case "assignment":
       return (
-        <div className={`${boxSize} rounded-md bg-indigo-100 flex items-center justify-center flex-shrink-0`}>
-          <FileCheck className={`${iconSize} text-indigo-600`} />
+        <div className={`${boxSize} rounded-md bg-green-100 flex items-center justify-center flex-shrink-0`}>
+          <ClipboardList className={`${iconSize} text-green-600`} />
         </div>
       );
     default:
       return (
         <div className={`${boxSize} rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0`}>
-          <FileText className={`${iconSize} text-gray-600`} />
+          <File className={`${iconSize} text-gray-600`} />
         </div>
       );
   }
@@ -78,6 +79,7 @@ export const CourseSectionItem = ({
   selectedContentId,
   onSelectContent,
   variant = 'sidebar',
+  completedContentIds = [],
 }: CourseSectionItemProps) => {
   const isTabVariant = variant === 'tab';
   return (
@@ -86,11 +88,11 @@ export const CourseSectionItem = ({
       <button
         onClick={() => onToggle(section.id)}
         className={`
-          w-full flex items-center justify-between hover:bg-gray-50 transition-colors duration-200
+          w-full flex items-center justify-between transition-colors duration-200
           ${isTabVariant ? 'p-5' : 'p-4'}
         `}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className={`
             rounded-md border-2 border-blue-600 flex items-center justify-center flex-shrink-0
             ${isTabVariant ? 'w-8 h-8' : 'w-6 h-6'}
@@ -102,21 +104,21 @@ export const CourseSectionItem = ({
               {index + 1}
             </span>
           </div>
-          <div className="text-left">
+          <div className="text-left flex-1 min-w-0">
             <h3 className={`
-              font-semibold text-gray-900
+              font-semibold text-gray-900 truncate
               ${isTabVariant ? 'text-base' : 'text-sm'}
             `}>
               {section.name}
             </h3>
             {isTabVariant && section.description && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-1 truncate">
                 {section.description}
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-shrink-0">
           <ChevronDown
             className={`
               text-gray-400 transition-transform duration-200
@@ -135,6 +137,7 @@ export const CourseSectionItem = ({
           `}>
             {contents.map((content) => {
               const isSelected = selectedContentId === content.id;
+              const isCompleted = completedContentIds.includes(content.id);
               
               return (
                 <button
@@ -155,9 +158,9 @@ export const CourseSectionItem = ({
                   </div>
 
                   {/* Content Info */}
-                  <div className="flex-1 text-left">
+                  <div className="flex-1 text-left min-w-0">
                     <h4 className={`
-                      font-medium
+                      font-medium truncate
                       ${isTabVariant ? 'text-base' : 'text-sm'}
                       ${isSelected ? 'text-blue-900' : 'text-gray-900'}
                     `}>
@@ -167,6 +170,17 @@ export const CourseSectionItem = ({
                       <p className="text-sm text-gray-500 mt-1">
                         {content.description}
                       </p>
+                    )}
+                  </div>
+
+                  {/* Completed Check Mark - Always reserve space in sidebar */}
+                  <div className="flex-shrink-0">
+                    {isCompleted ? (
+                      <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-green-600" strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5" />
                     )}
                   </div>
                 </button>

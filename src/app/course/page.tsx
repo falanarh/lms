@@ -28,26 +28,26 @@ export default function CoursePage() {
 
   const filteredAndSortedCourses = useMemo(() => {
     console.log(courses);
-    let filtered = courses.filter((course) => {
-      const matchesSearch = course.title
-        .toLowerCase()
-        .includes(debouncedSearchQuery.toLowerCase());
+    let filtered = courses.filter((item) => {
+      const matchesSearch = item.course.title
+        ?.toLowerCase()
+        .includes(debouncedSearchQuery.toLowerCase()) ?? false;
       const matchesCategory =
         selectedCategory === "All Categories" ||
-        course.kategori === selectedCategory;
+        item.course.description.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
 
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "title-asc":
-          return a.title.localeCompare(b.title);
+          return a.course.title.localeCompare(b.course.title);
         case "title-desc":
-          return b.title.localeCompare(a.title);
+          return b.course.title.localeCompare(a.course.title);
         case "rating-desc":
           return b.rating - a.rating;
         case "students-desc":
-          return b.total_user - a.total_user;
+          return b.totalUserRating - a.totalUserRating;
         default:
           return 0;
       }

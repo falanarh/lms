@@ -1,17 +1,19 @@
 export const DetailCourseSkeleton = () => {
   return (
-    <div className="animate-pulse pt-8">
-      {/* Breadcrumb & Title */}
-      <div className="mb-6">
-        <div className="h-4 bg-gray-200 rounded w-48 mb-8"></div>
-        <div className="h-8 bg-gray-200 rounded w-2/3"></div>
+    <div className="animate-pulse">
+      {/* CourseBreadcrumb Skeleton */}
+      <div className="pt-6 pb-3">
+        <div className="h-4 bg-gray-200 rounded w-64"></div>
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 mt-4">
-        {/* Thumbnail */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* CourseHeroSection Skeleton */}
+        <div className="lg:col-span-2 space-y-4">
           <div className="aspect-video bg-gray-200 rounded-xl"></div>
+          <div className="pt-2">
+            <div className="h-8 bg-gray-200 rounded w-2/3"></div>
+          </div>
         </div>
 
         {/* Course Info Card */}

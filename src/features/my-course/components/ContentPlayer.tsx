@@ -1,8 +1,8 @@
 "use client";
 
 import { Content } from "@/api/contents";
-import { FileText, Link as LinkIcon, Package, Play, Maximize2, Minimize2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { FileText, Link as LinkIcon, Package, Play } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 interface ContentPlayerProps {
   content: Content | null;
@@ -10,24 +10,24 @@ interface ContentPlayerProps {
 
 export const ContentPlayer = ({ content }: ContentPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleMaximize = () => {
-    if (!isMaximized && containerRef.current) {
-      containerRef.current.requestFullscreen?.();
-      setIsMaximized(true);
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen();
-      setIsMaximized(false);
+  // Reset state when content changes
+  useEffect(() => {
+    setIsPlaying(false);
+    
+    // Reset video if ref exists
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+      videoRef.current.load();
     }
-  };
+  }, [content?.id]);
 
   if (!content) {
     return (
       <div className="w-full flex justify-center px-4 lg:px-0">
-        <div className="w-full max-w-[1000px] aspect-video bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-gray-200 flex items-center justify-center">
+        <div className="w-full max-w-[900px] aspect-video bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-gray-200 flex items-center justify-center">
           <div className="text-center">
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 font-medium">Select a content to start learning</p>
@@ -50,8 +50,9 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
     switch (content.type.toLowerCase()) {
       case "video":
         return (
-          <div className="relative w-full max-w-[1000px] aspect-video bg-black rounded-xl overflow-hidden group/video">
+          <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
             <video
+              key={content.id}
               ref={videoRef}
               className="w-full h-full"
               controls={isPlaying}
@@ -61,19 +62,6 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
               <source src={content.contentUrl} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-            
-            {/* Maximize Button */}
-            <button
-              onClick={handleMaximize}
-              className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg transition-all opacity-0 group-hover/video:opacity-100 z-10"
-              title={isMaximized ? "Exit fullscreen" : "Fullscreen"}
-            >
-              {isMaximized ? (
-                <Minimize2 className="w-5 h-5" />
-              ) : (
-                <Maximize2 className="w-5 h-5" />
-              )}
-            </button>
             
             {!isPlaying && (
               <div 
@@ -90,32 +78,21 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       case "pdf":
         return (
-          <div className="relative w-full max-w-[1000px] aspect-video bg-white rounded-xl overflow-hidden border border-gray-200 group/pdf">
+          <div className="relative w-full aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
             <iframe
+              key={content.id}
               src={content.contentUrl}
               className="w-full h-full"
               title={content.name}
             />
-            
-            {/* Maximize Button */}
-            <button
-              onClick={handleMaximize}
-              className="absolute top-4 right-4 p-2 bg-white hover:bg-gray-100 text-gray-700 rounded-lg shadow-md transition-all opacity-0 group-hover/pdf:opacity-100 z-10 border border-gray-200"
-              title={isMaximized ? "Exit fullscreen" : "Fullscreen"}
-            >
-              {isMaximized ? (
-                <Minimize2 className="w-5 h-5" />
-              ) : (
-                <Maximize2 className="w-5 h-5" />
-              )}
-            </button>
           </div>
         );
 
       case "link":
         return (
-          <div className="w-full max-w-[1000px] aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
+          <div className="w-full aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
             <iframe
+              key={content.id}
               src={content.contentUrl}
               className="w-full h-full"
               title={content.name}
@@ -126,19 +103,21 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       case "scorm":
         return (
-          <div className="w-full max-w-[1000px] aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
+          <div className="w-full aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
             <iframe
+              key={content.id}
               src={content.contentUrl}
               className="w-full h-full"
               title={content.name}
-              sandbox="allow-scripts allow-same-origin allow-forms"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-top-navigation"
+              allow="fullscreen"
             />
           </div>
         );
 
       case "quiz":
         return (
-          <div className="w-full max-w-[1000px] aspect-video bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 flex items-center justify-center">
+          <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 flex items-center justify-center">
             <div className="text-center p-8">
               <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-10 h-10 text-blue-600" />
@@ -154,7 +133,7 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       case "assignment":
         return (
-          <div className="w-full max-w-[1000px] aspect-video bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 flex items-center justify-center">
+          <div className="w-full aspect-video bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 flex items-center justify-center">
             <div className="text-center p-8">
               <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-10 h-10 text-purple-600" />
@@ -170,7 +149,7 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       default:
         return (
-          <div className="w-full max-w-[1000px] aspect-video bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center">
+          <div className="w-full aspect-video bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center">
             <div className="text-center">
               <LinkIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 font-medium">Unsupported content type</p>
@@ -182,7 +161,7 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
   return (
     <div className="w-full flex justify-center px-4 lg:px-0">
-      <div ref={containerRef} className="w-full max-w-[1000px] space-y-4">
+      <div className="w-full max-w-[900px] mx-auto space-y-4">
         {renderContent()}
       </div>
     </div>
