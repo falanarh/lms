@@ -26,7 +26,11 @@ export const getContents = async (): Promise<Content[]> => {
   const response = await axios.get<Content[]>(`${BASE_URL}/contents`, {
     withCredentials: false,
   });
+<<<<<<< HEAD
   console.log(response.data);
+=======
+  console.log(BASE_URL);
+>>>>>>> a12229949c4c1257866ef8d082e568f4de346db0
   return response.data;
 };
 

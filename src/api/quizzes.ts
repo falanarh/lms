@@ -153,6 +153,7 @@ export const createQuizWithContent = async (
   try {
     console.log("📡 Creating quiz with content via quiz service");
 
+<<<<<<< HEAD
     // Step 1: Create content in course service first
     console.log("📡 Step 1: Creating content in course service");
     const courseServiceUrl = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3001";
@@ -201,6 +202,18 @@ export const createQuizWithContent = async (
     console.log("📡 Quiz service URL:", `${BASE_URL}/quizzes`);
 
     const quizResponse = await axios.post<{ content: any; quiz: Quiz }>(
+=======
+    // Create single request matching curl example
+    const requestData = {
+      content: quizWithContent.content,
+      ...quizWithContent.quiz,
+    };
+
+    console.log("📡 Request data:", JSON.stringify(requestData, null, 2));
+    console.log("📡 Request URL:", `${BASE_URL}/quizzes`);
+
+    const response = await axios.post<{ content: any; quiz: Quiz }>(
+>>>>>>> a12229949c4c1257866ef8d082e568f4de346db0
       `${BASE_URL}/quizzes`,
       requestData,
       {
@@ -212,6 +225,7 @@ export const createQuizWithContent = async (
       },
     );
 
+<<<<<<< HEAD
     console.log("📡 Quiz created successfully:", quizResponse.data);
 
     // Return both the course service content and quiz service data
@@ -219,6 +233,10 @@ export const createQuizWithContent = async (
       content: contentResponse.data,
       quiz: quizResponse.data.quiz,
     };
+=======
+    console.log("📡 Quiz created successfully:", response.data);
+    return response.data;
+>>>>>>> a12229949c4c1257866ef8d082e568f4de346db0
   } catch (error) {
     console.error("❌ Error in createQuizWithContent:", error);
     throw error;
