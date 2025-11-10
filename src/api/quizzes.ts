@@ -153,56 +153,6 @@ export const createQuizWithContent = async (
   try {
     console.log("📡 Creating quiz with content via quiz service");
 
-<<<<<<< HEAD
-    // Step 1: Create content in course service first
-    console.log("📡 Step 1: Creating content in course service");
-    const courseServiceUrl = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3001";
-
-    const courseContentData = {
-      idSection: quizWithContent.content.idSection,
-      name: quizWithContent.content.name,
-      description: quizWithContent.content.description || "",
-      type: "QUIZ",
-      contentUrl: quizWithContent.content.contentUrl || "",
-      sequence: quizWithContent.content.sequence || 1,
-      contentStart: quizWithContent.content.contentStart || null,
-      contentEnd: quizWithContent.content.contentEnd || null,
-    };
-
-    console.log("📡 Course service content data:", JSON.stringify(courseContentData, null, 2));
-    console.log("📡 Course service URL:", `${courseServiceUrl}/contents`);
-
-    const contentResponse = await axios.post<any>(
-      `${courseServiceUrl}/contents`,
-      courseContentData,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        withCredentials: false,
-      },
-    );
-
-    console.log("📡 Content created in course service:", contentResponse.data);
-
-    // Step 2: Create quiz in quiz service with the content ID from course service
-    console.log("📡 Step 2: Creating quiz in quiz service");
-
-    // Create single request matching curl example, with content ID from course service
-    const requestData = {
-      content: {
-        ...quizWithContent.content,
-        id: contentResponse.data.id, // Use content ID from course service
-      },
-      ...quizWithContent.quiz,
-    };
-
-    console.log("📡 Quiz service request data:", JSON.stringify(requestData, null, 2));
-    console.log("📡 Quiz service URL:", `${BASE_URL}/quizzes`);
-
-    const quizResponse = await axios.post<{ content: any; quiz: Quiz }>(
-=======
     // Create single request matching curl example
     const requestData = {
       content: quizWithContent.content,
@@ -213,7 +163,6 @@ export const createQuizWithContent = async (
     console.log("📡 Request URL:", `${BASE_URL}/quizzes`);
 
     const response = await axios.post<{ content: any; quiz: Quiz }>(
->>>>>>> a12229949c4c1257866ef8d082e568f4de346db0
       `${BASE_URL}/quizzes`,
       requestData,
       {
@@ -225,18 +174,8 @@ export const createQuizWithContent = async (
       },
     );
 
-<<<<<<< HEAD
-    console.log("📡 Quiz created successfully:", quizResponse.data);
-
-    // Return both the course service content and quiz service data
-    return {
-      content: contentResponse.data,
-      quiz: quizResponse.data.quiz,
-    };
-=======
     console.log("📡 Quiz created successfully:", response.data);
     return response.data;
->>>>>>> a12229949c4c1257866ef8d082e568f4de346db0
   } catch (error) {
     console.error("❌ Error in createQuizWithContent:", error);
     throw error;
@@ -249,7 +188,7 @@ export const updateQuizWithContent = async ({
 }: {
   id: string;
   data: QuizWithContent;
-}): Promise<{ content: any; quiz: Quiz }> => {
+}) => {
   try {
     console.log(
       "📡 Updating quiz with content via quiz service - Step 1: Update content",
@@ -283,8 +222,8 @@ export const updateQuizWithContent = async ({
       },
     );
 
-    console.log("📡 Quiz updated successfully:", response.data);
-    return response.data;
+    console.log("📡 Quiz updated successfully:", quizResponse.data);
+    return quizResponse.data;
   } catch (error) {
     console.error("❌ Error in updateQuizWithContent:", error);
     throw error;

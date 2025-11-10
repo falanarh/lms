@@ -6,7 +6,7 @@
  * Fitur Baru:
  * - ✅ Edit activity menggunakan drawer
  * - ✅ Pre-fill form saat edit
- * - ✅ Integrasi dengan ActivityDrawerContent
+ * - ✅ futegrasi dengan ActivityDrawerContent
  */
 
 import {
@@ -330,10 +330,7 @@ export function SectionActivities({
             id: content.id,
             title: content.name || "Untitled",
             type: mapContentType(content.type || "DOC"),
-<<<<<<< HEAD
             contentUrl: content.contentUrl || "", 
-=======
->>>>>>> a12229949c4c1257866ef8d082e568f4de346db0
             size: calculateFileSize(content.contentUrl || ""),
             description: content.description || "",
             sequence: content.sequence || 0,
