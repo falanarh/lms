@@ -185,3 +185,243 @@ export const useCreateKnowledgeCenter = (
 
 // Utility function to get current user ID (following existing pattern)
 export const getCurrentUserId = () => 'b157852b-82ff-40ed-abf8-2f8fe26377aa';
+
+/**
+ * Custom hook for Create Knowledge Page
+ * Handles all business logic including:
+ * - Media uploads (video, audio, PDF)
+ * - Subject management (CRUD operations)
+ * - Form submission and data transformation
+ * - Step navigation with validation
+ * - Toast notifications
+ *
+ * @param wizard - The wizard form hook instance
+ * @param router - Next.js router for navigation
+ * @param onSuccess - Success callback for toast
+ * @param onError - Error callback for toast
+ */
+interface UseCreateKnowledgePageParams {
+  wizard: any; // UseKnowledgeWizardFormReturn type
+  router: any; // NextRouter type
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}
+
+export const useCreateKnowledgePage = ({
+  wizard,
+  router,
+  onSuccess,
+  onError,
+}: UseCreateKnowledgePageParams) => {
+  const { formValues, currentStep, validateCurrentStep, nextStep, goToStep } = wizard;
+
+  // Mutations
+  const createKnowledgeMutation = useCreateKnowledgeCenter(onSuccess, onError);
+
+  // Upload states
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+
+  // ============================================================================
+  // Media Upload Handlers
+  // ============================================================================
+
+  const handleMediaUpload = useCallback(
+    async (file: File, type: 'video' | 'audio' | 'pdf') => {
+      setIsUploadingMedia(true);
+      try {
+        // Lazy import to avoid circular dependencies
+        const { knowledgeApi } = await import('@/api');
+
+        let uploadedUrl = '';
+        if (type === 'video') {
+          uploadedUrl = await knowledgeApi.uploadVideo(file);
+        } else if (type === 'audio') {
+          uploadedUrl = await knowledgeApi.uploadAudio(file);
+        } else {
+          uploadedUrl = await knowledgeApi.uploadPDF(file);
+        }
+
+        // Get the latest knowledgeContent from form state to preserve contentType
+        const currentKnowledgeContent = wizard.form.getFieldValue('knowledgeContent') || {};
+        console.log('📤 Upload complete - preserving contentType from:', currentKnowledgeContent);
+
+        wizard.form.setFieldValue('knowledgeContent', {
+          ...currentKnowledgeContent,
+          mediaUrl: uploadedUrl,
+        });
+
+        onSuccess('Media uploaded successfully');
+      } catch (error) {
+        console.error('Media upload failed:', error);
+        onError('Failed to upload media. Please try again.');
+      } finally {
+        setIsUploadingMedia(false);
+      }
+    },
+    [wizard.form, onSuccess, onError]
+  );
+
+  const handleNotesUpload = useCallback(
+    async (file: File) => {
+      setIsUploadingPDF(true);
+      try {
+        const { knowledgeApi } = await import('@/api');
+        const uploadedUrl = await knowledgeApi.uploadPDF(file);
+
+        wizard.form.setFieldValue('webinar', {
+          ...(formValues.webinar || {}),
+          contentText: uploadedUrl,
+        });
+
+        onSuccess('PDF uploaded successfully');
+      } catch (error) {
+        console.error('PDF upload failed:', error);
+        onError('Failed to upload PDF. Please try again.');
+      } finally {
+        setIsUploadingPDF(false);
+      }
+    },
+    [wizard.form, formValues.webinar, onSuccess, onError]
+  );
+
+  // ============================================================================
+  // Step Navigation with Validation
+  // ============================================================================
+
+  const handleNextStep = useCallback(async () => {
+    const isValid = await validateCurrentStep();
+    if (isValid) {
+      nextStep();
+    } else {
+      onError('Please fill in all required fields correctly');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [validateCurrentStep, nextStep, onError]);
+
+  const handleStepNavigation = useCallback(
+    async (targetStep: number) => {
+      if (targetStep === currentStep) return;
+
+      if (targetStep > currentStep) {
+        const isValid = await validateCurrentStep();
+        if (!isValid) return;
+      }
+
+      goToStep(targetStep);
+    },
+    [currentStep, goToStep, validateCurrentStep]
+  );
+
+  // ============================================================================
+  // Form Submission
+  // ============================================================================
+
+  const handleSubmit = useCallback(
+    async (status: 'draft' | 'published') => {
+      // Dynamic import to avoid circular dependencies
+      const { KNOWLEDGE_TYPES, CONTENT_TYPES } = await import('@/types/knowledge-center');
+      const { knowledgeApi } = await import('@/api');
+
+      if (!formValues.type) {
+        onError('Please select a content type first!');
+        return;
+      }
+
+      if (!formValues.idSubject) {
+        onError('Please select a subject first!');
+        return;
+      }
+
+      try {
+        // Handle thumbnail upload
+        let thumbnailUrl =
+          typeof formValues.thumbnail === 'string' && formValues.thumbnail
+            ? formValues.thumbnail
+            : 'https://via.placeholder.com/300x200';
+
+        if (formValues.thumbnail instanceof File) {
+          try {
+            thumbnailUrl = await knowledgeApi.uploadImage(formValues.thumbnail);
+          } catch (uploadError) {
+            console.error('Failed to upload thumbnail:', uploadError);
+            onError('Failed to upload thumbnail. Please try again.');
+            return;
+          }
+        }
+
+        // Build API payload
+        const apiData: any = {
+          createdBy: formValues.createdBy,
+          idSubject: formValues.idSubject,
+          title: formValues.title,
+          description: formValues.description,
+          type: formValues.type,
+          penyelenggara: formValues.penyelenggara,
+          thumbnail: thumbnailUrl,
+          isFinal: status === 'published',
+          publishedAt: formValues.publishedAt || new Date().toISOString(),
+          tags: formValues.tags,
+        };
+
+        // Add webinar data if applicable
+        if (formValues.type === KNOWLEDGE_TYPES.WEBINAR && formValues.webinar) {
+          apiData.webinar = {
+            zoomDate: formValues.webinar.zoomDate || new Date().toISOString(),
+            zoomLink: formValues.webinar.zoomLink || '',
+            recordLink: formValues.webinar.recordLink || '',
+            youtubeLink: formValues.webinar.youtubeLink || '',
+            vbLink: formValues.webinar.vbLink || '',
+            jpCount: formValues.webinar.jpCount || 0,
+          };
+        }
+
+        // Add content data if applicable
+        if (formValues.type === KNOWLEDGE_TYPES.CONTENT && formValues.knowledgeContent) {
+          const contentType = formValues.knowledgeContent.contentType || CONTENT_TYPES.ARTICLE;
+
+          apiData.knowledgeContent = {
+            contentType,
+            document: formValues.knowledgeContent.document || '',
+          };
+
+          // Only include mediaUrl for non-article content types
+          if (contentType !== CONTENT_TYPES.ARTICLE) {
+            apiData.knowledgeContent.mediaUrl = formValues.knowledgeContent.mediaUrl || '';
+            console.log('📤 Including mediaUrl for content type:', contentType);
+          } else {
+            console.log('📝 Article type - mediaUrl excluded from submission');
+          }
+
+          console.log('📤 Final knowledgeContent to be sent:', apiData.knowledgeContent);
+        }
+
+        // Submit to API
+        await createKnowledgeMutation.mutateAsync(apiData);
+
+        // Navigate to knowledge center on success
+        router.push('/knowledge-center');
+      } catch (error) {
+        console.error('Failed to create knowledge:', error);
+        onError('Failed to create knowledge. Please try again.');
+      }
+    },
+    [formValues, createKnowledgeMutation, router, onError]
+  );
+
+  return {
+    // Upload handlers
+    handleMediaUpload,
+    handleNotesUpload,
+    isUploadingMedia,
+    isUploadingPDF,
+
+    // Navigation handlers
+    handleNextStep,
+    handleStepNavigation,
+
+    // Submission handler
+    handleSubmit,
+    isCreating: createKnowledgeMutation.isPending,
+  };
+};

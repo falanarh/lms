@@ -27,8 +27,11 @@ import {
 } from '@/types/knowledge-center';
 import {
   webinarDetailsSchema,
+  mediaUrlValidator,
+  documentValidator,
+  jpCountValidator,
 } from '@/lib/validation/knowledge-schemas';
-import { EnhancedFormInput } from '@/lib/validation/form-utils';
+import { FormInput, FieldInfo } from '@/lib/validation/form-utils';
 import BlockNoteEditor from './BlockNoteEditor';
 
 // ============================================================================
@@ -149,32 +152,6 @@ export default function ContentDetailsForm({
     }
   };
 
-  const handleContentChange = (contentJson: string) => {
-    const currentKnowledgeContent = formValues.knowledgeContent || {};
-    console.log('📝 BlockNote content change - current knowledgeContent:', currentKnowledgeContent);
-    console.log('📝 BlockNote content change - selectedContentType:', selectedContentType);
-
-    form.setFieldValue('knowledgeContent', {
-      ...currentKnowledgeContent,
-      document: contentJson,
-      // CRITICAL: Preserve contentType when updating document
-      contentType: selectedContentType || currentKnowledgeContent.contentType,
-    } as any);
-  };
-
-  const handleMediaUrlChange = (url: string) => {
-    const currentKnowledgeContent = formValues.knowledgeContent || {};
-    console.log('🎬 Media URL change - current knowledgeContent:', currentKnowledgeContent);
-    console.log('🎬 Media URL change - selectedContentType:', selectedContentType);
-
-    form.setFieldValue('knowledgeContent', {
-      ...currentKnowledgeContent,
-      mediaUrl: url,
-      // CRITICAL: Preserve contentType when updating mediaUrl
-      contentType: selectedContentType || currentKnowledgeContent.contentType,
-    } as any);
-  };
-
   // ============================================================================
   // Webinar Form
   // ============================================================================
@@ -188,11 +165,12 @@ export default function ContentDetailsForm({
             name="webinar.zoomDate"
             validators={{
               onChange: webinarDetailsSchema.shape.zoomDate,
+              onBlur: webinarDetailsSchema.shape.zoomDate,
             }}
           >
             {(field) => (
-              <EnhancedFormInput
-                field={field as any}
+              <FormInput
+                field={field}
                 label="Webinar Date"
                 type="datetime-local"
                 required
@@ -204,15 +182,17 @@ export default function ContentDetailsForm({
           <form.Field
             name="webinar.jpCount"
             validators={{
-              onChange: webinarDetailsSchema.shape.jpCount,
+              onChange: ({ value }) => jpCountValidator.validate(value),
+              onBlur: ({ value }) => jpCountValidator.validate(value),
             }}
           >
             {(field) => (
-              <EnhancedFormInput
+              <FormInput
                 field={field as any}
                 label="JP Credits"
                 type="number"
                 placeholder="0"
+                required
               />
             )}
           </form.Field>
@@ -224,11 +204,12 @@ export default function ContentDetailsForm({
             name="webinar.zoomLink"
             validators={{
               onChange: webinarDetailsSchema.shape.zoomLink,
+              onBlur: webinarDetailsSchema.shape.zoomLink,
             }}
           >
             {(field) => (
-              <EnhancedFormInput
-                field={field as any}
+              <FormInput
+                field={field}
                 label="Zoom Link"
                 type="url"
                 placeholder="https://zoom.us/j/..."
@@ -242,11 +223,12 @@ export default function ContentDetailsForm({
             name="webinar.youtubeLink"
             validators={{
               onChange: webinarDetailsSchema.shape.youtubeLink,
+              onBlur: webinarDetailsSchema.shape.youtubeLink,
             }}
           >
             {(field) => (
-              <EnhancedFormInput
-                field={field as any}
+              <FormInput
+                field={field}
                 label="YouTube Link"
                 type="url"
                 placeholder="https://youtube.com/..."
@@ -261,15 +243,15 @@ export default function ContentDetailsForm({
             name="webinar.recordLink"
             validators={{
               onChange: webinarDetailsSchema.shape.recordLink,
+              onBlur: webinarDetailsSchema.shape.recordLink,
             }}
           >
             {(field) => (
-              <EnhancedFormInput
-                field={field as any}
+              <FormInput
+                field={field}
                 label="Recording Link"
                 type="url"
-                placeholder="https://..."
-                required
+                placeholder="https://..."                
               />
             )}
           </form.Field>
@@ -279,11 +261,12 @@ export default function ContentDetailsForm({
             name="webinar.vbLink"
             validators={{
               onChange: webinarDetailsSchema.shape.vbLink,
+              onBlur: webinarDetailsSchema.shape.vbLink,
             }}
           >
             {(field) => (
-              <EnhancedFormInput
-                field={field as any}
+              <FormInput
+                field={field}
                 label="Virtual Background Link"
                 type="url"
                 placeholder="https://..."
@@ -541,118 +524,181 @@ export default function ContentDetailsForm({
 
       {/* Media Resource (only for video, podcast, pdf) */}
       {!isArticle && (
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Media Resource <span className="text-red-500">*</span>
-          </label>
-          {formValues.knowledgeContent?.mediaUrl ? (
-            <div className="relative border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden bg-gray-50 h-80">
-              {isVideo && (
-                <video
-                  src={formValues.knowledgeContent.mediaUrl}
-                  className="w-full h-80 object-cover"
-                  controls={false}
-                  muted
-                />
-              )}
-              {isPdf && (
-                <iframe
-                  src={formValues.knowledgeContent.mediaUrl}
-                  className="w-full h-80 border-0"
-                  title="PDF Preview"
-                />
-              )}
-              {isPodcast && (
-                <div className="w-full h-80 flex items-center justify-center p-8 bg-gradient-to-br from-purple-50 to-blue-50">
-                  <div className="text-center">
-                    <div className="mx-auto w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
-                      <FileAudio className="w-12 h-12 text-white" />
-                    </div>
-                    <p className="text-gray-900 text-base font-semibold mb-2">
-                      Audio File Uploaded
-                    </p>
-                    <p className="text-gray-600 text-sm mb-4">
-                      File uploaded successfully • Audio
-                    </p>
-                    <audio
-                      src={formValues.knowledgeContent.mediaUrl}
-                      controls
-                      className="mx-auto w-full max-w-xs shadow-md rounded-lg"
-                    />
-                  </div>
-                </div>
-              )}
-              <button
-                onClick={() => handleMediaUrlChange('')}
-                className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-lg z-10"
-                type="button"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white ${
-                isUploadingMedia
-                  ? 'border-yellow-400 bg-yellow-50'
-                  : 'border-gray-300 hover:border-blue-400'
-              }`}
-            >
-              <input
-                type="file"
-                accept={
-                  isVideo ? 'video/*' : isPodcast ? 'audio/*' : isPdf ? '.pdf' : '*'
-                }
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    await handleMediaUpload(file);
-                  }
-                }}
-                className="hidden"
-                id="media-resource-upload"
-                disabled={isUploadingMedia}
-              />
-              <label
-                htmlFor="media-resource-upload"
-                className={`block text-center ${isUploadingMedia ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <div
-                  className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
-                    isUploadingMedia ? 'bg-yellow-100' : 'bg-gray-100'
-                  }`}
-                >
-                  {isUploadingMedia ? (
-                    <div className="w-7 h-7 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <Upload className="w-7 h-7 text-gray-600" />
-                  )}
-                </div>
-                <p
-                  className={`text-base font-medium mb-1 ${
-                    isUploadingMedia ? 'text-yellow-700' : 'text-gray-900'
-                  }`}
-                >
-                  {isUploadingMedia ? 'Uploading...' : `Upload ${mediaLabel} File`}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {isVideo && 'MP4, MOV up to 50MB'}
-                  {isPodcast && 'MP3, WAV up to 50MB'}
-                  {isPdf && 'PDF up to 10MB'}
-                </p>
+        <form.Field
+          name="knowledgeContent.mediaUrl"
+          validators={{
+            onChange: mediaUrlValidator,
+            onBlur: mediaUrlValidator,
+          }}
+        >
+          {(field) => {
+            // Create a wrapped handleChange that preserves contentType
+            const wrappedHandleChange = (value: string) => {
+              const currentKnowledgeContent = formValues.knowledgeContent || {};
+              console.log('📸 Media field change - preserving contentType:', selectedContentType);
+
+              // Update the entire knowledgeContent object to preserve contentType
+              form.setFieldValue('knowledgeContent', {
+                ...currentKnowledgeContent,
+                mediaUrl: value,
+                contentType: selectedContentType || currentKnowledgeContent.contentType,
+              } as any);
+            };
+
+            return (
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Media Resource <span className="text-red-500">*</span>
               </label>
+              {formValues.knowledgeContent?.mediaUrl ? (
+                <div className="relative border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg overflow-hidden bg-gray-50 h-80">
+                  {isVideo && (
+                    <video
+                      src={formValues.knowledgeContent.mediaUrl}
+                      className="w-full h-80 object-cover"
+                      controls={false}
+                      muted
+                    />
+                  )}
+                  {isPdf && (
+                    <iframe
+                      src={formValues.knowledgeContent.mediaUrl}
+                      className="w-full h-80 border-0"
+                      title="PDF Preview"
+                    />
+                  )}
+                  {isPodcast && (
+                    <div className="w-full h-80 flex items-center justify-center p-8 bg-gradient-to-br from-purple-50 to-blue-50">
+                      <div className="text-center">
+                        <div className="mx-auto w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                          <FileAudio className="w-12 h-12 text-white" />
+                        </div>
+                        <p className="text-gray-900 text-base font-semibold mb-2">
+                          Audio File Uploaded
+                        </p>
+                        <p className="text-gray-600 text-sm mb-4">
+                          File uploaded successfully • Audio
+                        </p>
+                        <audio
+                          src={formValues.knowledgeContent.mediaUrl}
+                          controls
+                          className="mx-auto w-full max-w-xs shadow-md rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      // Use wrapped handler to preserve contentType
+                      wrappedHandleChange('');
+                    }}
+                    className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-lg z-10"
+                    type="button"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white ${
+                    isUploadingMedia
+                      ? 'border-yellow-400 bg-yellow-50'
+                      : field.state.meta.errors.length > 0
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-300 hover:border-blue-400'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept={
+                      isVideo ? 'video/*' : isPodcast ? 'audio/*' : isPdf ? '.pdf' : '*'
+                    }
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        await handleMediaUpload(file);
+                        // After upload, validate the field
+                        field.handleBlur();
+                      }
+                    }}
+                    onBlur={field.handleBlur}
+                    className="hidden"
+                    id="media-resource-upload"
+                    disabled={isUploadingMedia}
+                  />
+                  <label
+                    htmlFor="media-resource-upload"
+                    className={`block text-center ${isUploadingMedia ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div
+                      className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
+                        isUploadingMedia ? 'bg-yellow-100' : 'bg-gray-100'
+                      }`}
+                    >
+                      {isUploadingMedia ? (
+                        <div className="w-7 h-7 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Upload className="w-7 h-7 text-gray-600" />
+                      )}
+                    </div>
+                    <p
+                      className={`text-base font-medium mb-1 ${
+                        isUploadingMedia ? 'text-yellow-700' : 'text-gray-900'
+                      }`}
+                    >
+                      {isUploadingMedia ? 'Uploading...' : `Upload ${mediaLabel} File`}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {isVideo && 'MP4, MOV up to 50MB'}
+                      {isPodcast && 'MP3, WAV up to 50MB'}
+                      {isPdf && 'PDF up to 10MB'}
+                    </p>
+                  </label>
+                </div>
+              )}
+              <FieldInfo field={field} />
             </div>
-          )}
-        </div>
+            );
+          }}
+        </form.Field>
       )}
 
       {/* Content (Rich Text Editor) */}
-      <div>
-        <BlockNoteEditor
-          type={selectedContentType as ContentType}
-          onContentChange={handleContentChange}
-        />
-      </div>
+      <form.Field
+        name="knowledgeContent.document"
+        validators={{
+          onChange: documentValidator,
+          onBlur: documentValidator,
+        }}
+      >
+        {(field) => {
+          // Create a wrapped handleChange that preserves contentType
+          const wrappedHandleChange = (value: string) => {
+            const currentKnowledgeContent = formValues.knowledgeContent || {};
+            console.log('📝 Document field change - preserving contentType:', selectedContentType);
+
+            // Update the entire knowledgeContent object to preserve contentType
+            form.setFieldValue('knowledgeContent', {
+              ...currentKnowledgeContent,
+              document: value,
+              contentType: selectedContentType || currentKnowledgeContent.contentType,
+            } as any);
+          };
+
+          return (
+          <div>
+            <BlockNoteEditor
+              type={selectedContentType as ContentType}
+              onContentChange={(contentJson) => {
+                // Use wrapped handler to preserve contentType
+                wrappedHandleChange(contentJson);
+              }}
+            />
+            <FieldInfo field={field} />
+          </div>
+          );
+        }}
+      </form.Field>
     </div>
   );
 }

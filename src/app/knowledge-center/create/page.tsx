@@ -1,24 +1,20 @@
 /**
- * Create Knowledge Center Page - Clean Implementation
+ * Create Knowledge Center Page - UI-Only Implementation
  *
- * Best practices implementation:
- * - Single source of truth for form state (TanStack Form)
- * - Clean separation of concerns
- * - Optimized rendering performance
+ * Architecture: API → Hooks → UI Pattern
+ * - All business logic extracted to useCreateKnowledgePage hook
+ * - Page component focuses solely on UI rendering and user interactions
+ * - Clean separation of concerns for better maintainability
  * - Type-safe with full TypeScript support
  */
 
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toast } from '@/components/ui/Toast/Toast';
 import { createToastState } from '@/utils/toastUtils';
-import {
-  CONTENT_TYPES,
-  KNOWLEDGE_TYPES,
-  type ContentType,
-} from '@/types/knowledge-center';
+import { type ContentType } from '@/types/knowledge-center';
 import KnowledgeTypeSelector from '@/components/knowledge-center/create/KnowledgeTypeSelector';
 import BasicInfoForm from '@/components/knowledge-center/create/BasicInfoForm';
 import ContentDetailsForm from '@/components/knowledge-center/create/ContentDetailsForm';
@@ -26,7 +22,7 @@ import ReviewStep from '@/components/knowledge-center/create/ReviewStep';
 import WizardSidebar from '@/components/knowledge-center/create/WizardSidebar';
 import WizardHeader from '@/components/knowledge-center/create/WizardHeader';
 import WizardActions from '@/components/knowledge-center/create/WizardActions';
-import { useCreateKnowledgeCenter } from '@/hooks/useKnowledgeCenter';
+import { useCreateKnowledgePage } from '@/hooks/useKnowledgeCenter';
 import { useKnowledgeWizardForm } from '@/hooks/useKnowledgeWizardForm';
 import {
   useKnowledgeSubjects,
@@ -35,7 +31,6 @@ import {
   useDeleteKnowledgeSubject,
 } from '@/hooks/useKnowledgeSubject';
 import { PENYELENGGARA_DATA } from '@/api/knowledge-center';
-import { knowledgeApi } from '@/api';
 import type { KnowledgeSubject } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -60,7 +55,7 @@ export default function CreateKnowledgePage() {
   const toastState = createToastState();
 
   // ============================================================================
-  // Form State Management with TanStack Form
+  // Form State Management
   // ============================================================================
 
   const wizard = useKnowledgeWizardForm();
@@ -68,14 +63,31 @@ export default function CreateKnowledgePage() {
     currentStep,
     formValues,
     thumbnailPreview,
-    nextStep,
     prevStep,
-    goToStep,
-    validateCurrentStep,
   } = wizard;
 
   // ============================================================================
-  // Data Fetching
+  // Business Logic Hook (All business logic extracted here)
+  // ============================================================================
+
+  const {
+    handleMediaUpload,
+    handleNotesUpload,
+    isUploadingMedia,
+    isUploadingPDF,
+    handleNextStep,
+    handleStepNavigation,
+    handleSubmit,
+    isCreating,
+  } = useCreateKnowledgePage({
+    wizard,
+    router,
+    onSuccess: toastState.showSuccess,
+    onError: toastState.showError,
+  });
+
+  // ============================================================================
+  // Data Fetching for UI
   // ============================================================================
 
   const { data: knowledgeSubjects = [] } = useKnowledgeSubjects();
@@ -91,13 +103,8 @@ export default function CreateKnowledgePage() {
   );
 
   // ============================================================================
-  // Mutations
+  // Subject Management Mutations
   // ============================================================================
-
-  const createKnowledgeMutation = useCreateKnowledgeCenter(
-    (message) => toastState.showSuccess(message),
-    (message) => toastState.showError(message)
-  );
 
   const addSubjectMutation = useCreateKnowledgeSubject(
     (message) => toastState.showSuccess(message),
@@ -114,10 +121,7 @@ export default function CreateKnowledgePage() {
     (message) => toastState.showError(message)
   );
 
-  // ============================================================================
-  // Subject Management Handlers
-  // ============================================================================
-
+  // Subject Management Handlers (UI → Mutation bridge)
   const handleAddSubject = (knowledgeSubject: KnowledgeSubject) => {
     addSubjectMutation.mutate(knowledgeSubject);
   };
@@ -134,179 +138,13 @@ export default function CreateKnowledgePage() {
   };
 
   // ============================================================================
-  // Media Upload State
+  // UI Effects
   // ============================================================================
 
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
-  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-
-  // ============================================================================
-  // Upload Handlers
-  // ============================================================================
-
-  const handleMediaUpload = async (
-    file: File,
-    type: 'video' | 'audio' | 'pdf'
-  ) => {
-    setIsUploadingMedia(true);
-    try {
-      let uploadedUrl = '';
-      if (type === 'video') {
-        uploadedUrl = await knowledgeApi.uploadVideo(file);
-      } else if (type === 'audio') {
-        uploadedUrl = await knowledgeApi.uploadAudio(file);
-      } else {
-        uploadedUrl = await knowledgeApi.uploadPDF(file);
-      }
-
-      wizard.form.setFieldValue('knowledgeContent', {
-        ...(formValues.knowledgeContent || {}),
-        mediaUrl: uploadedUrl,
-      });
-    } catch (error) {
-      console.error('Media upload failed:', error);
-      toastState.showError('Failed to upload media. Please try again.');
-    } finally {
-      setIsUploadingMedia(false);
-    }
-  };
-
-  const handleNotesUpload = async (file: File) => {
-    setIsUploadingPDF(true);
-    try {
-      const uploadedUrl = await knowledgeApi.uploadPDF(file);
-      wizard.form.setFieldValue('webinar', {
-        ...(formValues.webinar || {}),
-        contentText: uploadedUrl,
-      });
-    } catch (error) {
-      console.error('PDF upload failed:', error);
-      toastState.showError('Failed to upload PDF. Please try again.');
-    } finally {
-      setIsUploadingPDF(false);
-    }
-  };
-
-  // ============================================================================
-  // Step Navigation
-  // ============================================================================
-
+  // Scroll to top on step change
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [currentStep]);
-
-  const handleNextStep = useCallback(async () => {
-    const isValid = await validateCurrentStep();
-    if (isValid) {
-      nextStep();
-    } else {
-      // Show error toast
-      toastState.showError('Please fill in all required fields correctly');
-
-      // Scroll to top to show errors
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [validateCurrentStep, nextStep, toastState]);
-
-  const handleStepNavigation = useCallback(
-    async (targetStep: number) => {
-      if (targetStep === currentStep) return;
-
-      if (targetStep > currentStep) {
-        const isValid = await validateCurrentStep();
-        if (!isValid) return;
-      }
-
-      goToStep(targetStep);
-    },
-    [currentStep, goToStep, validateCurrentStep]
-  );
-
-  // ============================================================================
-  // Form Submission
-  // ============================================================================
-
-  const handleSubmit = async (status: 'draft' | 'published') => {
-    if (!formValues.type) {
-      toastState.showError('Please select a content type first!');
-      return;
-    }
-
-    if (!formValues.idSubject) {
-      toastState.showError('Please select a subject first!');
-      return;
-    }
-
-    try {
-      let thumbnailUrl =
-        typeof formValues.thumbnail === 'string' && formValues.thumbnail
-          ? formValues.thumbnail
-          : 'https://via.placeholder.com/300x200';
-
-      if (formValues.thumbnail instanceof File) {
-        try {
-          thumbnailUrl = await knowledgeApi.uploadImage(formValues.thumbnail);
-        } catch (uploadError) {
-          console.error('Failed to upload thumbnail:', uploadError);
-          toastState.showError('Failed to upload thumbnail. Please try again.');
-          return;
-        }
-      }
-
-      const apiData: any = {
-        createdBy: formValues.createdBy,
-        idSubject: formValues.idSubject,
-        title: formValues.title,
-        description: formValues.description,
-        type: formValues.type,
-        penyelenggara: formValues.penyelenggara,
-        thumbnail: thumbnailUrl,
-        isFinal: status === 'published',
-        publishedAt: formValues.publishedAt || new Date().toISOString(),
-        tags: formValues.tags,
-      };
-
-      if (formValues.type === KNOWLEDGE_TYPES.WEBINAR && formValues.webinar) {
-        apiData.webinar = {
-          zoomDate: formValues.webinar.zoomDate || new Date().toISOString(),
-          zoomLink: formValues.webinar.zoomLink || '',
-          recordLink: formValues.webinar.recordLink || '',
-          youtubeLink: formValues.webinar.youtubeLink || '',
-          vbLink: formValues.webinar.vbLink || '',
-          jpCount: formValues.webinar.jpCount || 0,
-        };
-      }
-
-      if (
-        formValues.type === KNOWLEDGE_TYPES.CONTENT &&
-        formValues.knowledgeContent
-      ) {
-        const contentType = formValues.knowledgeContent.contentType || CONTENT_TYPES.ARTICLE;
-
-        // Build knowledgeContent object based on content type
-        apiData.knowledgeContent = {
-          contentType,
-          document: formValues.knowledgeContent.document || '',
-        };
-
-        // Only include mediaUrl for non-article content types
-        // Articles only have rich text content (document), no media file
-        if (contentType !== CONTENT_TYPES.ARTICLE) {
-          apiData.knowledgeContent.mediaUrl = formValues.knowledgeContent.mediaUrl || '';
-          console.log('📤 Including mediaUrl for content type:', contentType);
-        } else {
-          console.log('📝 Article type - mediaUrl excluded from submission');
-        }
-
-        console.log('📤 Final knowledgeContent to be sent:', apiData.knowledgeContent);
-      }
-
-      await createKnowledgeMutation.mutateAsync(apiData);
-      router.push('/knowledge-center');
-    } catch (error) {
-      console.error('Failed to create knowledge:', error);
-    }
-  };
 
   // ============================================================================
   // Review Data
@@ -491,7 +329,7 @@ export default function CreateKnowledgePage() {
                 <WizardActions
                   currentStep={currentStep}
                   totalSteps={steps.length}
-                  isCreating={createKnowledgeMutation.isPending}
+                  isCreating={isCreating}
                   onPrevious={prevStep}
                   onNext={handleNextStep}
                   onSaveDraft={() => handleSubmit('draft')}

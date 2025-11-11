@@ -66,7 +66,7 @@ export function FormInput({
   className = '',
   ...props
 }: {
-  field: FormField<string>;
+  field: FormField<string | number>;
   label?: string;
   placeholder?: string;
   type?: string;
@@ -95,8 +95,13 @@ export function FormInput({
         name={field.name}
         type={type}
         placeholder={placeholder}
-        value={field.state.value || ''}
-        onChange={(e) => field.handleChange(e.target.value)}
+        value={field.state.value ?? ''}
+        onChange={(e) => {
+          const value = type === 'number'
+            ? (e.target.value === '' ? '' : Number(e.target.value))
+            : e.target.value;
+          field.handleChange(value as any);
+        }}
         onBlur={field.handleBlur}
         className={`w-full px-4 h-12 border-2 rounded-lg focus:outline-none transition-all text-gray-900 placeholder:text-gray-400 ${
           hasError

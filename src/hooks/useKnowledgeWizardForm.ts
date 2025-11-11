@@ -33,7 +33,16 @@ const getInitialFormValues = (): CreateKnowledgeFormData => ({
   thumbnail: undefined,
   isFinal: false,
   publishedAt: new Date().toISOString().slice(0, 16), // Default to current datetime
-  webinar: {},
+  webinar: {
+    jpCount: undefined, 
+    zoomDate: undefined,
+    zoomLink: undefined,
+    recordLink: undefined,
+    youtubeLink: undefined,
+    vbLink: undefined,
+    noteFile: undefined,
+    contentText: undefined,
+  },
   knowledgeContent: {
     contentType: undefined,
     mediaUrl: undefined,
@@ -137,7 +146,7 @@ export const useKnowledgeWizardForm = () => {
 
   const handleRemoveTag = useCallback(
     (tagToRemove: string) => {
-      const updatedTags = currentTags.filter((tag) => tag !== tagToRemove);
+      const updatedTags = currentTags.filter((tag: string) => tag !== tagToRemove);
       form.setFieldValue('tags' as any, updatedTags as any);
     },
     [currentTags, form]
@@ -203,7 +212,25 @@ export const useKnowledgeWizardForm = () => {
       // Step 3: Content Details
       if (currentStep === 3) {
         if (currentType === KNOWLEDGE_TYPES.WEBINAR) {
-          // Validate webinar details
+          // Trigger field validation for all webinar fields first
+          const webinarFields = ['webinar.zoomDate', 'webinar.jpCount', 'webinar.zoomLink'];
+
+          for (const fieldName of webinarFields) {
+            await form.validateField(fieldName as any, 'change');
+          }
+
+          // Check if there are any field-level errors
+          const hasFieldErrors = webinarFields.some(fieldName => {
+            const fieldState = form.getFieldMeta(fieldName as any);
+            return fieldState?.errors && fieldState.errors.length > 0;
+          });
+
+          if (hasFieldErrors) {
+            console.error('❌ Step 3 (Webinar): Please fill in all required fields');
+            return false;
+          }
+
+          // Validate webinar details with schema
           const result = webinarDetailsSchema.safeParse(currentValues.webinar);
           if (!result.success) {
             console.error('❌ Webinar validation failed:', result.error.errors);
@@ -240,6 +267,37 @@ export const useKnowledgeWizardForm = () => {
               ...prev,
               errors: ['Please select a content type'],
             }));
+            return false;
+          }
+
+          // Determine which fields to validate based on content type
+          const contentFields = ['knowledgeContent.document'];
+
+          // For non-article content, also validate media URL
+          const CONTENT_TYPES_CONST = {
+            ARTICLE: 'article',
+            VIDEO: 'video',
+            PODCAST: 'podcast',
+            FILE: 'file',
+          };
+
+          if (contentType !== CONTENT_TYPES_CONST.ARTICLE) {
+            contentFields.push('knowledgeContent.mediaUrl');
+          }
+
+          // Trigger field validation for all content fields
+          for (const fieldName of contentFields) {
+            await form.validateField(fieldName as any, 'change');
+          }
+
+          // Check if there are any field-level errors
+          const hasFieldErrors = contentFields.some(fieldName => {
+            const fieldState = form.getFieldMeta(fieldName as any);
+            return fieldState?.errors && fieldState.errors.length > 0;
+          });
+
+          if (hasFieldErrors) {
+            console.error('❌ Step 3 (Content): Please fill in all required fields');
             return false;
           }
 

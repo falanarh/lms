@@ -14,15 +14,12 @@
 import React, { useState } from "react";
 import { User, X, Settings } from "lucide-react";
 import type { UseKnowledgeWizardFormReturn } from "@/hooks/useKnowledgeWizardForm";
-import { Dropdown } from "@/components/ui/Dropdown/Dropdown";
 import type { Penyelenggara } from "@/types/knowledge-center";
 import type { KnowledgeSubject } from "@/types/knowledge-subject";
 import {
-  EnhancedFormInput,
   FormTextarea,
   FormFileUpload,
   FormInput,
-  getErrorMessage,
   FormDropdown,
 } from "@/lib/validation/form-utils";
 import SubjectManager from "./SubjectManagerTanStack";
@@ -30,7 +27,6 @@ import {
   basicInfoSchema,
   imageFileValidator,
 } from "@/lib/validation/knowledge-schemas";
-import { FieldApi } from "@tanstack/react-form";
 
 // ============================================================================
 // Types

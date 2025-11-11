@@ -366,49 +366,66 @@ export default function BlockNoteEditor({
     return (await ret.json()).data.imageUrl;
   }
 
-  const createEditor = (contentType: ContentType) => {
-    const template = CONTENT_TEMPLATES[contentType];
-    const content = initialContent || template.blocks;
+  const currentType: ContentType = type || "article";
+  const currentTemplate = CONTENT_TEMPLATES[currentType];
+  const content = initialContent || currentTemplate.blocks;
 
-    const editor = useCreateBlockNote({
-      initialContent: content,
-      uploadFile: uploadImage,
-    });
+  // Create editor - useCreateBlockNote must be called at top level (Rules of Hooks)
+  const editor = useCreateBlockNote({
+    initialContent: content,
+    uploadFile: uploadImage,
+  });
 
-    // Set up onChange event listener as recommended by BlockNote docs
-    if (onContentChange) {
-      editor.onChange((editor) => {
-        const blocks = editor.document;
-        const contentJson = JSON.stringify(blocks);
-        console.log('✍️ BlockNote: Content changed');
-        console.log('✍️ BlockNote: Blocks count:', blocks.length);
-        console.log('✍️ BlockNote: JSON length:', contentJson.length);
-        console.log('✍️ BlockNote: JSON preview:', contentJson.substring(0, 200) + '...');
-        onContentChange(contentJson);
-      });
+  // Use ref to store latest onContentChange without causing re-renders
+  const onContentChangeRef = React.useRef(onContentChange);
+
+  // Update ref when onContentChange changes
+  React.useEffect(() => {
+    onContentChangeRef.current = onContentChange;
+  }, [onContentChange]);
+
+  // Set initial content when editor is ready
+  const initialContentSetRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editor || initialContentSetRef.current) return;
+
+    // Send initial content to parent
+    const blocks = editor.document;
+    const contentJson = JSON.stringify(blocks);
+    console.log('📋 BlockNote: Setting initial content');
+    console.log('📋 BlockNote: Initial blocks count:', blocks.length);
+    console.log('📋 BlockNote: Initial JSON length:', contentJson.length);
+
+    if (onContentChangeRef.current) {
+      onContentChangeRef.current(contentJson);
     }
 
-    return editor;
-  };
+    initialContentSetRef.current = true;
+  }, [editor]);
 
-  const currentType: ContentType = type || "article";
-  const editor = createEditor(currentType);
+  // Set up onChange listener only once
+  const listenerRegisteredRef = React.useRef(false);
 
-  const currentTemplate = CONTENT_TEMPLATES[currentType];
+  React.useEffect(() => {
+    if (!editor || listenerRegisteredRef.current) return;
 
-  // Initialize content when editor is ready and onContentChange is provided
-  useEffect(() => {
-    if (editor && onContentChange) {
-      // Set initial content from template
+    // Register onChange listener
+    editor.onChange(() => {
       const blocks = editor.document;
       const contentJson = JSON.stringify(blocks);
-      console.log('✍️ BlockNote: Initial content set');
-      console.log('✍️ BlockNote: Initial blocks count:', blocks.length);
-      console.log('✍️ BlockNote: Initial JSON length:', contentJson.length);
-      console.log('✍️ BlockNote: Initial JSON preview:', contentJson.substring(0, 200) + '...');
-      onContentChange(contentJson);
-    }
-  }, [editor, onContentChange]);
+      console.log('✍️ BlockNote: Content changed');
+      console.log('✍️ BlockNote: Blocks count:', blocks.length);
+      console.log('✍️ BlockNote: JSON length:', contentJson.length);
+
+      // Use ref to get latest callback
+      if (onContentChangeRef.current) {
+        onContentChangeRef.current(contentJson);
+      }
+    });
+
+    listenerRegisteredRef.current = true;
+  }, [editor]); // Only re-run if editor changes
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden min-h-screen py-8">

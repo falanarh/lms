@@ -63,13 +63,13 @@ const basicInfoStepSchema = z.object({
 // Step 3A: Webinar Details
 const webinarDetailsStepSchema = z.object({
   webinar: z.object({
-    zoomDate: dateSchema,
-    zoomLink: urlSchema,
+    zoomDate: dateSchema.min(1, 'Webinar date is required'),
+    zoomLink: urlSchema.min(1, 'Zoom link is required'),
     recordLink: urlSchema,
     youtubeLink: optionalUrlSchema,
     vbLink: optionalUrlSchema,
     contentText: z.union([pdfFileSchema, z.string()]).optional(),
-    jpCount: z.number().int().min(0, 'JP credits must be a positive number').default(0),
+    jpCount: z.number().int().min(0, 'JP credits must be a positive number'),
   }).optional(),
 });
 

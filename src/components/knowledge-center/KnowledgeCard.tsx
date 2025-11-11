@@ -52,7 +52,7 @@ import {
   Package,
   Clock,
 } from 'lucide-react';
-import { KnowledgeCenter, ContentType } from '@/types/knowledge-center';
+import { KnowledgeCenter, ContentType, CONTENT_TYPES, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 
 interface KnowledgeCardProps {
   knowledge: KnowledgeCenter;
@@ -72,11 +72,11 @@ export default function KnowledgeCard({
 
     const contentType = knowledge.knowledgeContent?.contentType as ContentType;
     switch (contentType) {
-      case 'video':
+      case CONTENT_TYPES.VIDEO:
         return <Play className="w-4 h-4" />;
-      case 'pdf':
+      case CONTENT_TYPES.FILE:
         return <FileText className="w-4 h-4" />;
-      case 'podcast':
+      case CONTENT_TYPES.PODCAST:
         return <Headphones className="w-4 h-4" />;
       default:
         return <Package className="w-4 h-4" />;
@@ -90,11 +90,11 @@ export default function KnowledgeCard({
 
     const contentType = knowledge.knowledgeContent?.contentType as ContentType;
     switch (contentType) {
-      case 'video':
+      case CONTENT_TYPES.VIDEO:
         return 'bg-red-100 text-red-700 border-red-200';
-      case 'pdf':
+      case CONTENT_TYPES.FILE:
         return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'podcast':
+      case CONTENT_TYPES.PODCAST:
         return 'bg-green-100 text-green-700 border-green-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -108,11 +108,11 @@ export default function KnowledgeCard({
 
     const contentType = knowledge.knowledgeContent?.contentType as ContentType;
     switch (contentType) {
-      case 'video':
+      case CONTENT_TYPES.VIDEO:
         return 'Video';
-      case 'pdf':
+      case CONTENT_TYPES.FILE:
         return 'PDF';
-      case 'podcast':
+      case CONTENT_TYPES.PODCAST:
         return 'Podcast';
       default:
         return 'Article';
@@ -126,11 +126,11 @@ export default function KnowledgeCard({
 
     const contentType = knowledge.knowledgeContent?.contentType as ContentType;
     switch (contentType) {
-      case 'video':
+      case CONTENT_TYPES.VIDEO:
         return 'from-red-100 via-red-200 to-red-300';
-      case 'pdf':
+      case CONTENT_TYPES.FILE:
         return 'from-blue-100 via-blue-200 to-blue-300';
-      case 'podcast':
+      case CONTENT_TYPES.PODCAST:
         return 'from-green-100 via-green-200 to-green-300';
       default:
         return 'from-gray-100 via-gray-200 to-gray-300';
@@ -166,10 +166,10 @@ export default function KnowledgeCard({
               <div className="text-gray-600 opacity-70">
                 <div className="w-16 h-16 flex items-center justify-center">
                   {(() => {
-                    const Icon = knowledge.type === 'webinar' ? Calendar :
-                                 knowledge.knowledgeContent?.contentType === 'video' ? Play :
-                                 knowledge.knowledgeContent?.contentType === 'pdf' ? FileText :
-                                 knowledge.knowledgeContent?.contentType === 'podcast' ? Headphones : Package;
+                    const Icon = knowledge.type === KNOWLEDGE_TYPES.WEBINAR ? Calendar :
+                                 knowledge.knowledgeContent?.contentType === CONTENT_TYPES.VIDEO ? Play :
+                                 knowledge.knowledgeContent?.contentType === CONTENT_TYPES.FILE ? FileText :
+                                 knowledge.knowledgeContent?.contentType === CONTENT_TYPES.PODCAST ? Headphones : Package;
                     return <Icon className="w-16 h-16" />;
                   })()}
                 </div>
@@ -211,7 +211,7 @@ export default function KnowledgeCard({
           </p>
 
           {/* Webinar Status - Only for webinars with date */}
-          {knowledge.type === 'webinar' && knowledge.webinar?.zoomDate && (
+          {knowledge.type === KNOWLEDGE_TYPES.WEBINAR && knowledge.webinar?.zoomDate && (
             <div className="mb-3">
               {isUpcomingWebinar ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-md">
