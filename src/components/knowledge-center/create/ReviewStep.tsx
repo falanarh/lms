@@ -18,7 +18,8 @@ export default function ReviewStep({
 }: ReviewStepProps) {
   const [showPreview, setShowPreview] = useState(false);
   const hasWebinarDetails =
-    formData.type === KNOWLEDGE_TYPES.WEBINAR && Boolean(formData.webinar?.zoomDate);
+    formData.type === KNOWLEDGE_TYPES.WEBINAR &&
+    Boolean(formData.webinar?.zoomDate);
   const getTypeLabel = () => {
     if (formData.type === KNOWLEDGE_TYPES.WEBINAR) {
       return "Webinar";
@@ -31,11 +32,6 @@ export default function ReviewStep({
 
   return (
     <div className="space-y-6">
-      {/* Preview Button */}
-      {/* <div className="flex justify-end">
-        
-      </div> */}
-
       <div className="bg-gradient-to-br from-blue-50 via-cyan-50/50 to-green-50/30 rounded-lg p-6 border-2 border-blue-200/50 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -115,10 +111,15 @@ export default function ReviewStep({
               </span>
               <div className="text-sm space-y-1">
                 <p className="text-gray-700">
-                  Date: {new Date(formData.webinar?.zoomDate as string).toLocaleString("id-ID")}
+                  Date:{" "}
+                  {new Date(
+                    formData.webinar?.zoomDate as string
+                  ).toLocaleString("id-ID")}
                 </p>
                 {formData.webinar?.jpCount && (
-                  <p className="text-gray-700">JP: {formData.webinar?.jpCount}</p>
+                  <p className="text-gray-700">
+                    JP: {formData.webinar?.jpCount}
+                  </p>
                 )}
               </div>
             </div>

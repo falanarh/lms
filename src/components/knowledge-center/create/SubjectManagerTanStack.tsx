@@ -86,7 +86,7 @@ export default function SubjectManagerTanStack({
         const result = updateKnowledgeSubjectSchema.safeParse(value);
         if (!result.success) {
           // Set errors on form
-          result.error.issues.forEach((issue) => {
+          result.error.issues.forEach((issue: any) => {
             const fieldName = issue.path[0] as 'name' | 'icon';
             updateForm.setFieldMeta(fieldName, (prev) => ({
               ...prev,
@@ -322,7 +322,7 @@ Choose the best matching icon name for "${subjectName}":`;
           className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50 space-y-3"
         >
           <addForm.Field name="name">
-            {(field) => (
+            {(field: any) => (
               <FormInput
                 field={field}
                 label="Subject Name"
@@ -347,19 +347,23 @@ Choose the best matching icon name for "${subjectName}":`;
                 }}
                 className="w-fit"
               />
-              <button
-                type="button"
-                onClick={() => handleAutoPickIcon(addForm.state.values.name || '')}
-                disabled={!addForm.state.values.name?.trim() || isGeneratingIcon}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm disabled:opacity-50"
-                title="Auto-pick icon based on subject name"
-              >
-                <Sparkles className="w-4 h-4" />
-                {isGeneratingIcon ? "..." : "Auto"}
-              </button>
+              <addForm.Subscribe selector={(state) => state.values.name}>
+                {(name) => (
+                  <button
+                    type="button"
+                    onClick={() => handleAutoPickIcon(name || '')}
+                    disabled={!name?.trim() || isGeneratingIcon}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Auto-pick icon based on subject name"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {isGeneratingIcon ? "..." : "Auto"}
+                  </button>
+                )}
+              </addForm.Subscribe>
             </div>
             <addForm.Field name="icon">
-              {(field) => (
+              {(field: any) => (
                 <>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-red-600 text-xs mt-1.5">
@@ -415,7 +419,7 @@ Choose the best matching icon name for "${subjectName}":`;
                 className="space-y-3"
               >
                 <updateForm.Field name="name">
-                  {(field) => (
+                  {(field: any) => (
                     <FormInput
                       field={field}
                       label="Subject Name"
@@ -440,19 +444,23 @@ Choose the best matching icon name for "${subjectName}":`;
                       }}
                       className="w-fit"
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleAutoPickIcon(updateForm.state.values.name || '', true)}
-                      disabled={!updateForm.state.values.name?.trim() || isGeneratingIcon}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm disabled:opacity-50"
-                      title="Auto-pick icon based on subject name"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {isGeneratingIcon ? "..." : "Auto"}
-                    </button>
+                    <updateForm.Subscribe selector={(state) => state.values.name}>
+                      {(name) => (
+                        <button
+                          type="button"
+                          onClick={() => handleAutoPickIcon(name || '', true)}
+                          disabled={!name?.trim() || isGeneratingIcon}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Auto-pick icon based on subject name"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          {isGeneratingIcon ? "..." : "Auto"}
+                        </button>
+                      )}
+                    </updateForm.Subscribe>
                   </div>
                   <updateForm.Field name="icon">
-                    {(field) => (
+                    {(field: any) => (
                       <>
                         {field.state.meta.errors.length > 0 && (
                           <p className="text-red-600 text-xs mt-1.5">

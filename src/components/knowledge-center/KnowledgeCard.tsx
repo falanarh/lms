@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getThumbnailUrl as encodeThumbnailUrl } from '@/utils/urlUtils';
 
 // Utility function to get proper thumbnail URL
 const getThumbnailUrl = (thumbnail: string) => {
@@ -23,7 +24,8 @@ const getThumbnailUrl = (thumbnail: string) => {
     }
   }
 
-  return thumbnail;
+  // Encode URL to handle special characters (spaces, etc.)
+  return encodeThumbnailUrl(thumbnail);
 };
 
 // Extract YouTube video ID from various YouTube URL formats

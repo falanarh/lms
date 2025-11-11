@@ -31,44 +31,52 @@ import type {
   PaginatedApiResponse,
   PaginatedResponse,
   DetailResponse,
-} from './api-response';
+} from "./api-response";
 
 // Base Types - aligned with API structure
-export type KnowledgeType = 'webinar' | 'content'; // API uses 'content', not 'konten'
-export type ContentType = 'video' | 'file' | 'podcast' | 'article';
+export type KnowledgeType = "webinar" | "content"; // API uses 'content', not 'konten'
+export type ContentType = "video" | "file" | "podcast" | "article";
 export type MediaType = ContentType; // Type alias for backward compatibility - both point to same type
-export type KnowledgeStatus = 'draft' | 'published' | 'archived';
-export type SortOption = 'newest' | 'oldest' | 'mostLiked' | 'mostViewed' | 'upcomingWebinar' | 'popular' | 'likes' | 'title';
+export type KnowledgeStatus = "draft" | "published" | "archived";
+export type SortOption =
+  | "newest"
+  | "oldest"
+  | "mostLiked"
+  | "mostViewed"
+  | "upcomingWebinar"
+  | "popular"
+  | "likes"
+  | "title";
 
 // Type constants to avoid hardcoded values
 export const KNOWLEDGE_TYPES = {
-  WEBINAR: 'webinar' as const,
-  CONTENT: 'content' as const,
+  WEBINAR: "webinar" as const,
+  CONTENT: "content" as const,
 } as const;
 
 export const CONTENT_TYPES = {
-  VIDEO: 'video' as const,
-  FILE: 'file' as const,
-  PODCAST: 'podcast' as const,
-  ARTICLE: 'article' as const,
+  VIDEO: "video" as const,
+  FILE: "file" as const,
+  PODCAST: "podcast" as const,
+  ARTICLE: "article" as const,
 } as const;
 
 export const KNOWLEDGE_STATUS = {
-  DRAFT: 'draft' as const,
-  SCHEDULED: 'scheduled' as const,
-  PUBLISHED: 'published' as const,
-  ARCHIVED: 'archived' as const,
+  DRAFT: "draft" as const,
+  SCHEDULED: "scheduled" as const,
+  PUBLISHED: "published" as const,
+  ARCHIVED: "archived" as const,
 } as const;
 
 export const SORT_OPTIONS = {
-  NEWEST: 'newest' as const,
-  OLDEST: 'oldest' as const,
-  MOST_LIKED: 'mostLiked' as const,
-  MOST_VIEWED: 'mostViewed' as const,
-  UPCOMING_WEBINAR: 'upcomingWebinar' as const,
-  POPULAR: 'popular' as const,
-  LIKES: 'likes' as const,
-  TITLE: 'title' as const,
+  NEWEST: "newest" as const,
+  OLDEST: "oldest" as const,
+  MOST_LIKED: "mostLiked" as const,
+  MOST_VIEWED: "mostViewed" as const,
+  UPCOMING_WEBINAR: "upcomingWebinar" as const,
+  POPULAR: "popular" as const,
+  LIKES: "likes" as const,
+  TITLE: "title" as const,
 } as const;
 
 // Generic API Response Types have been moved to api-response.ts for better reusability
@@ -99,7 +107,7 @@ export interface KnowledgeWebinar {
   zoomDate: string;
   zoomLink: string;
   youtubeLink?: string;
-  recordLink: string;
+  recordLink?: string;
   vbLink?: string;
   noteFile?: string;
   contentText?: string;
@@ -114,21 +122,14 @@ export interface KnowledgeContent {
 
 // KnowledgeSubject types have been moved to knowledge-subject.ts for better maintainability
 
-export interface CreateKnowledgeCenterRequest {
-  createdBy: string;
-  idSubject: string;
-  title: string;
-  description: string;
-  type: KnowledgeType;
-  penyelenggara?: string;
-  thumbnail?: string;
-  isFinal: boolean;
-  publishedAt: string;
-  webinar?: Omit<KnowledgeWebinar, 'youtubeLink' | 'vbLink' | 'contentText'>;
-  knowledgeContent?: KnowledgeContent;
-}
+// Create Request - Omit auto-generated fields from KnowledgeCenter
+export type CreateKnowledgeCenterRequest = Omit<
+  KnowledgeCenter,
+  "id" | "subject" | "viewCount" | "likeCount" | "createdAt" | "updatedAt"
+>;
 
-export type UpdateKnowledgeCenterRequest = Partial<CreateKnowledgeCenterRequest>;
+export type UpdateKnowledgeCenterRequest =
+  Partial<CreateKnowledgeCenterRequest>;
 
 // Taxonomy types - Using main types to avoid duplication
 // Penyelenggara type (keeping separate for now as it doesn't have main equivalent yet)
@@ -162,7 +163,9 @@ export interface PaginationParams {
   limit?: number;
 }
 
-export interface KnowledgeQueryParams extends KnowledgeFilters, PaginationParams {
+export interface KnowledgeQueryParams
+  extends KnowledgeFilters,
+    PaginationParams {
   sort?: SortOption;
 }
 
@@ -205,30 +208,26 @@ export interface Comment {
 // Create Knowledge types
 export type CreateKnowledgeStep = 1 | 2 | 3 | 4;
 
-export interface CreateKnowledgeFormData {
-  // Step 1
-  type: KnowledgeType | undefined; // Matches API 'type' field
-
-  // Step 2 - Common fields (matches CreateKnowledgeCenterRequest)
-  idSubject: string;
-  title: string;
-  description: string;
-  penyelenggara?: string;
-  thumbnail?: File | string;
-  isFinal?: boolean;
-  publishedAt?: string;
-
-  // Step 3A - Webinar specific (using main type with all optional fields)
+// Form data - derived from KnowledgeCenter with form-specific overrides
+export type CreateKnowledgeFormData = Omit<
+  KnowledgeCenter,
+  'id' | 'subject' | 'viewCount' | 'likeCount' | 'createdAt' | 'updatedAt' | 'type' | 'thumbnail' | 'webinar' | 'knowledgeContent'
+> & {
+  // Override type to allow undefined during step 1
+  type: KnowledgeType | undefined;
+  
+  // Override thumbnail to allow File object for upload
+  thumbnail: File | string;
+  
+  // Override webinar to use Partial (all fields optional during form filling)
   webinar?: Partial<KnowledgeWebinar>;
-
-  // Step 3B - Content specific (using main type with all optional fields)
+  
+  // Override knowledgeContent to use Partial (all fields optional during form filling)
   knowledgeContent?: Partial<KnowledgeContent>;
-
-  // UI State fields (not sent to API)
-  createdBy: string; // For display only
-  tags?: string[]; // For display only (API doesn't have tags yet)
-  status?: KnowledgeStatus; // For display only
-}
+  
+  // UI-only field for display (not sent to API)
+  status?: KnowledgeStatus;
+};
 
 // Form validation types
 export interface FormErrors {
@@ -262,7 +261,7 @@ export interface WebinarSchedule {
   title: string;
   tglZoom: string;
   linkZoom?: string;
-  status: 'upcoming' | 'ongoing' | 'ended' | 'live';
+  status: "upcoming" | "ongoing" | "ended" | "live";
   participantsCount?: number;
 }
 
@@ -274,4 +273,4 @@ export type {
   PaginatedApiResponse,
   PaginatedResponse,
   DetailResponse,
-} from './api-response';
+} from "./api-response";

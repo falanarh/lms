@@ -84,7 +84,7 @@ export {
   CONTENT_TYPES,
   KNOWLEDGE_STATUS,
   SORT_OPTIONS,
-  PENYELENGGARA_DATA,
+  PENYELENGGARA,
 } from './knowledge-center';
 
 // Knowledge Subject Types

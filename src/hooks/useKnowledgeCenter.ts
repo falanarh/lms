@@ -13,6 +13,13 @@ import {
   getKnowledgeQueryOptions,
   knowledgeCenterApi,
 } from '@/api/knowledge-center';
+import { knowledgeApi } from '@/api';
+import {
+  transformFormDataToAPI,
+  validateFormDataForSubmission,
+  getDefaultThumbnailUrl,
+} from '@/lib/knowledge-center/transform';
+import { encodeMediaUrl } from '@/utils/urlUtils';
 import {
   CreateKnowledgeCenterRequest,
   KnowledgeCenter,
@@ -230,26 +237,20 @@ export const useCreateKnowledgePage = ({
     async (file: File, type: 'video' | 'audio' | 'pdf') => {
       setIsUploadingMedia(true);
       try {
-        // Lazy import to avoid circular dependencies
-        const { knowledgeApi } = await import('@/api');
+        // Use upload function map for cleaner code
+        const uploadFn = {
+          video: knowledgeApi.uploadVideo,
+          audio: knowledgeApi.uploadAudio,
+          pdf: knowledgeApi.uploadPDF,
+        }[type];
 
-        let uploadedUrl = '';
-        if (type === 'video') {
-          uploadedUrl = await knowledgeApi.uploadVideo(file);
-        } else if (type === 'audio') {
-          uploadedUrl = await knowledgeApi.uploadAudio(file);
-        } else {
-          uploadedUrl = await knowledgeApi.uploadPDF(file);
-        }
+        const uploadedUrl = await uploadFn(file);
+        
+        // Sanitize URL to handle special characters like spaces
+        const sanitizedUrl = encodeMediaUrl(uploadedUrl);
 
-        // Get the latest knowledgeContent from form state to preserve contentType
-        const currentKnowledgeContent = wizard.form.getFieldValue('knowledgeContent') || {};
-        console.log('📤 Upload complete - preserving contentType from:', currentKnowledgeContent);
-
-        wizard.form.setFieldValue('knowledgeContent', {
-          ...currentKnowledgeContent,
-          mediaUrl: uploadedUrl,
-        });
+        // Update form using nested field path
+        wizard.form.setFieldValue('knowledgeContent.mediaUrl' as any, sanitizedUrl as any);
 
         onSuccess('Media uploaded successfully');
       } catch (error) {
@@ -266,13 +267,13 @@ export const useCreateKnowledgePage = ({
     async (file: File) => {
       setIsUploadingPDF(true);
       try {
-        const { knowledgeApi } = await import('@/api');
         const uploadedUrl = await knowledgeApi.uploadPDF(file);
+        
+        // Sanitize URL to handle special characters like spaces
+        const sanitizedUrl = encodeMediaUrl(uploadedUrl);
 
-        wizard.form.setFieldValue('webinar', {
-          ...(formValues.webinar || {}),
-          contentText: uploadedUrl,
-        });
+        // Update form using nested field path
+        wizard.form.setFieldValue('webinar.contentText' as any, sanitizedUrl as any);
 
         onSuccess('PDF uploaded successfully');
       } catch (error) {
@@ -282,7 +283,7 @@ export const useCreateKnowledgePage = ({
         setIsUploadingPDF(false);
       }
     },
-    [wizard.form, formValues.webinar, onSuccess, onError]
+    [wizard.form, onSuccess, onError]
   );
 
   // ============================================================================
@@ -319,17 +320,10 @@ export const useCreateKnowledgePage = ({
 
   const handleSubmit = useCallback(
     async (status: 'draft' | 'published') => {
-      // Dynamic import to avoid circular dependencies
-      const { KNOWLEDGE_TYPES, CONTENT_TYPES } = await import('@/types/knowledge-center');
-      const { knowledgeApi } = await import('@/api');
-
-      if (!formValues.type) {
-        onError('Please select a content type first!');
-        return;
-      }
-
-      if (!formValues.idSubject) {
-        onError('Please select a subject first!');
+      // Validate form data
+      const validationError = validateFormDataForSubmission(formValues);
+      if (validationError) {
+        onError(validationError);
         return;
       }
 
@@ -338,11 +332,13 @@ export const useCreateKnowledgePage = ({
         let thumbnailUrl =
           typeof formValues.thumbnail === 'string' && formValues.thumbnail
             ? formValues.thumbnail
-            : 'https://via.placeholder.com/300x200';
+            : getDefaultThumbnailUrl();
 
         if (formValues.thumbnail instanceof File) {
           try {
-            thumbnailUrl = await knowledgeApi.uploadImage(formValues.thumbnail);
+            const uploadedUrl = await knowledgeApi.uploadImage(formValues.thumbnail);
+            // Sanitize URL to handle special characters like spaces
+            thumbnailUrl = encodeMediaUrl(uploadedUrl);
           } catch (uploadError) {
             console.error('Failed to upload thumbnail:', uploadError);
             onError('Failed to upload thumbnail. Please try again.');
@@ -350,51 +346,8 @@ export const useCreateKnowledgePage = ({
           }
         }
 
-        // Build API payload
-        const apiData: any = {
-          createdBy: formValues.createdBy,
-          idSubject: formValues.idSubject,
-          title: formValues.title,
-          description: formValues.description,
-          type: formValues.type,
-          penyelenggara: formValues.penyelenggara,
-          thumbnail: thumbnailUrl,
-          isFinal: status === 'published',
-          publishedAt: formValues.publishedAt || new Date().toISOString(),
-          tags: formValues.tags,
-        };
-
-        // Add webinar data if applicable
-        if (formValues.type === KNOWLEDGE_TYPES.WEBINAR && formValues.webinar) {
-          apiData.webinar = {
-            zoomDate: formValues.webinar.zoomDate || new Date().toISOString(),
-            zoomLink: formValues.webinar.zoomLink || '',
-            recordLink: formValues.webinar.recordLink || '',
-            youtubeLink: formValues.webinar.youtubeLink || '',
-            vbLink: formValues.webinar.vbLink || '',
-            jpCount: formValues.webinar.jpCount || 0,
-          };
-        }
-
-        // Add content data if applicable
-        if (formValues.type === KNOWLEDGE_TYPES.CONTENT && formValues.knowledgeContent) {
-          const contentType = formValues.knowledgeContent.contentType || CONTENT_TYPES.ARTICLE;
-
-          apiData.knowledgeContent = {
-            contentType,
-            document: formValues.knowledgeContent.document || '',
-          };
-
-          // Only include mediaUrl for non-article content types
-          if (contentType !== CONTENT_TYPES.ARTICLE) {
-            apiData.knowledgeContent.mediaUrl = formValues.knowledgeContent.mediaUrl || '';
-            console.log('📤 Including mediaUrl for content type:', contentType);
-          } else {
-            console.log('📝 Article type - mediaUrl excluded from submission');
-          }
-
-          console.log('📤 Final knowledgeContent to be sent:', apiData.knowledgeContent);
-        }
+        // Transform form data to API payload using utility
+        const apiData = transformFormDataToAPI(formValues, status, thumbnailUrl);
 
         // Submit to API
         await createKnowledgeMutation.mutateAsync(apiData);

@@ -32,18 +32,22 @@ import {
 // Types
 // ============================================================================
 
-interface BasicInfoFormProps {
-  wizard: UseKnowledgeWizardFormReturn;
-  subjects: KnowledgeSubject[];
-  penyelenggara: Penyelenggara[];
-  onSubjectAdd?: (subject: KnowledgeSubject) => void;
-  onSubjectUpdate?: (id: string, subject: Partial<KnowledgeSubject>) => void;
-  onSubjectDelete?: (id: string) => void;
-  isSubjectManagementPending?: {
+export interface SubjectHandlers {
+  onAdd?: (subject: KnowledgeSubject) => void;
+  onUpdate?: (id: string, subject: Partial<KnowledgeSubject>) => void;
+  onDelete?: (id: string) => void;
+  isPending?: {
     adding: boolean;
     updating: boolean;
     deleting: boolean;
   };
+}
+
+export interface BasicInfoFormProps {
+  wizard: UseKnowledgeWizardFormReturn;
+  subjects: KnowledgeSubject[];
+  penyelenggara: Penyelenggara[];
+  subjectHandlers?: SubjectHandlers;
 }
 
 // ============================================================================
@@ -54,14 +58,7 @@ export default function BasicInfoForm({
   wizard,
   subjects,
   penyelenggara,
-  onSubjectAdd,
-  onSubjectUpdate,
-  onSubjectDelete,
-  isSubjectManagementPending = {
-    adding: false,
-    updating: false,
-    deleting: false,
-  },
+  subjectHandlers,
 }: BasicInfoFormProps) {
   const [showSubjectManager, setShowSubjectManager] = useState(false);
 
@@ -80,7 +77,7 @@ export default function BasicInfoForm({
           onBlur: basicInfoSchema.shape.title,
         }}
       >
-        {(field) => (
+        {(field: any) => (
           <FormInput
             field={field}
             label="Title"
@@ -98,7 +95,7 @@ export default function BasicInfoForm({
           onBlur: basicInfoSchema.shape.description,
         }}
       >
-        {(field) => (
+        {(field: any) => (
           <FormTextarea
             field={field}
             label="Description"
@@ -117,7 +114,7 @@ export default function BasicInfoForm({
             onBlur: basicInfoSchema.shape.penyelenggara,
           }}
         >
-          {(field) => (
+          {(field: any) => (
             <FormDropdown
               field={field}
               label="Organizer"
@@ -139,7 +136,7 @@ export default function BasicInfoForm({
             onBlur: basicInfoSchema.shape.createdBy,
           }}
         >
-          {(field) => (
+          {(field: any) => (
             <FormInput
               field={field}
               label="Author"
@@ -160,7 +157,7 @@ export default function BasicInfoForm({
             onBlur: basicInfoSchema.shape.idSubject,
           }}
         >
-          {(field) => (
+          {(field: any) => (
             <FormDropdown
               field={field}
               label="Subject"
@@ -183,14 +180,14 @@ export default function BasicInfoForm({
             >
               {/* Subject Manager */}
               {showSubjectManager &&
-                onSubjectAdd &&
-                onSubjectUpdate &&
-                onSubjectDelete && (
+                subjectHandlers?.onAdd &&
+                subjectHandlers?.onUpdate &&
+                subjectHandlers?.onDelete && (
                   <div className="mt-3">
                     <SubjectManager
                       subjects={subjects}
                       onSubjectAdd={(subject) =>
-                        onSubjectAdd({
+                        subjectHandlers.onAdd!({
                           ...subject,
                           id: "",
                           icon: subject.icon || "",
@@ -198,11 +195,11 @@ export default function BasicInfoForm({
                           updatedAt: new Date().toISOString(),
                         })
                       }
-                      onSubjectUpdate={onSubjectUpdate}
-                      onSubjectDelete={onSubjectDelete}
-                      isAdding={isSubjectManagementPending.adding}
-                      isUpdating={isSubjectManagementPending.updating}
-                      isDeleting={isSubjectManagementPending.deleting}
+                      onSubjectUpdate={subjectHandlers.onUpdate}
+                      onSubjectDelete={subjectHandlers.onDelete}
+                      isAdding={subjectHandlers.isPending?.adding || false}
+                      isUpdating={subjectHandlers.isPending?.updating || false}
+                      isDeleting={subjectHandlers.isPending?.deleting || false}
                     />
                   </div>
                 )}
@@ -218,9 +215,9 @@ export default function BasicInfoForm({
             onBlur: basicInfoSchema.shape.publishedAt,
           }}
         >
-          {(field) => (
+          {(field: any) => (
             <FormInput
-              field={field as any}
+              field={field}
               label="Published Date"
               type="datetime-local"
             />
@@ -236,9 +233,9 @@ export default function BasicInfoForm({
           onBlur: imageFileValidator,
         }}
       >
-        {(field) => (
+        {(field: any) => (
           <FormFileUpload
-            field={field as any}
+            field={field}
             label="Thumbnail"
             accept="image/*"
             maxSize={20 * 1024 * 1024}
@@ -268,7 +265,7 @@ export default function BasicInfoForm({
         <div className="border-2 border-[var(--border,rgba(0,0,0,0.12))] rounded-lg p-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all max-h-[120px] overflow-y-auto">
           {currentTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {currentTags.map((tag, index) => (
+              {currentTags.map((tag: any, index: any) => (
                 <span
                   key={index}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all"

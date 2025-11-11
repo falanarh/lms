@@ -147,6 +147,21 @@ export const fieldValidators = {
   }),
 } as const;
 
+// Knowledge Subject schemas
+export const createKnowledgeSubjectSchema = z.object({
+  name: z.string().min(1, 'Subject name is required').min(2, 'Subject name must be at least 2 characters'),
+  icon: z.string().min(1, 'Icon is required'),
+});
+
+export const updateKnowledgeSubjectSchema = z.object({
+  name: z.string().min(1, 'Subject name is required').min(2, 'Subject name must be at least 2 characters').optional(),
+  icon: z.string().min(1, 'Icon is required').optional(),
+});
+
+// Type inference for Knowledge Subject
+export type CreateKnowledgeSubjectFormData = z.infer<typeof createKnowledgeSubjectSchema>;
+export type UpdateKnowledgeSubjectFormData = z.infer<typeof updateKnowledgeSubjectSchema>;
+
 // Error message formatter
 export const formatZodError = (error: z.ZodError): Record<string, string> => {
   const errors: Record<string, string> = {};

@@ -72,7 +72,7 @@ export default function KnowledgeDetailResources({ knowledge }: KnowledgeDetailR
           </div>
         )}
 
-        {knowledge.webinar?.jpCount && (
+        {(knowledge.webinar?.jpCount !== undefined && knowledge.webinar?.jpCount !== null) && (
           <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
             <Award className="w-5 h-5 text-gray-600" />
             <span className="font-medium">JP: {knowledge.webinar.jpCount}</span>

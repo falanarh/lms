@@ -30,7 +30,7 @@ const getInitialFormValues = (): CreateKnowledgeFormData => ({
   title: '',
   description: '',
   penyelenggara: '',
-  thumbnail: undefined,
+  thumbnail: '',
   isFinal: false,
   publishedAt: new Date().toISOString().slice(0, 16), // Default to current datetime
   webinar: {
@@ -161,7 +161,7 @@ export const useKnowledgeWizardForm = () => {
       const currentValues = form.state.values;
       const schema = getStepSchema(currentStep, currentValues.type);
 
-      // Step 1: Content Type
+      // Step 1: Content Type - Simple check
       if (currentStep === 1) {
         if (!currentValues.type) {
           console.error('❌ Step 1: Please select a content type');
@@ -170,32 +170,21 @@ export const useKnowledgeWizardForm = () => {
         return true;
       }
 
-      // Step 2: Basic Info - Trigger field validations
+      // Step 2: Basic Info - Declarative validation with schema
       if (currentStep === 2) {
-        // Trigger validation for all required fields
-        const fields = ['title', 'description', 'idSubject', 'penyelenggara', 'createdBy', 'publishedAt', 'thumbnail'];
-
-        for (const fieldName of fields) {
-          await form.validateField(fieldName as any, 'change');
+        // First, trigger validation on all required fields to show errors in UI
+        const requiredFields = ['title', 'description', 'idSubject', 'penyelenggara', 'createdBy', 'publishedAt', 'thumbnail'];
+        
+        // Trigger validation for each field
+        for (const fieldName of requiredFields) {
+          await form.validateField(fieldName as any, 'blur');
         }
 
-        // Check if there are any errors
-        const hasErrors = fields.some(fieldName => {
-          const fieldState = form.getFieldMeta(fieldName as any);
-          return fieldState?.errors && fieldState.errors.length > 0;
-        });
-
-        if (hasErrors) {
-          console.error('❌ Step 2: Please fill in all required fields');
-          return false;
-        }
-
-        // Also validate with schema
+        // Then validate with schema
         const result = schema.safeParse(currentValues);
         if (!result.success) {
           console.error('❌ Step 2 validation failed:', result.error.errors);
-
-          // Set field errors
+          // Set field errors declaratively
           result.error.errors.forEach((error) => {
             const fieldPath = error.path.join('.');
             form.setFieldMeta(fieldPath as any, (prev: any) => ({
@@ -203,39 +192,23 @@ export const useKnowledgeWizardForm = () => {
               errors: [error.message],
             }));
           });
-
           return false;
         }
         return true;
       }
 
-      // Step 3: Content Details
+      // Step 3: Content Details - Declarative validation
       if (currentStep === 3) {
         if (currentType === KNOWLEDGE_TYPES.WEBINAR) {
-          // Trigger field validation for all webinar fields first
+          // Trigger validation on webinar fields first
           const webinarFields = ['webinar.zoomDate', 'webinar.jpCount', 'webinar.zoomLink'];
-
           for (const fieldName of webinarFields) {
-            await form.validateField(fieldName as any, 'change');
+            await form.validateField(fieldName as any, 'blur');
           }
 
-          // Check if there are any field-level errors
-          const hasFieldErrors = webinarFields.some(fieldName => {
-            const fieldState = form.getFieldMeta(fieldName as any);
-            return fieldState?.errors && fieldState.errors.length > 0;
-          });
-
-          if (hasFieldErrors) {
-            console.error('❌ Step 3 (Webinar): Please fill in all required fields');
-            return false;
-          }
-
-          // Validate webinar details with schema
           const result = webinarDetailsSchema.safeParse(currentValues.webinar);
           if (!result.success) {
             console.error('❌ Webinar validation failed:', result.error.errors);
-
-            // Set field errors for webinar fields
             result.error.errors.forEach((error) => {
               const fieldPath = 'webinar.' + error.path.join('.');
               form.setFieldMeta(fieldPath as any, (prev: any) => ({
@@ -243,26 +216,15 @@ export const useKnowledgeWizardForm = () => {
                 errors: [error.message],
               }));
             });
-
             return false;
           }
         } else if (currentType === KNOWLEDGE_TYPES.CONTENT) {
-          // Validate content details - use the complete form validation instead
-          console.log('🔍 Validating content details:', currentValues.knowledgeContent);
-          console.log('📋 Current full form values:', currentValues);
-
-          // Check if knowledgeContent exists and has contentType
-          console.log('🔍 Deep check - knowledgeContent:', currentValues.knowledgeContent);
-          console.log('🔍 Deep check - contentType:', currentValues.knowledgeContent?.contentType);
-          console.log('🔍 Deep check - contentType type:', typeof currentValues.knowledgeContent?.contentType);
-
-          // More robust check - handle both undefined and empty string
+          // Check content type exists
           const contentType = currentValues.knowledgeContent?.contentType;
-          const hasValidContentType = contentType && contentType !== '' && contentType !== 'undefined';
-
-          if (!hasValidContentType) {
+          if (!contentType || contentType === '' || contentType === 'undefined') {
             console.error('❌ Content type is missing or invalid:', contentType);
-            // Set error on the contentType field
+            // Trigger validation to show error in UI
+            await form.validateField('knowledgeContent.contentType' as any, 'blur');
             form.setFieldMeta('knowledgeContent.contentType' as any, (prev: any) => ({
               ...prev,
               errors: ['Please select a content type'],
@@ -270,45 +232,19 @@ export const useKnowledgeWizardForm = () => {
             return false;
           }
 
-          // Determine which fields to validate based on content type
+          // Trigger validation on content fields
           const contentFields = ['knowledgeContent.document'];
-
-          // For non-article content, also validate media URL
-          const CONTENT_TYPES_CONST = {
-            ARTICLE: 'article',
-            VIDEO: 'video',
-            PODCAST: 'podcast',
-            FILE: 'file',
-          };
-
-          if (contentType !== CONTENT_TYPES_CONST.ARTICLE) {
+          if (contentType !== 'article') {
             contentFields.push('knowledgeContent.mediaUrl');
           }
-
-          // Trigger field validation for all content fields
           for (const fieldName of contentFields) {
-            await form.validateField(fieldName as any, 'change');
+            await form.validateField(fieldName as any, 'blur');
           }
 
-          // Check if there are any field-level errors
-          const hasFieldErrors = contentFields.some(fieldName => {
-            const fieldState = form.getFieldMeta(fieldName as any);
-            return fieldState?.errors && fieldState.errors.length > 0;
-          });
-
-          if (hasFieldErrors) {
-            console.error('❌ Step 3 (Content): Please fill in all required fields');
-            return false;
-          }
-
-          // Validate with proper content schema
-          const result = contentDetailsWithMediaSchema.safeParse(
-            currentValues.knowledgeContent
-          );
+          // Validate with schema
+          const result = contentDetailsWithMediaSchema.safeParse(currentValues.knowledgeContent);
           if (!result.success) {
             console.error('❌ Content validation failed:', result.error.errors);
-
-            // Set field errors for content fields
             result.error.errors.forEach((error) => {
               const fieldPath = 'knowledgeContent.' + error.path.join('.');
               form.setFieldMeta(fieldPath as any, (prev: any) => ({
@@ -316,7 +252,6 @@ export const useKnowledgeWizardForm = () => {
                 errors: [error.message],
               }));
             });
-
             return false;
           }
         }

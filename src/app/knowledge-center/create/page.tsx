@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toast } from '@/components/ui/Toast/Toast';
 import { createToastState } from '@/utils/toastUtils';
@@ -32,6 +32,17 @@ import {
 } from '@/hooks/useKnowledgeSubject';
 import { PENYELENGGARA_DATA } from '@/api/knowledge-center';
 import type { KnowledgeSubject } from '@/types';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+// Transform static data once at module level
+const PENYELENGGARA_OPTIONS = PENYELENGGARA_DATA.map((item) => ({
+  id: item.value,
+  name: item.value,
+  description: '',
+}));
 
 export const dynamic = 'force-dynamic';
 
@@ -91,16 +102,9 @@ export default function CreateKnowledgePage() {
   // ============================================================================
 
   const { data: knowledgeSubjects = [] } = useKnowledgeSubjects();
-
-  const penyelenggara = useMemo(
-    () =>
-      PENYELENGGARA_DATA.map((item) => ({
-        id: item.value,
-        name: item.value,
-        description: '',
-      })),
-    []
-  );
+  
+  // Use pre-computed constant instead of useMemo
+  const penyelenggara = PENYELENGGARA_OPTIONS;
 
   // ============================================================================
   // Subject Management Mutations
@@ -137,6 +141,26 @@ export default function CreateKnowledgePage() {
     deleteSubjectMutation.mutate(id);
   };
 
+  // Group subject handlers for cleaner prop passing
+  const subjectHandlers = {
+    onAdd: handleAddSubject,
+    onUpdate: handleUpdateSubject,
+    onDelete: handleDeleteSubject,
+    isPending: {
+      adding: addSubjectMutation.isPending,
+      updating: updateSubjectMutation.isPending,
+      deleting: deleteSubjectMutation.isPending,
+    },
+  };
+
+  // Group upload handlers for cleaner prop passing
+  const uploadHandlers = {
+    onMedia: handleMediaUpload,
+    onPDF: handleNotesUpload,
+    isUploadingMedia,
+    isUploadingPDF,
+  };
+
   // ============================================================================
   // UI Effects
   // ============================================================================
@@ -147,51 +171,39 @@ export default function CreateKnowledgePage() {
   }, [currentStep]);
 
   // ============================================================================
-  // Review Data
+  // Review Data - Computed inline, only memoize if expensive
   // ============================================================================
 
-  const selectedSubjectName = useMemo(() => {
-    if (!formValues.idSubject) return '';
-    return (
-      knowledgeSubjects.find((subject) => subject.id === formValues.idSubject)
-        ?.name || ''
-    );
-  }, [formValues.idSubject, knowledgeSubjects]);
+  const selectedSubjectName = formValues.idSubject
+    ? knowledgeSubjects.find((subject) => subject.id === formValues.idSubject)?.name || ''
+    : '';
 
-  const reviewData: any = useMemo(() => {
-    const data = {
-      title: formValues.title,
-      description: formValues.description,
-      idSubject: formValues.idSubject,
-      subject: selectedSubjectName,
-      penyelenggara: formValues.penyelenggara || '',
-      createdBy: formValues.createdBy,
-      type: formValues.type,
-      publishedAt: formValues.publishedAt,
-      tags: formValues.tags,
-      thumbnail: formValues.thumbnail,
-      webinar: formValues.webinar ? {
-        zoomDate: formValues.webinar.zoomDate,
-        zoomLink: formValues.webinar.zoomLink,
-        youtubeLink: formValues.webinar.youtubeLink,
-        recordLink: formValues.webinar.recordLink,
-        vbLink: formValues.webinar.vbLink,
-        noteFile: formValues.webinar.noteFile,
-        jpCount: formValues.webinar.jpCount,
-      } : undefined,
-      // Fix: Properly nest knowledgeContent object instead of flattening
-      knowledgeContent: formValues.knowledgeContent ? {
-        contentType: formValues.knowledgeContent.contentType,
-        mediaUrl: formValues.knowledgeContent.mediaUrl,
-        document: formValues.knowledgeContent.document,
-      } : undefined,
-    };
-
-    console.log('📊 Review Data Structure:', data);
-    console.log('📊 knowledgeContent:', data.knowledgeContent);
-
-    return data;
-  }, [formValues, selectedSubjectName]);
+  const reviewData = {
+    title: formValues.title,
+    description: formValues.description,
+    idSubject: formValues.idSubject,
+    subject: selectedSubjectName,
+    penyelenggara: formValues.penyelenggara || '',
+    createdBy: formValues.createdBy,
+    type: formValues.type,
+    publishedAt: formValues.publishedAt,
+    tags: formValues.tags,
+    thumbnail: formValues.thumbnail,
+    webinar: formValues.webinar ? {
+      zoomDate: formValues.webinar.zoomDate,
+      zoomLink: formValues.webinar.zoomLink,
+      youtubeLink: formValues.webinar.youtubeLink,
+      recordLink: formValues.webinar.recordLink,
+      vbLink: formValues.webinar.vbLink,
+      noteFile: formValues.webinar.noteFile,
+      jpCount: formValues.webinar.jpCount,
+    } : undefined,
+    knowledgeContent: formValues.knowledgeContent ? {
+      contentType: formValues.knowledgeContent.contentType,
+      mediaUrl: formValues.knowledgeContent.mediaUrl,
+      document: formValues.knowledgeContent.document,
+    } : undefined,
+  };
 
   // ============================================================================
   // Step Content Rendering
@@ -219,14 +231,7 @@ export default function CreateKnowledgePage() {
             wizard={wizard}
             subjects={knowledgeSubjects}
             penyelenggara={penyelenggara}
-            onSubjectAdd={handleAddSubject}
-            onSubjectUpdate={handleUpdateSubject}
-            onSubjectDelete={handleDeleteSubject}
-            isSubjectManagementPending={{
-              adding: addSubjectMutation.isPending,
-              updating: updateSubjectMutation.isPending,
-              deleting: deleteSubjectMutation.isPending,
-            }}
+            subjectHandlers={subjectHandlers}
           />
         );
 
@@ -247,10 +252,7 @@ export default function CreateKnowledgePage() {
         return (
           <ContentDetailsForm
             wizard={wizard}
-            onMediaUpload={handleMediaUpload}
-            onPDFUpload={handleNotesUpload}
-            isUploadingMedia={isUploadingMedia}
-            isUploadingPDF={isUploadingPDF}
+            uploadHandlers={uploadHandlers}
           />
         );
 
@@ -330,6 +332,8 @@ export default function CreateKnowledgePage() {
                   currentStep={currentStep}
                   totalSteps={steps.length}
                   isCreating={isCreating}
+                  isUploadingMedia={isUploadingMedia}
+                  isUploadingPDF={isUploadingPDF}
                   onPrevious={prevStep}
                   onNext={handleNextStep}
                   onSaveDraft={() => handleSubmit('draft')}

@@ -63,11 +63,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'pub-b50c5924d2c64c1397f8e200306b9bfb.r2.dev',
+        port: '',
+        pathname: '/**',
+      },
     ],
     domains: [
       'via.placeholder.com',
       'api-lms-kappa.vercel.app',
       'res.cloudinary.com',
+      'pub-b50c5924d2c64c1397f8e200306b9bfb.r2.dev',
     ],
   },
   reactStrictMode: false,

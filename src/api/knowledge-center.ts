@@ -12,14 +12,11 @@ import axios from 'axios';
 import {
   KnowledgeCenter,
   CreateKnowledgeCenterRequest,
+  UpdateKnowledgeCenterRequest,
   KnowledgeQueryParams,
   KnowledgeCentersResponse,
   KnowledgeCenterResponse,
 } from '@/types/knowledge-center';
-import type {
-  PaginatedApiResponse,
-  ApiResponse,
-} from '@/types/api-response';
 import { API_ENDPOINTS, API_CONFIG } from '@/config/api';
 
 // Hardcoded penyelenggara data for dropdown (temporary until API ready)
@@ -31,7 +28,6 @@ export const PENYELENGGARA_DATA = [
   { value: 'BPS', label: 'BPS' },
 ];
 
-const MEDIA_SERVICE_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_SERVICE_URL || 'http://localhost:9999/api';
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 12;
 const DEFAULT_STALE_TIME = 1000 * 60 * 5; // 5 minutes
@@ -164,17 +160,36 @@ export const knowledgeCenterApi = {
     }
   },
 
+  async updateKnowledgeCenter(id: string, centerData: UpdateKnowledgeCenterRequest): Promise<KnowledgeCenter> {
+    try {
+      const response = await axios.patch(
+        API_ENDPOINTS.KNOWLEDGE_CENTER_BY_ID(id),
+        centerData,
+        API_CONFIG
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to update knowledge center');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating knowledge center:', error);
+      throw error;
+    }
+  },
+
   // Note: Knowledge Subject API functions have been moved to knowledge-subject.ts
 
   /**
-   * Media upload helpers
+   * Media upload helpers - Using S3/R2 endpoint
    */
   async uploadImage(file: File): Promise<string> {
     try {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('file', file);
 
-      const response = await fetch(`${MEDIA_SERVICE_BASE_URL}/upload`, {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -185,11 +200,13 @@ export const knowledgeCenterApi = {
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.message || 'Upload failed');
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      return result.data.imageUrl;
+      // Construct full URL using R2 public URL
+      const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+      return `${publicUrl}/${result.fileName}`;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error;
@@ -199,9 +216,9 @@ export const knowledgeCenterApi = {
   async uploadPDF(file: File): Promise<string> {
     try {
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append('file', file);
 
-      const response = await fetch(`${MEDIA_SERVICE_BASE_URL}/pdf`, {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -212,11 +229,13 @@ export const knowledgeCenterApi = {
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.message || 'PDF upload failed');
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      return result.data.fileUrl;
+      // Construct full URL using R2 public URL
+      const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+      return `${publicUrl}/${result.fileName}`;
     } catch (error) {
       console.error('Error uploading PDF:', error);
       throw error;
@@ -226,9 +245,9 @@ export const knowledgeCenterApi = {
   async uploadVideo(file: File): Promise<string> {
     try {
       const formData = new FormData();
-      formData.append('video', file);
+      formData.append('file', file);
 
-      const response = await fetch(`${MEDIA_SERVICE_BASE_URL}/video`, {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -239,11 +258,13 @@ export const knowledgeCenterApi = {
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.message || 'Video upload failed');
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      return result.data.videoUrl;
+      // Construct full URL using R2 public URL
+      const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+      return `${publicUrl}/${result.fileName}`;
     } catch (error) {
       console.error('Error uploading video:', error);
       throw error;
@@ -253,9 +274,9 @@ export const knowledgeCenterApi = {
   async uploadAudio(file: File): Promise<string> {
     try {
       const formData = new FormData();
-      formData.append('audio', file);
+      formData.append('file', file);
 
-      const response = await fetch(`${MEDIA_SERVICE_BASE_URL}/audio`, {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -266,11 +287,13 @@ export const knowledgeCenterApi = {
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.message || 'Audio upload failed');
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      return result.data.audioUrl;
+      // Construct full URL using R2 public URL
+      const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '';
+      return `${publicUrl}/${result.fileName}`;
     } catch (error) {
       console.error('Error uploading audio:', error);
       throw error;
