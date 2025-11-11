@@ -380,7 +380,10 @@ export default function BlockNoteEditor({
       editor.onChange((editor) => {
         const blocks = editor.document;
         const contentJson = JSON.stringify(blocks);
-        console.log('BlockNote: Content changed, JSON length:', contentJson.length);
+        console.log('✍️ BlockNote: Content changed');
+        console.log('✍️ BlockNote: Blocks count:', blocks.length);
+        console.log('✍️ BlockNote: JSON length:', contentJson.length);
+        console.log('✍️ BlockNote: JSON preview:', contentJson.substring(0, 200) + '...');
         onContentChange(contentJson);
       });
     }
@@ -399,7 +402,10 @@ export default function BlockNoteEditor({
       // Set initial content from template
       const blocks = editor.document;
       const contentJson = JSON.stringify(blocks);
-      console.log('BlockNote: Initial content set, JSON length:', contentJson.length);
+      console.log('✍️ BlockNote: Initial content set');
+      console.log('✍️ BlockNote: Initial blocks count:', blocks.length);
+      console.log('✍️ BlockNote: Initial JSON length:', contentJson.length);
+      console.log('✍️ BlockNote: Initial JSON preview:', contentJson.substring(0, 200) + '...');
       onContentChange(contentJson);
     }
   }, [editor, onContentChange]);

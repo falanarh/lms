@@ -4,7 +4,7 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale/id';
 import { Users, Calendar, BookOpen, PlayCircle, FileText, Headphones } from 'lucide-react';
-import { KnowledgeCenter, ContentType } from '@/types/knowledge-center';
+import { KnowledgeCenter, ContentType, CONTENT_TYPES } from '@/types/knowledge-center';
 
 interface KnowledgeDetailInfoProps {
   knowledge: KnowledgeCenter;
@@ -23,13 +23,13 @@ export default function KnowledgeDetailInfo({ knowledge }: KnowledgeDetailInfoPr
 
     const contentType = getContentType();
     switch (contentType) {
-      case 'video':
+      case CONTENT_TYPES.VIDEO:
         return <PlayCircle className="w-6 h-6 text-red-600" />;
-      case 'pdf':
+      case CONTENT_TYPES.FILE:
         return <FileText className="w-6 h-6 text-blue-600" />;
-      case 'podcast':
+      case CONTENT_TYPES.PODCAST:
         return <Headphones className="w-6 h-6 text-green-600" />;
-      case 'article':
+      case CONTENT_TYPES.ARTICLE:
       default:
         return <FileText className="w-6 h-6 text-gray-600" />;
     }

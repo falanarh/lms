@@ -29,11 +29,11 @@ const requiredUrl = z.string().url('Please enter a valid URL').min(1, 'URL is re
 
 export const imageFileValidator = z
   .instanceof(File, { message: 'Please select an image file' })
-  .refine((file) => file.size <= 20 * 1024 * 1024, 'Image must be less than 20MB')
-  .refine(
-    (file) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
-    'Only JPEG, PNG, and WebP images are allowed'
-  );
+  .refine((file) => file.size <= 20 * 1024 * 1024, 'Image must be less than 20MB');
+  // .refine(
+  //   (file) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
+  //   'Only JPEG, PNG, and WebP images are allowed'
+  // );
 
 export const pdfFileValidator = z
   .instanceof(File, { message: 'Please select a PDF file' })

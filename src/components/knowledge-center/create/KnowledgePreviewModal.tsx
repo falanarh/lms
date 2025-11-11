@@ -10,9 +10,11 @@ import {
   KnowledgeDetailTags,
 } from "@/components/knowledge-center/detail";
 import {
+  CONTENT_TYPES,
   ContentType,
   KNOWLEDGE_TYPES,
   KnowledgeCenter,
+  KnowledgeContent,
 } from "@/types/knowledge-center";
 
 interface KnowledgePreviewModalProps {
@@ -74,9 +76,15 @@ export default function KnowledgePreviewModal({
     };
   }, []);
 
+  // Use contentType from formData.knowledgeContent as fallback
+  const actualContentType = useMemo(
+    () => contentType || (formData.knowledgeContent?.contentType as ContentType),
+    [contentType, formData.knowledgeContent?.contentType]
+  );
+
   const resolvedMediaUrl = useMemo(
     () => (isOpen ? getResourceUrl(formData.type === KNOWLEDGE_TYPES.CONTENT ? formData.knowledgeContent?.mediaUrl : undefined) : undefined),
-    [isOpen, formData.knowledgeContent?.mediaUrl, getResourceUrl]
+    [isOpen, formData.type, formData.knowledgeContent?.mediaUrl, getResourceUrl]
   );
   const resolvedNotulensiUrl = useMemo(
     () => (isOpen ? getResourceUrl(formData.type === KNOWLEDGE_TYPES.WEBINAR ? formData.webinar?.noteFile : undefined) : undefined),
@@ -92,7 +100,16 @@ export default function KnowledgePreviewModal({
   if (!isOpen) return null;
 
   const isWebinar = formData.type === KNOWLEDGE_TYPES.WEBINAR;
-  
+
+  // Debug logging for content verification
+  console.log('📋 Preview Modal - Full formData:', formData as KnowledgeCenter);
+  console.log('📋 Preview Modal - formData.knowledgeContent:', formData.knowledgeContent);
+  console.log('📋 Preview Modal - contentType from knowledgeContent:', formData.knowledgeContent?.contentType);
+  console.log('📋 Preview Modal - document from knowledgeContent:', formData.knowledgeContent?.document);
+  console.log('📋 Preview Modal - mediaUrl from knowledgeContent:', formData.knowledgeContent?.mediaUrl);
+  console.log('📋 Preview Modal - contentType prop:', contentType);
+  console.log('📋 Preview Modal - actualContentType (resolved):', actualContentType);
+
   // Transform formData to Knowledge type for preview
   const baseKnowledge = {
     id: "preview-" + Date.now(),
@@ -126,14 +143,27 @@ export default function KnowledgePreviewModal({
           jpCount: formData.webinar?.jpCount || 0,
         },
       }
-    : {
-        ...baseKnowledge,
-        knowledgeContent: {
-          mediaUrl: resolvedMediaUrl || "",
-          contentType: contentType || "file",
-          document: formData.knowledgeContent?.document || "[]",
-        },
-      };
+    : (() => {
+        // Use actualContentType which resolves from formData.knowledgeContent if prop is not provided
+        const currentContentType = actualContentType || "file";
+
+        console.log('🔧 Building knowledgeContent for preview');
+        console.log('🔧 currentContentType:', currentContentType);
+        console.log('🔧 formData.knowledgeContent:', formData.knowledgeContent);
+
+        const knowledgeContent: KnowledgeContent = {
+          contentType: currentContentType,
+          mediaUrl: currentContentType !== CONTENT_TYPES.ARTICLE ? (resolvedMediaUrl || "") : undefined,
+          document: formData.knowledgeContent?.document || "",
+        }
+
+        console.log('🔧 Final knowledgeContent for preview:', knowledgeContent);
+
+        return {
+          ...baseKnowledge,
+          knowledgeContent,
+        };
+      })();
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

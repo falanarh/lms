@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { X, Download, Play, Pause, Volume2, FileText } from 'lucide-react';
-import { MediaType } from '@/types/knowledge-center';
+import { CONTENT_TYPES, ContentType } from '@/types/knowledge-center';
 
 interface MediaViewerProps {
   src: string;
-  type: MediaType;
+  type: ContentType;
   title?: string;
   className?: string;
   onClose?: () => void;
@@ -182,7 +182,7 @@ export default function MediaViewer({
             {title && (
               <h3 className="font-semibold text-gray-900">{title}</h3>
             )}
-            <p className="text-sm text-gray-600">PDF Document</p>
+            <p className="text-sm text-gray-600">File Document</p>
           </div>
         </div>
 
@@ -225,16 +225,16 @@ export default function MediaViewer({
           className="hidden flex-col items-center justify-center text-gray-500"
         >
           <FileText className="w-16 h-16 mb-4" />
-          <p className="text-lg font-medium mb-2">PDF Preview</p>
+          <p className="text-lg font-medium mb-2">File Preview</p>
           <p className="text-sm text-center mb-4 max-w-md">
-            Your browser doesn't support inline PDF viewing. Please download the file to view it.
+            Your browser doesn't support inline file viewing. Please download the file to view it.
           </p>
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             <Download className="w-4 h-4" />
-            Download PDF
+            Download File
           </button>
         </div>
       </div>
@@ -267,12 +267,12 @@ export default function MediaViewer({
 
   return (
     <div className={`relative ${className}`}>
-      {type === 'video' && renderVideoPlayer()}
-      {type === 'audio' && renderAudioPlayer()}
-      {type === 'pdf' && renderPDFViewer()}
-      {type === 'article' && renderArticleViewer()}
+      {type === CONTENT_TYPES.VIDEO && renderVideoPlayer()}
+      {type === CONTENT_TYPES.PODCAST && renderAudioPlayer()}
+      {type === CONTENT_TYPES.FILE && renderPDFViewer()}
+      {type === CONTENT_TYPES.ARTICLE && renderArticleViewer()}
 
-      {onClose && type !== 'pdf' && (
+      {onClose && type !== CONTENT_TYPES.FILE && (
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors z-20"

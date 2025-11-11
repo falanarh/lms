@@ -85,11 +85,48 @@ export default function ContentDetailsForm({
   // ============================================================================
 
   const handleContentTypeSelect = (type: ContentType) => {
+    console.log('🔧 Content type selected:', type);
     setSelectedContentType(type);
-    form.setFieldValue('knowledgeContent', {
-      ...formValues.knowledgeContent,
+
+    // Get current knowledge content to preserve existing data
+    const currentKnowledgeContent = formValues.knowledgeContent || {};
+
+    // Create the updated knowledge content object
+    const updatedKnowledgeContent = {
+      ...currentKnowledgeContent,
       contentType: type,
-    });
+    };
+
+    console.log('🔄 Setting knowledgeContent to:', updatedKnowledgeContent);
+
+    // Try different approaches to update the form
+    try {
+      // Method 1: Direct object update
+      form.setFieldValue('knowledgeContent', updatedKnowledgeContent as any);
+
+      console.log('✅ Method 1 successful');
+    } catch (error) {
+      console.error('❌ Method 1 failed:', error);
+
+      // Method 2: Try using the Field API
+      try {
+        const fieldApi = form.getFieldInfo('knowledgeContent');
+        if (fieldApi) {
+          fieldApi.setValue(updatedKnowledgeContent as any);
+          console.log('✅ Method 2 successful');
+        }
+      } catch (error2) {
+        console.error('❌ Method 2 failed:', error2);
+      }
+    }
+
+    // Debug immediately and after delay
+    setTimeout(() => {
+      console.log('🐛 Form values after update:', form.state.values.knowledgeContent);
+      console.log('🎯 ContentType field value:', form.getFieldValue('knowledgeContent'));
+      console.log('🔍 Current formValues:', formValues);
+      console.log('🔍 Full form state:', form.state.values);
+    }, 100);
   };
 
   const handleMediaUpload = async (file: File) => {
@@ -113,17 +150,29 @@ export default function ContentDetailsForm({
   };
 
   const handleContentChange = (contentJson: string) => {
+    const currentKnowledgeContent = formValues.knowledgeContent || {};
+    console.log('📝 BlockNote content change - current knowledgeContent:', currentKnowledgeContent);
+    console.log('📝 BlockNote content change - selectedContentType:', selectedContentType);
+
     form.setFieldValue('knowledgeContent', {
-      ...formValues.knowledgeContent,
+      ...currentKnowledgeContent,
       document: contentJson,
-    });
+      // CRITICAL: Preserve contentType when updating document
+      contentType: selectedContentType || currentKnowledgeContent.contentType,
+    } as any);
   };
 
   const handleMediaUrlChange = (url: string) => {
+    const currentKnowledgeContent = formValues.knowledgeContent || {};
+    console.log('🎬 Media URL change - current knowledgeContent:', currentKnowledgeContent);
+    console.log('🎬 Media URL change - selectedContentType:', selectedContentType);
+
     form.setFieldValue('knowledgeContent', {
-      ...formValues.knowledgeContent,
+      ...currentKnowledgeContent,
       mediaUrl: url,
-    });
+      // CRITICAL: Preserve contentType when updating mediaUrl
+      contentType: selectedContentType || currentKnowledgeContent.contentType,
+    } as any);
   };
 
   // ============================================================================
@@ -451,7 +500,16 @@ export default function ContentDetailsForm({
       <button
         onClick={() => {
           setSelectedContentType(undefined);
-          form.setFieldValue('knowledgeContent', {});
+          form.setFieldValue('knowledgeContent', {
+            contentType: undefined,
+            mediaUrl: undefined,
+            document: undefined,
+          } as any);
+          // Clear any validation errors
+          form.setFieldMeta('knowledgeContent.contentType' as any, (prev: any) => ({
+            ...prev,
+            errors: [],
+          }));
         }}
         className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium mb-4"
         type="button"

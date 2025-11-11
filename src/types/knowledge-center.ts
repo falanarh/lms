@@ -108,7 +108,7 @@ export interface KnowledgeWebinar {
 
 export interface KnowledgeContent {
   contentType: ContentType;
-  mediaUrl: string;
+  mediaUrl?: string;
   document: string; // JSON string representing BlockNote editor document
 }
 
@@ -245,12 +245,7 @@ export interface KnowledgeCardProps {
   className?: string;
 }
 
-export interface MediaViewerProps {
-  src: string;
-  type: ContentType; // Use ContentType from API
-  title?: string;
-  className?: string;
-}
+// MediaViewerProps moved to MediaViewer.tsx for better co-location
 
 export interface RichTextEditorProps {
   value: string;

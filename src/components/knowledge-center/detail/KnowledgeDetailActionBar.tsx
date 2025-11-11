@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Heart, Eye, ExternalLink } from 'lucide-react';
-import { KnowledgeCenter } from '@/types/knowledge-center';
+import { KNOWLEDGE_TYPES, KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailActionBarProps {
   knowledge: KnowledgeCenter;
@@ -15,9 +15,9 @@ export default function KnowledgeDetailActionBar({
   isLiking,
   onLike,
 }: KnowledgeDetailActionBarProps) {
-  const isWebinar = knowledge.knowledgeType === 'webinar';
-  const webinarData = knowledge as any;
-  const isUpcomingWebinar = isWebinar && webinarData.tglZoom && new Date(webinarData.tglZoom) > new Date();
+  const isWebinar = knowledge.type === KNOWLEDGE_TYPES.WEBINAR;
+  const webinarData = knowledge.webinar;
+  const isUpcomingWebinar = isWebinar && webinarData?.zoomDate && new Date(webinarData.zoomDate) > new Date();
 
   return (
     <div className="flex flex-wrap items-center gap-4 py-6 border-b border-gray-200 mb-8">
@@ -37,9 +37,9 @@ export default function KnowledgeDetailActionBar({
 
       <div className="flex-1"></div>
 
-      {isWebinar && isUpcomingWebinar && webinarData.linkZoom && (
+      {isWebinar && isUpcomingWebinar && webinarData.zoomDate && (
         <a
-          href={webinarData.linkZoom}
+          href={webinarData.zoomDate}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"

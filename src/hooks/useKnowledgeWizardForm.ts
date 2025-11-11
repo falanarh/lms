@@ -13,8 +13,6 @@ import { useForm } from '@tanstack/react-form';
 import type { CreateKnowledgeFormData } from '@/types/knowledge-center';
 import { KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 import {
-  contentTypeSchema,
-  basicInfoSchema,
   webinarDetailsSchema,
   contentDetailsWithMediaSchema,
   completeFormSchema,
@@ -27,7 +25,7 @@ import {
 
 const getInitialFormValues = (): CreateKnowledgeFormData => ({
   type: undefined,
-  createdBy: 'System Administrator', // Default author
+  createdBy: crypto.randomUUID(),
   idSubject: '',
   title: '',
   description: '',
@@ -36,7 +34,11 @@ const getInitialFormValues = (): CreateKnowledgeFormData => ({
   isFinal: false,
   publishedAt: new Date().toISOString().slice(0, 16), // Default to current datetime
   webinar: {},
-  knowledgeContent: {},
+  knowledgeContent: {
+    contentType: undefined,
+    mediaUrl: undefined,
+    document: undefined,
+  },
   tags: [],
   status: 'draft',
 });
@@ -218,7 +220,30 @@ export const useKnowledgeWizardForm = () => {
             return false;
           }
         } else if (currentType === KNOWLEDGE_TYPES.CONTENT) {
-          // Validate content details
+          // Validate content details - use the complete form validation instead
+          console.log('🔍 Validating content details:', currentValues.knowledgeContent);
+          console.log('📋 Current full form values:', currentValues);
+
+          // Check if knowledgeContent exists and has contentType
+          console.log('🔍 Deep check - knowledgeContent:', currentValues.knowledgeContent);
+          console.log('🔍 Deep check - contentType:', currentValues.knowledgeContent?.contentType);
+          console.log('🔍 Deep check - contentType type:', typeof currentValues.knowledgeContent?.contentType);
+
+          // More robust check - handle both undefined and empty string
+          const contentType = currentValues.knowledgeContent?.contentType;
+          const hasValidContentType = contentType && contentType !== '' && contentType !== 'undefined';
+
+          if (!hasValidContentType) {
+            console.error('❌ Content type is missing or invalid:', contentType);
+            // Set error on the contentType field
+            form.setFieldMeta('knowledgeContent.contentType' as any, (prev: any) => ({
+              ...prev,
+              errors: ['Please select a content type'],
+            }));
+            return false;
+          }
+
+          // Validate with proper content schema
           const result = contentDetailsWithMediaSchema.safeParse(
             currentValues.knowledgeContent
           );

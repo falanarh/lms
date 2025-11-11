@@ -100,7 +100,7 @@ export function FormInput({
         onBlur={field.handleBlur}
         className={`w-full px-4 h-12 border-2 rounded-lg focus:outline-none transition-all text-gray-900 placeholder:text-gray-400 ${
           hasError
-            ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200 bg-red-50'
+            ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
             : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         } ${className}`}
         {...props}
@@ -156,7 +156,7 @@ export function FormTextarea({
         rows={rows}
         className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all text-gray-900 resize-y min-h-[48px] max-h-[200px] placeholder:text-gray-400 ${
           hasError
-            ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200 bg-red-50'
+            ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
             : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         } ${className}`}
         {...props}

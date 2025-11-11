@@ -263,6 +263,7 @@ export default function CreateKnowledgePage() {
         thumbnail: thumbnailUrl,
         isFinal: status === 'published',
         publishedAt: formValues.publishedAt || new Date().toISOString(),
+        tags: formValues.tags,
       };
 
       if (formValues.type === KNOWLEDGE_TYPES.WEBINAR && formValues.webinar) {
@@ -280,12 +281,24 @@ export default function CreateKnowledgePage() {
         formValues.type === KNOWLEDGE_TYPES.CONTENT &&
         formValues.knowledgeContent
       ) {
+        const contentType = formValues.knowledgeContent.contentType || CONTENT_TYPES.ARTICLE;
+
+        // Build knowledgeContent object based on content type
         apiData.knowledgeContent = {
-          contentType:
-            formValues.knowledgeContent.contentType || CONTENT_TYPES.ARTICLE,
+          contentType,
           document: formValues.knowledgeContent.document || '',
-          mediaUrl: formValues.knowledgeContent.mediaUrl || '',
         };
+
+        // Only include mediaUrl for non-article content types
+        // Articles only have rich text content (document), no media file
+        if (contentType !== CONTENT_TYPES.ARTICLE) {
+          apiData.knowledgeContent.mediaUrl = formValues.knowledgeContent.mediaUrl || '';
+          console.log('📤 Including mediaUrl for content type:', contentType);
+        } else {
+          console.log('📝 Article type - mediaUrl excluded from submission');
+        }
+
+        console.log('📤 Final knowledgeContent to be sent:', apiData.knowledgeContent);
       }
 
       await createKnowledgeMutation.mutateAsync(apiData);
@@ -307,10 +320,11 @@ export default function CreateKnowledgePage() {
     );
   }, [formValues.idSubject, knowledgeSubjects]);
 
-  const reviewData: any = useMemo(
-    () => ({
+  const reviewData: any = useMemo(() => {
+    const data = {
       title: formValues.title,
       description: formValues.description,
+      idSubject: formValues.idSubject,
       subject: selectedSubjectName,
       penyelenggara: formValues.penyelenggara || '',
       createdBy: formValues.createdBy,
@@ -318,21 +332,28 @@ export default function CreateKnowledgePage() {
       publishedAt: formValues.publishedAt,
       tags: formValues.tags,
       thumbnail: formValues.thumbnail,
-      webinar: {
-        zoomDate: formValues.webinar?.zoomDate,
-        zoomLink: formValues.webinar?.zoomLink,
-        youtubeLink: formValues.webinar?.youtubeLink,
-        recordLink: formValues.webinar?.recordLink,
-        vbLink: formValues.webinar?.vbLink,
-        noteFile: formValues.webinar?.noteFile,
-        jpCount: formValues.webinar?.jpCount,
-      },
-      mediaUrl: formValues.knowledgeContent?.mediaUrl,
-      contentType: formValues.knowledgeContent?.contentType as ContentType | null,
-      document: formValues.knowledgeContent?.document,
-    }),
-    [formValues, selectedSubjectName]
-  );
+      webinar: formValues.webinar ? {
+        zoomDate: formValues.webinar.zoomDate,
+        zoomLink: formValues.webinar.zoomLink,
+        youtubeLink: formValues.webinar.youtubeLink,
+        recordLink: formValues.webinar.recordLink,
+        vbLink: formValues.webinar.vbLink,
+        noteFile: formValues.webinar.noteFile,
+        jpCount: formValues.webinar.jpCount,
+      } : undefined,
+      // Fix: Properly nest knowledgeContent object instead of flattening
+      knowledgeContent: formValues.knowledgeContent ? {
+        contentType: formValues.knowledgeContent.contentType,
+        mediaUrl: formValues.knowledgeContent.mediaUrl,
+        document: formValues.knowledgeContent.document,
+      } : undefined,
+    };
+
+    console.log('📊 Review Data Structure:', data);
+    console.log('📊 knowledgeContent:', data.knowledgeContent);
+
+    return data;
+  }, [formValues, selectedSubjectName]);
 
   // ============================================================================
   // Step Content Rendering
@@ -399,7 +420,7 @@ export default function CreateKnowledgePage() {
         return (
           <ReviewStep
             formData={reviewData}
-            contentType={formValues.knowledgeContent?.contentType || null}
+            contentType={formValues.knowledgeContent?.contentType as ContentType || null}
             thumbnailPreview={thumbnailPreview}
           />
         );
