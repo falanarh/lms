@@ -6,9 +6,10 @@ import { useState, useRef, useEffect } from "react";
 
 interface ContentPlayerProps {
   content: Content | null;
+  isSidebarOpen?: boolean;
 }
 
-export const ContentPlayer = ({ content }: ContentPlayerProps) => {
+export const ContentPlayer = ({ content, isSidebarOpen = true }: ContentPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -27,7 +28,7 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
   if (!content) {
     return (
       <div className="w-full flex justify-center px-4 lg:px-0">
-        <div className="w-full max-w-[900px] aspect-video bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-gray-200 flex items-center justify-center">
+        <div className="w-full aspect-video bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-gray-200 flex items-center justify-center">
           <div className="text-center">
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 font-medium">Select a content to start learning</p>
@@ -50,11 +51,13 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
     switch (content.type.toLowerCase()) {
       case "video":
         return (
-          <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+          <div className={`relative w-full rounded-md overflow-hidden transition-all duration-500 bg-black ${
+            isSidebarOpen ? 'aspect-video' : 'h-[400px] md:h-[500px] lg:h-[506px]'
+          }`}>
             <video
               key={content.id}
               ref={videoRef}
-              className="w-full h-full"
+              className="w-full h-full object-contain"
               controls={isPlaying}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -78,7 +81,9 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       case "pdf":
         return (
-          <div className="relative w-full aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
+          <div className={`relative w-full bg-white rounded-md overflow-hidden transition-all duration-500 ${
+            isSidebarOpen ? 'aspect-video' : 'h-[400px] md:h-[500px] lg:h-[506px]'
+          }`}>
             <iframe
               key={content.id}
               src={content.contentUrl}
@@ -90,7 +95,9 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       case "link":
         return (
-          <div className="w-full aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
+          <div className={`relative w-full bg-white rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all duration-500 ${
+            isSidebarOpen ? 'aspect-video' : 'h-[400px] md:h-[500px] lg:h-[506px]'
+          }`}>
             <iframe
               key={content.id}
               src={content.contentUrl}
@@ -103,7 +110,9 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
 
       case "scorm":
         return (
-          <div className="w-full aspect-video bg-white rounded-xl overflow-hidden border border-gray-200">
+          <div className={`relative w-full bg-white rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all duration-500 ${
+            isSidebarOpen ? 'aspect-video' : 'h-[400px] md:h-[500px] lg:h-[506px]'
+          }`}>
             <iframe
               key={content.id}
               src={content.contentUrl}
@@ -160,10 +169,8 @@ export const ContentPlayer = ({ content }: ContentPlayerProps) => {
   };
 
   return (
-    <div className="w-full flex justify-center px-4 lg:px-0">
-      <div className="w-full max-w-[900px] mx-auto space-y-4">
-        {renderContent()}
-      </div>
+    <div className="w-full">
+      {renderContent()}
     </div>
   );
 };

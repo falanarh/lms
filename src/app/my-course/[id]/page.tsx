@@ -11,9 +11,10 @@ import {
   PageContainer,
 } from "@/features/detail-course/components";
 import { mockReviews } from "@/features/detail-course/constants/reviews";
-import { mockEnrolledCourseDetail, mockEnrolledSections, mockEnrolledActivities } from "@/features/my-course/constant/mockEnrolledCourse";
+import { mockEnrolledSections, mockEnrolledActivities } from "@/features/my-course/constant/mockEnrolledCourse";
 import { CourseTabType } from "@/features/detail-course/types/tab";
-import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton } from "@/features/my-course/components";
+import { useGroupCourse } from "@/hooks/useGroupCourse";
+import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal } from "@/features/my-course/components";
 import { Content } from "@/api/contents";
 
 interface MyCoursePageProps {
@@ -24,13 +25,15 @@ interface MyCoursePageProps {
 
 export default function MyCoursePage({ params }: MyCoursePageProps) {
   const { id } = use(params);
+  const { data: course, isLoading, error } = useGroupCourse(id);
   const [activeTab, setActiveTab] = useState<CourseTabType>('information');
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
-  const course = mockEnrolledCourseDetail;
+  // TODO: Replace with API when sections endpoint is ready
   const sections = mockEnrolledSections;
   const activities = mockEnrolledActivities;
 
@@ -97,6 +100,43 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const hasNext = currentIndex >= 0 && currentIndex < allContents.length - 1;
   const isCompleted = selectedContent ? completedContentIds.includes(selectedContent.id) : false;
 
+  // Handle write review
+  const handleWriteReview = () => {
+    setIsReviewModalOpen(true);
+  };
+
+  const handleSubmitReview = (rating: number, review: string) => {
+  };
+
+  // Loading state
+  if (isLoading || !course) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading course...</p>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
+            <p className="text-gray-600">{error.message}</p>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "My Courses", href: "/my-course" },
@@ -122,7 +162,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         <PageContainer>
           <CourseBreadcrumb items={breadcrumbItems} />
 
-          <ContentPlayer content={selectedContent} />
+          <ContentPlayer content={selectedContent} isSidebarOpen={isSidebarOpen} />
 
           {/* Navigation Buttons */}
           {selectedContent && (
@@ -171,12 +211,16 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
 
             {activeTab === "ratings_reviews" && (
-              <RatingsReviewsTab
-                averageRating={course.rating}
-                totalRatings={mockReviews.length}
-                ratingDistribution={{5: 2, 4: 1, 3: 3, 2: 0, 1: 0}}
-                reviews={mockReviews}
-              />
+              <>
+                <RatingsReviewsHeader onWriteReview={handleWriteReview} />
+                
+                <RatingsReviewsTab
+                  averageRating={course.rating}
+                  totalRatings={mockReviews.length}
+                  ratingDistribution={{5: 2, 4: 1, 3: 3, 2: 0, 1: 0}}
+                  reviews={mockReviews}
+                />
+              </>
             )}
           </div>
         </PageContainer>
@@ -199,6 +243,14 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       {!isSidebarOpen && (
         <SidebarToggleButton onClick={handleOpenSidebar} />
       )}
+
+      {/* Write Review Modal */}
+      <WriteReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        onSubmit={handleSubmitReview}
+        courseName={course.course.title}
+      />
     </>
   );
 }

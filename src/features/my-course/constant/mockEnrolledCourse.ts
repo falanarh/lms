@@ -52,7 +52,7 @@ export const mockEnrolledSections: Section[] = [
   {
     id: "section-1",
     name: "Introduction to Web Development",
-    description: "Get started with the fundamentals of web development",
+    description: "Get started with the fundamentals of web development lorem ipsum dolor sit amet consectetur adipisicing elit lorem ipsum dolor sit amet consectetur adipisicing elit lorem ipsum dolor sit amet consectetur adipisicing elit",
     sequence: 1,
   },
   {
@@ -118,7 +118,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
       id: "content-1-1",
       type: "video",
       name: "Welcome to Web Development yayyayayayayayayyaya",
-      description: "Introduction to the course and what you'll learn",
+      description: "Introduction to the course and what you'll learn yayayayayayayyayayayayayay",
       contentUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       contentStart: "2024-01-01T00:00:00Z",
       contentEnd: "2024-12-31T23:59:59Z",

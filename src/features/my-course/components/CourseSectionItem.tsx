@@ -112,7 +112,7 @@ export const CourseSectionItem = ({
               {section.name}
             </h3>
             {isTabVariant && section.description && (
-              <p className="text-sm text-gray-500 mt-1 truncate">
+              <p className="text-sm text-gray-500 mt-1 ">
                 {section.description}
               </p>
             )}
@@ -167,7 +167,7 @@ export const CourseSectionItem = ({
                       {content.name}
                     </h4>
                     {isTabVariant && content.description && (
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="hidden md:block text-sm text-gray-500 mt-1">
                         {content.description}
                       </p>
                     )}

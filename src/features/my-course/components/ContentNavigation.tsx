@@ -18,13 +18,14 @@ export const ContentNavigation = ({
   isCompleted,
 }: ContentNavigationProps) => {
   return (
-    <div className="flex items-center justify-between gap-2 py-4">
+    <div className="flex items-center justify-between gap-2 sm:gap-3 py-4">
       {/* Previous Button */}
       <button
         onClick={onPrevious}
         disabled={!hasPrevious}
         className={`
-          flex items-center px-6 py-3 rounded-lg font-medium transition-all
+          flex items-center justify-center sm:px-6 py-3 rounded-lg font-medium transition-all text-sm
+          w-12 sm:w-auto px-0
           ${
             hasPrevious
               ? "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
@@ -33,15 +34,13 @@ export const ContentNavigation = ({
         `}
       >
         <ChevronLeft className="w-5 h-5" />
-        <span>Previous</span>
+        <span className="hidden sm:inline ml-1">Previous</span>
       </button>
 
       {/* Mark as Done Button */}
       <button
         onClick={onMarkAsDone}
-        className={
-          "flex items-center justify-center w-full py-3 rounded-lg font-medium transition-all bg-blue-600 text-white hover:bg-blue-700"
-        }
+        className="flex items-center justify-center gap-2 flex-1 py-3 rounded-lg font-medium text-sm transition-all bg-blue-600 text-white hover:bg-blue-700"
       >
         {isCompleted ? (
           <>
@@ -60,7 +59,8 @@ export const ContentNavigation = ({
         onClick={onNext}
         disabled={!hasNext}
         className={`
-          flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all
+          flex items-center justify-center sm:px-6 py-3 rounded-lg font-medium transition-all text-sm
+          w-12 sm:w-auto px-0
           ${
             hasNext
               ? "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
@@ -68,7 +68,7 @@ export const ContentNavigation = ({
           }
         `}
       >
-        <span>Next</span>
+        <span className="hidden sm:inline mr-1">Next</span>
         <ChevronRight className="w-5 h-5" />
       </button>
     </div>

@@ -105,7 +105,7 @@ export function RatingSummaryCard({
           className={`flex flex-col items-center justify-center md:pr-8 md:border-r ${colors.divider}`}
         >
           <div className="relative">
-            <div className="w-32 h-32 rounded-2xl bg-white shadow-lg flex items-center justify-center mb-4">
+            <div className="w-32 h-32 rounded-2xl bg-white border border-gray-200 shadow-lg flex items-center justify-center mb-4">
               <div className="text-center">
                 <div className="font-bold text-[52px] leading-[56px] text-gray-900">
                   {averageRating.toFixed(1)}
@@ -141,7 +141,7 @@ export function RatingSummaryCard({
                     {rating}
                   </span>
                 </div>
-                <div className="flex-1 bg-white rounded-full h-3 overflow-hidden shadow-inner">
+                <div className="flex-1 bg-gray-100 border border-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
                   <div
                     className={`h-full bg-gradient-to-r ${colors.barGradient} rounded-full transition-all duration-500`}
                     style={{ width: `${percentage}%` }}
