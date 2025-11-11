@@ -84,7 +84,7 @@ export function Drawer({
                         </div>
                       </div>
                     </div>
-                    <div className="relative flex-1 px-4 sm:px-6">{children}</div>
+                    <div className="relative flex-1 px-4 sm:px-6 py-2">{children}</div>
                     {showFooter && (
                       <div className="flex flex-shrink-0 justify-end gap-2 px-4 py-4 border-t">
                         <Button variant="outline" onClick={onClose}>

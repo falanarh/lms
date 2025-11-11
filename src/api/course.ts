@@ -21,8 +21,10 @@ export type Course = {
 //   return response.data;
 // };
 
+const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000"
+
 export const getCourses = async (): Promise<Course[]> => {
-  const response = await axios.get("http://10.101.20.150:3000/courses");
+  const response = await axios.get(`${BASE_URL}/courses`);
 
   const list: any[] = response.data?.data ?? [];
 

@@ -70,3 +70,47 @@ export const useUpdateSection = (
     },
   });
 };
+
+export const useUpdateSectionsSequence = (
+  config: {
+    onSuccess?: () => void | Promise<void>;
+    onError?: (error: Error) => void | Promise<void>;
+  } = {}
+) => {
+  return useMutation({
+    mutationFn: async (updates: { id: string; sequence: number }[]) => {
+      // ✅ PERBAIKAN: Kirim semua updates dalam 1 batch (jika backend support)
+      // Atau tunggu semua selesai dengan Promise.all
+      const promises = updates.map(({ id, sequence }) =>
+        updateSection(id, { sequence })
+      );
+      
+      // Tunggu SEMUA request selesai
+      const results = await Promise.all(promises);
+      return results;
+    },
+    
+    // ❌ HAPUS onMutate - Jangan gunakan optimistic update untuk sequence
+    // Biarkan UI menunggu response dari backend
+    
+    onSuccess: async (data, variables, context) => {
+      // ✅ Tunggu sebentar agar backend commit data
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // ✅ Invalidate dan refetch
+      await queryClient.invalidateQueries({ queryKey: getSectionQueryKey() });
+      await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
+      
+      await config.onSuccess?.();
+    },
+    
+    onError: async (error) => {
+      console.error("❌ Update sequence error:", error);
+      
+      // ✅ Refetch untuk restore data yang benar
+      await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
+      
+      await config.onError?.(error);
+    },
+  });
+};
