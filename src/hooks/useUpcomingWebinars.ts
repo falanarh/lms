@@ -13,7 +13,7 @@ export const useUpcomingWebinars = () => {
   const { data: knowledgeItems, isLoading, error } = useKnowledge({
     page: 1,
     limit: 10,
-    knowledgeType: ['webinar'],
+    knowledgeType: 'webinar', // Use single string instead of array
   });
 
   const upcomingWebinars = useMemo<KnowledgeCenter[]>(() => {

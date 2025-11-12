@@ -41,7 +41,7 @@ export default function KnowledgeHero({
       borderGradient: 'border-blue-300',
     },
     {
-      value: 'konten' as KnowledgeType,
+      value: 'content' as KnowledgeType,
       label: 'Content',
       icon: BookOpen,
       gradient: 'from-blue-500 to-blue-600',

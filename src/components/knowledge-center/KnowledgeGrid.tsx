@@ -38,7 +38,7 @@ export default function KnowledgeGrid({
   // Build query params for API
   const queryparams: KnowledgeQueryParams = useMemo(() => ({
     search: searchQuery || undefined,
-    knowledgeType: selectedType !== 'all' ? [selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT] : undefined,
+    knowledgeType: selectedType !== 'all' ? selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT : undefined,
     subject: selectedSubject !== 'all' ? [selectedSubject] : undefined,
     sort: sortBy,
     page: currentPage,

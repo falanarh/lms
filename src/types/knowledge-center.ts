@@ -38,6 +38,25 @@ export type KnowledgeType = "webinar" | "content"; // API uses 'content', not 'k
 export type ContentType = "video" | "file" | "podcast" | "article";
 export type MediaType = ContentType; // Type alias for backward compatibility - both point to same type
 export type KnowledgeStatus = "draft" | "published" | "archived";
+// Sort field and direction types based on API documentation
+export type SortField = 
+  | "title"
+  | "description" 
+  | "type"
+  | "viewCount"
+  | "likeCount"
+  | "createdAt"
+  | "updatedAt"
+  | "publishedAt";
+
+export type SortDirection = "asc" | "desc";
+
+export interface OrderByParam {
+  field: SortField;
+  direction: SortDirection;
+}
+
+// Legacy sort option for backward compatibility
 export type SortOption =
   | "newest"
   | "oldest"
@@ -148,25 +167,75 @@ export interface Tag {
   createdAt?: string;
 }
 
-// Filter types
+// Filter types based on API documentation
 export interface KnowledgeFilters {
+  // String filters with operators
+  'title[contains]'?: string;
+  'title[equals]'?: string;
+  'title[startsWith]'?: string;
+  'title[endsWith]'?: string;
+  'description[contains]'?: string;
+  'description[equals]'?: string;
+  
+  // Type filters
+  'type'?: KnowledgeType;
+  'type[in]'?: string; // comma-separated values
+  'type[notIn]'?: string;
+  
+  // Numeric filters
+  'viewCount[gte]'?: number;
+  'viewCount[lte]'?: number;
+  'viewCount[gt]'?: number;
+  'viewCount[lt]'?: number;
+  'likeCount[gte]'?: number;
+  'likeCount[lte]'?: number;
+  'likeCount[gt]'?: number;
+  'likeCount[lt]'?: number;
+  
+  // Date filters
+  'createdAt[gte]'?: string;
+  'createdAt[lte]'?: string;
+  'createdAt[gt]'?: string;
+  'createdAt[lt]'?: string;
+  'updatedAt[gte]'?: string;
+  'updatedAt[lte]'?: string;
+  'publishedAt[gte]'?: string;
+  'publishedAt[lte]'?: string;
+  'publishedAt[not]'?: string; // for null checks
+  
+  // UUID filters
+  'createdBy'?: string;
+  'createdBy[in]'?: string;
+  'isKnowledgeCategory'?: string;
+  
+  // Legacy filters for backward compatibility
   subject?: string[];
   penyelenggara?: string[];
-  knowledgeType?: KnowledgeType[];
-  mediaType?: ContentType[]; // Changed from MediaType to ContentType to match API
+  knowledgeType?: KnowledgeType | KnowledgeType[]; // Allow both single value and array
+  mediaType?: ContentType[];
   tags?: string[];
   search?: string;
 }
 
 export interface PaginationParams {
   page?: number;
-  limit?: number;
+  perPage?: number; // API uses perPage, not limit
+  limit?: number; // Keep for backward compatibility
+}
+
+// Order by parameters based on API documentation
+export interface OrderByParams {
+  [key: string]: SortDirection; // Dynamic keys like 'orderBy[0][createdAt]'
 }
 
 export interface KnowledgeQueryParams
   extends KnowledgeFilters,
     PaginationParams {
-  sort?: SortOption;
+  sort?: SortOption; // Keep for backward compatibility
+  orderBy?: OrderByParam[]; // New structured orderBy
+  
+  // Dynamic orderBy parameters for API
+  [key: `orderBy[${number}][${SortField}]`]: SortDirection;
 }
 
 // API Response Types (using generic types)
@@ -276,6 +345,18 @@ export interface WebinarSchedule {
 }
 
 // Settings types have been removed - settings page deleted
+
+// Knowledge Center Stats types
+export interface KnowledgeCenterStats {
+  totalKnowledge: number;
+  totalWebinars: number;
+  totalViews: number;
+  totalLikes: number;
+}
+
+export interface KnowledgeCenterStatsData {
+  stats: KnowledgeCenterStats;
+}
 
 // Re-export generic API response types for backward compatibility
 export type {

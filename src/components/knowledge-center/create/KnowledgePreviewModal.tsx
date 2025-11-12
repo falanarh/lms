@@ -117,7 +117,7 @@ export default function KnowledgePreviewModal({
     description: formData.description || "No description provided",
     idSubject: formData.id,
     subject: formData.subject || "General",
-    type: formData.type || "konten",
+    type: formData.type || "content",
     penyelenggara: formData.penyelenggara || "Pusdiklat BPS",
     thumbnail: formData.thumbnail || "",
     createdBy: formData.createdBy || "Anonymous",

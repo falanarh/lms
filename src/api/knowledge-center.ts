@@ -16,6 +16,12 @@ import {
   KnowledgeQueryParams,
   KnowledgeCentersResponse,
   KnowledgeCenterResponse,
+  ApiResponse,
+  KnowledgeCenterStatsData,
+  KnowledgeType,
+  SortField,
+  SortDirection,
+  OrderByParam,
 } from '@/types/knowledge-center';
 import { API_ENDPOINTS, API_CONFIG } from '@/config/api';
 
@@ -39,23 +45,90 @@ const sanitizeArrayParam = <T extends string>(values?: T[]) => {
 };
 
 const sanitizeKnowledgeParams = (params: KnowledgeQueryParams = {}) => {
-  const normalized = {
-    page: params.page ?? DEFAULT_PAGE,
-    limit: params.limit ?? DEFAULT_LIMIT,
-    sort: params.sort,
-    search: params.search?.trim() || undefined,
-    subject: sanitizeArrayParam(params.subject),
-    penyelenggara: sanitizeArrayParam(params.penyelenggara),
-    knowledgeType: sanitizeArrayParam(params.knowledgeType),
-    mediaType: sanitizeArrayParam(params.mediaType),
-    tags: sanitizeArrayParam(params.tags),
-  };
+  const query: Record<string, any> = {};
 
-  const query: Record<string, string | number | string[] | undefined> = {};
-  (Object.keys(normalized) as Array<keyof typeof normalized>).forEach((key) => {
-    const value = normalized[key];
-    if (value === undefined) return;
-    query[key] = value as string | number | string[];
+  // Pagination parameters (API uses perPage, not limit)
+  query.page = params.page ?? DEFAULT_PAGE;
+  query.perPage = params.perPage ?? params.limit ?? DEFAULT_LIMIT;
+
+  // Handle legacy sort parameter and convert to orderBy format
+  if (params.sort) {
+    switch (params.sort) {
+      case 'newest':
+        query['orderBy[0][createdAt]'] = 'desc';
+        break;
+      case 'oldest':
+        query['orderBy[0][createdAt]'] = 'asc';
+        break;
+      case 'mostLiked':
+        query['orderBy[0][likeCount]'] = 'desc';
+        break;
+      case 'mostViewed':
+        query['orderBy[0][viewCount]'] = 'desc';
+        break;
+      case 'title':
+        query['orderBy[0][title]'] = 'asc';
+        break;
+      case 'popular':
+        query['orderBy[0][viewCount]'] = 'desc';
+        query['orderBy[1][likeCount]'] = 'desc';
+        break;
+      default:
+        query['orderBy[0][createdAt]'] = 'desc';
+    }
+  }
+
+  // Handle structured orderBy parameter
+  if (params.orderBy && params.orderBy.length > 0) {
+    params.orderBy.forEach((order, index) => {
+      query[`orderBy[${index}][${order.field}]`] = order.direction;
+    });
+  }
+
+  // Handle filter parameters with operators
+  Object.keys(params).forEach((key) => {
+    const value = params[key as keyof KnowledgeQueryParams];
+    if (value === undefined || key === 'page' || key === 'perPage' || key === 'limit' || key === 'sort' || key === 'orderBy') {
+      return;
+    }
+
+    // Handle API filter parameters (with operators like [contains], [gte], etc.)
+    if (key.includes('[') && key.includes(']')) {
+      query[key] = value;
+      return;
+    }
+
+    // Handle legacy parameters and convert to API format
+    switch (key) {
+      case 'search':
+        if (typeof value === 'string' && value.trim()) {
+          query['title[contains]'] = value.trim();
+        }
+        break;
+      case 'knowledgeType':
+        if (Array.isArray(value) && value.length > 0) {
+          // For single value, use 'type' parameter
+          if (value.length === 1) {
+            query['type'] = value[0];
+          } else {
+            // For multiple values, use 'type[in]' with comma-separated values
+            query['type[in]'] = value.join(',');
+          }
+        } else if (typeof value === 'string') {
+          query['type'] = value;
+        }
+        break;
+      case 'subject':
+      case 'penyelenggara':
+      case 'mediaType':
+      case 'tags':
+        // These might need custom handling based on API structure
+        // For now, skip them as they're not in the API documentation
+        break;
+      default:
+        // Pass through other parameters as-is
+        query[key] = value;
+    }
   });
 
   return query;
@@ -70,6 +143,86 @@ export const getKnowledgeQueryKey = (params: KnowledgeQueryParams = {}) => [
 ] as const;
 
 export const getKnowledgeDetailQueryKey = (id: string) => ['knowledge-centers', 'detail', id] as const;
+
+// Helper functions for building API-compliant query parameters
+export const buildKnowledgeQueryParams = {
+  // Pagination helpers
+  pagination: (page: number = 1, perPage: number = 12) => ({
+    page,
+    perPage,
+  }),
+
+  // Sorting helpers
+  sortBy: (field: string, direction: 'asc' | 'desc' = 'desc') => ({
+    orderBy: [{ field, direction }],
+  }),
+
+  // Multi-field sorting
+  sortByMultiple: (sorts: Array<{ field: string; direction: 'asc' | 'desc' }>) => ({
+    orderBy: sorts,
+  }),
+
+  // Common sorting presets
+  sortPresets: {
+    newest: () => ({ orderBy: [{ field: 'createdAt', direction: 'desc' }] }),
+    oldest: () => ({ orderBy: [{ field: 'createdAt', direction: 'asc' }] }),
+    mostPopular: () => ({ 
+      orderBy: [
+        { field: 'viewCount', direction: 'desc' },
+        { field: 'likeCount', direction: 'desc' }
+      ] 
+    }),
+    mostLiked: () => ({ orderBy: [{ field: 'likeCount', direction: 'desc' }] }),
+    alphabetical: () => ({ orderBy: [{ field: 'title', direction: 'asc' }] }),
+  },
+
+  // Filter helpers
+  filters: {
+    byTitle: (title: string, operator: 'contains' | 'equals' | 'startsWith' | 'endsWith' = 'contains') => ({
+      [`title[${operator}]`]: title,
+    }),
+    byType: (type: 'webinar' | 'content') => ({ type }),
+    byTypes: (types: Array<'webinar' | 'content'>) => ({ 'type[in]': types.join(',') }),
+    byViewCount: (min?: number, max?: number) => {
+      const filters: any = {};
+      if (min !== undefined) filters['viewCount[gte]'] = min;
+      if (max !== undefined) filters['viewCount[lte]'] = max;
+      return filters;
+    },
+    byLikeCount: (min?: number, max?: number) => {
+      const filters: any = {};
+      if (min !== undefined) filters['likeCount[gte]'] = min;
+      if (max !== undefined) filters['likeCount[lte]'] = max;
+      return filters;
+    },
+    byDateRange: (
+      field: 'createdAt' | 'updatedAt' | 'publishedAt',
+      startDate?: string,
+      endDate?: string
+    ) => {
+      const filters: any = {};
+      if (startDate) filters[`${field}[gte]`] = startDate;
+      if (endDate) filters[`${field}[lte]`] = endDate;
+      return filters;
+    },
+    publishedOnly: () => ({ 'publishedAt[not]': 'null' }),
+    recentlyCreated: (days: number = 30) => {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      return { 'createdAt[gte]': date.toISOString().split('T')[0] };
+    },
+    recentlyUpdated: (days: number = 30) => {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      return { 'updatedAt[gte]': date.toISOString().split('T')[0] };
+    },
+  },
+
+  // Combine multiple parameters
+  combine: (...params: Partial<KnowledgeQueryParams>[]) => {
+    return params.reduce((acc, param) => ({ ...acc, ...param }), {});
+  },
+};
 
 export const fetchKnowledgeCenters = async (
   params: KnowledgeQueryParams = {},
@@ -140,6 +293,24 @@ export const knowledgeCenterApi = {
 
   async fetchKnowledgeCenterById(id: string) {
     return fetchKnowledgeCenterById(id);
+  },
+
+  async fetchKnowledgeCenterStats() {
+    try {
+      const response = await axios.get<ApiResponse<KnowledgeCenterStatsData>>(
+        API_ENDPOINTS.KNOWLEDGE_CENTERS_STATS, 
+        API_CONFIG
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to fetch knowledge center stats');
+      }
+
+      return response.data.data.stats;
+    } catch (error) {
+      console.error('Error fetching knowledge center stats:', error);
+      throw error;
+    }
   },
 
   /**
