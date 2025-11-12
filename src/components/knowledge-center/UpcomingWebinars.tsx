@@ -35,9 +35,7 @@ export default function UpcomingWebinars() {
     );
   }
 
-  if (!upcomingWebinars || upcomingWebinars.length === 0) {
-    return null;
-  }
+  const hasWebinars = upcomingWebinars && upcomingWebinars.length > 0;
 
   return (
     <section className="py-16 bg-gradient-to-br from-blue-50/40 via-blue-50/30 to-green-50/20 relative overflow-hidden border-t border-gray-200/50">
@@ -72,18 +70,19 @@ export default function UpcomingWebinars() {
           </p>
         </div>
 
-        {/* Calendar-style Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
-          {upcomingWebinars.map((webinar) => {
-            const webinarDate = new Date(webinar.webinar?.zoomDate ?? new Date());
-            const dayName = webinarDate.toLocaleDateString('id-ID', { weekday: 'long' });
-            const day = webinarDate.getDate();
-            const month = webinarDate.toLocaleDateString('id-ID', { month: 'short' });
-            const year = webinarDate.getFullYear();
-            const time = webinarDate.toLocaleTimeString('id-ID', {
-              hour: '2-digit',
-              minute: '2-digit'
-            });
+        {/* Calendar-style Grid or Empty State */}
+        {hasWebinars ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+            {upcomingWebinars.map((webinar) => {
+              const webinarDate = new Date(webinar.webinar?.zoomDate ?? new Date());
+              const dayName = webinarDate.toLocaleDateString('id-ID', { weekday: 'long' });
+              const day = webinarDate.getDate();
+              const month = webinarDate.toLocaleDateString('id-ID', { month: 'short' });
+              const year = webinarDate.getFullYear();
+              const time = webinarDate.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
 
             return (
               <Link
@@ -174,17 +173,58 @@ export default function UpcomingWebinars() {
             );
           })}
         </div>
+        ) : (
+          /* Empty State - Modern & Unique Design */
+          <div className="py-12">
+            <div className="max-w-2xl mx-auto">
+              {/* Artistic Empty State Card */}
+              <div className="relative bg-white border-2 border-dashed border-gray-300 rounded-2xl p-12 overflow-hidden">
+                {/* Decorative corner elements */}
+                <div className="absolute top-0 left-0 w-24 h-24 border-l-4 border-t-4 border-blue-400 rounded-tl-2xl opacity-30"></div>
+                <div className="absolute bottom-0 right-0 w-24 h-24 border-r-4 border-b-4 border-blue-400 rounded-br-2xl opacity-30"></div>
+                
+                {/* Content */}
+                <div className="relative text-center space-y-6">
+                  {/* Icon with animated background */}
+                  <div className="inline-flex relative">
+                    <div className="absolute inset-0 bg-blue-100 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                    <div className="relative w-20 h-20 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl flex items-center justify-center transform rotate-3">
+                      <Calendar className="w-10 h-10 text-blue-600" strokeWidth={1.5} />
+                    </div>
+                  </div>
 
-        {/* View All Button */}
-        {/* <div className="text-center mt-10">
-          <Link
-            href="/knowledge-center?type=webinar"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 font-semibold"
-          >
-            <span>Lihat Semua Webinar</span>
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div> */}
+                  {/* Text Content */}
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      Belum Ada Webinar Terjadwal
+                    </h3>
+                    <p className="text-gray-600 max-w-md mx-auto leading-relaxed">
+                      Saat ini tidak ada webinar yang dijadwalkan. Pantau terus halaman ini untuk update webinar mendatang.
+                    </p>
+                  </div>
+
+                  {/* Decorative divider */}
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <div className="h-px w-12 bg-gradient-to-r from-transparent to-gray-300"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                    <div className="h-px w-12 bg-gradient-to-l from-transparent to-gray-300"></div>
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="pt-2">
+                    <Link
+                      href="/knowledge-center?type=webinar"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    >
+                      <span>Jelajahi Semua Konten</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

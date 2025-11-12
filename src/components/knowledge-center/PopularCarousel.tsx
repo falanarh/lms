@@ -16,19 +16,25 @@ export default function PopularCarousel() {
 
   const { popularKnowledge, isLoading } = usePopularKnowledge();
 
-  // Auto-scroll effect
+  // Auto-scroll effect with true seamless infinite loop
   useEffect(() => {
     const carousel = carouselRef.current;
-    if (!carousel || isPaused || !popularKnowledge) return;
+    if (!carousel || isPaused || !popularKnowledge || popularKnowledge.length === 0) return;
 
-    const scrollSpeed = 1; // pixels per interval
-    const intervalTime = 30; // milliseconds
+    const scrollSpeed = 0.5; // pixels per interval
+    const intervalTime = 20; // milliseconds
+    
+    // Calculate the width of one complete set
+    const itemWidth = 320 + 24; // 320px (w-80) + 24px (gap-6)
+    const oneSetWidth = popularKnowledge.length * itemWidth;
 
     const interval = setInterval(() => {
-      if (carousel.scrollLeft >= carousel.scrollWidth - carousel.clientWidth) {
-        carousel.scrollLeft = 0;
-      } else {
-        carousel.scrollLeft += scrollSpeed;
+      carousel.scrollLeft += scrollSpeed;
+      
+      // When we've scrolled through the first set, reset to beginning
+      // This creates seamless infinite loop since second set is identical
+      if (carousel.scrollLeft >= oneSetWidth) {
+        carousel.scrollLeft = carousel.scrollLeft - oneSetWidth;
       }
     }, intervalTime);
 
@@ -57,6 +63,11 @@ export default function PopularCarousel() {
   if (!popularKnowledge || popularKnowledge.length === 0) {
     return null;
   }
+
+  // Duplicate items for seamless infinite scroll
+  // This is necessary so the carousel can loop without visible jump/gap
+  // Each item appears twice but at different scroll positions
+  const displayItems = [...popularKnowledge, ...popularKnowledge];
 
   return (
     <section className="py-20 bg-gradient-to-br from-blue-50/50 via-blue-50/30 to-green-50/20 relative overflow-hidden border-b border-gray-200/50">
@@ -100,8 +111,10 @@ export default function PopularCarousel() {
             className="flex gap-6 overflow-x-hidden pt-4 pb-16 scrollbar-hide"
             style={{ scrollBehavior: 'smooth' }}
           >
-            {/* Duplicate items for infinite scroll effect */}
-            {[...popularKnowledge, ...popularKnowledge].map((knowledge, index) => (
+            {/* Infinite Carousel: Items are duplicated to create seamless loop
+                When scrolling reaches the end of first set, position resets to equivalent spot
+                in second set, making it appear as continuous infinite scroll */}
+            {displayItems.map((knowledge, index) => (
               <div
                 key={`${knowledge.id}-${index}`}
                 className="flex-shrink-0 w-80 group/carousel"

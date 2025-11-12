@@ -26,7 +26,7 @@ export default function Subject({
   const [needsToggle, setNeedsToggle] = useState(false);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { subjects, isLoading } = useKnowledgeSubjects();
+  const { data: subjects, isLoading } = useKnowledgeSubjects();
 
   // const getSubjectIconByName = (subjectName: string) => {
   //   if (subjectName === 'all') return LayoutGrid;

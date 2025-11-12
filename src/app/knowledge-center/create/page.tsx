@@ -82,14 +82,11 @@ export default function CreateKnowledgePage() {
   // ============================================================================
 
   const {
-    handleMediaUpload,
-    handleNotesUpload,
-    isUploadingMedia,
-    isUploadingPDF,
     handleNextStep,
     handleStepNavigation,
     handleSubmit,
     isCreating,
+    submittingAs,
   } = useCreateKnowledgePage({
     wizard,
     router,
@@ -153,13 +150,6 @@ export default function CreateKnowledgePage() {
     },
   };
 
-  // Group upload handlers for cleaner prop passing
-  const uploadHandlers = {
-    onMedia: handleMediaUpload,
-    onPDF: handleNotesUpload,
-    isUploadingMedia,
-    isUploadingPDF,
-  };
 
   // ============================================================================
   // UI Effects
@@ -252,14 +242,13 @@ export default function CreateKnowledgePage() {
         return (
           <ContentDetailsForm
             wizard={wizard}
-            uploadHandlers={uploadHandlers}
           />
         );
 
       case 4:
         return (
           <ReviewStep
-            formData={reviewData}
+            formData={reviewData as any}
             contentType={formValues.knowledgeContent?.contentType as ContentType || null}
             thumbnailPreview={thumbnailPreview}
           />
@@ -332,8 +321,7 @@ export default function CreateKnowledgePage() {
                   currentStep={currentStep}
                   totalSteps={steps.length}
                   isCreating={isCreating}
-                  isUploadingMedia={isUploadingMedia}
-                  isUploadingPDF={isUploadingPDF}
+                  submittingAs={submittingAs}
                   onPrevious={prevStep}
                   onNext={handleNextStep}
                   onSaveDraft={() => handleSubmit('draft')}

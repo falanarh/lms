@@ -7,13 +7,11 @@ import { KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 interface KnowledgeTypeSelectorProps {
   selectedType: typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT | undefined;
   onTypeSelect: (type: typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT) => void;
-  error?: string;
 }
 
 export default function KnowledgeTypeSelector({
   selectedType,
   onTypeSelect,
-  error,
 }: KnowledgeTypeSelectorProps) {
   return (
     <div className="space-y-8">
@@ -104,10 +102,6 @@ export default function KnowledgeTypeSelector({
           )}
         </button>
       </div>
-
-      {error && (
-        <p className="text-red-600 text-sm">{error}</p>
-      )}
     </div>
   );
 }

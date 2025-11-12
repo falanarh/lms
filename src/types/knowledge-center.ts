@@ -208,6 +208,16 @@ export interface Comment {
 // Create Knowledge types
 export type CreateKnowledgeStep = 1 | 2 | 3 | 4;
 
+// Form-specific webinar type that allows File objects
+export type KnowledgeWebinarFormData = Omit<KnowledgeWebinar, 'noteFile'> & {
+  noteFile?: File | string; // Allow File object or URL string
+};
+
+// Form-specific content type that allows File objects
+export type KnowledgeContentFormData = Omit<KnowledgeContent, 'mediaUrl'> & {
+  mediaUrl?: File | string; // Allow File object or URL string
+};
+
 // Form data - derived from KnowledgeCenter with form-specific overrides
 export type CreateKnowledgeFormData = Omit<
   KnowledgeCenter,
@@ -219,11 +229,11 @@ export type CreateKnowledgeFormData = Omit<
   // Override thumbnail to allow File object for upload
   thumbnail: File | string;
   
-  // Override webinar to use Partial (all fields optional during form filling)
-  webinar?: Partial<KnowledgeWebinar>;
+  // Override webinar to allow File objects (all fields optional during form filling)
+  webinar?: Partial<KnowledgeWebinarFormData>;
   
-  // Override knowledgeContent to use Partial (all fields optional during form filling)
-  knowledgeContent?: Partial<KnowledgeContent>;
+  // Override knowledgeContent to allow File objects (all fields optional during form filling)
+  knowledgeContent?: Partial<KnowledgeContentFormData>;
   
   // UI-only field for display (not sent to API)
   status?: KnowledgeStatus;

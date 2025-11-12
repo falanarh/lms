@@ -8,7 +8,7 @@
 import React from 'react';
 import type { UseKnowledgeWizardFormReturn } from '@/hooks/useKnowledgeWizardForm';
 import { CONTENT_TYPES, type ContentType } from '@/types/knowledge-center';
-import { mediaUrlValidator, documentValidator } from '@/lib/validation/knowledge-schemas';
+import { documentValidator } from '@/lib/validation/knowledge-schemas';
 import BlockNoteEditor from '../BlockNoteEditor';
 import ContentTypeSelector from './ContentTypeSelector';
 import ContentTypeHeader from './ContentTypeHeader';
@@ -16,14 +16,10 @@ import MediaUploadField from './MediaUploadField';
 
 interface GeneralContentFormProps {
   wizard: UseKnowledgeWizardFormReturn;
-  onMediaUpload?: (file: File, type: 'video' | 'audio' | 'pdf') => Promise<void>;
-  isUploadingMedia?: boolean;
 }
 
 export default function GeneralContentForm({
   wizard,
-  onMediaUpload,
-  isUploadingMedia = false,
 }: GeneralContentFormProps) {
   const { form, formValues } = wizard;
 
@@ -62,16 +58,6 @@ export default function GeneralContentForm({
             ? 'audio'
             : 'pdf';
 
-        const handleMediaUpload = async (file: File) => {
-          if (onMediaUpload) {
-            try {
-              await onMediaUpload(file, uploadType);
-            } catch (error) {
-              console.error('Media upload failed:', error);
-            }
-          }
-        };
-
         // Step 1: Select content type
         if (!selectedContentType) {
           return (
@@ -92,17 +78,37 @@ export default function GeneralContentForm({
         <form.Field
           name="knowledgeContent.mediaUrl"
           validators={{
-            onChange: mediaUrlValidator,
-            onBlur: mediaUrlValidator,
+            onChange: ({ value }: any) => {
+              // Allow File objects (for preview before upload)
+              if (value instanceof File) {
+                return undefined;
+              }
+              // Allow string URLs (after upload)
+              if (typeof value === 'string' && value.length > 0) {
+                return undefined;
+              }
+              // Empty or invalid
+              return 'Please upload a media file (video, audio, or PDF)';
+            },
+            onBlur: ({ value }: any) => {
+              // Allow File objects (for preview before upload)
+              if (value instanceof File) {
+                return undefined;
+              }
+              // Allow string URLs (after upload)
+              if (typeof value === 'string' && value.length > 0) {
+                return undefined;
+              }
+              // Empty or invalid
+              return 'Please upload a media file (video, audio, or PDF)';
+            },
           }}
         >
           {(field: any) => (
             <MediaUploadField
               field={field}
-              mediaUrl={formValues.knowledgeContent?.mediaUrl}
+              mediaUrl={typeof formValues.knowledgeContent?.mediaUrl === 'string' ? formValues.knowledgeContent?.mediaUrl : undefined}
               mediaType={uploadType}
-              onUpload={handleMediaUpload}
-              isUploading={isUploadingMedia}
             />
           )}
         </form.Field>

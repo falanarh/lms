@@ -88,7 +88,8 @@ export const webinarDetailsSchema = z.object({
   recordLink: z.string().url('Please enter a valid recording URL').min(1, 'Recording link is required'),
   youtubeLink: optionalUrl,
   vbLink: optionalUrl,
-  contentText: z.union([pdfFileValidator, z.string()]).optional(),
+  contentText: z.union([z.instanceof(File), z.string()]).optional(),
+  noteFile: z.union([z.instanceof(File), z.string()]).optional(), // For form state (will be transformed to contentText)
   jpCount: z.number({
     required_error: 'Please enter JP credits',
     invalid_type_error: 'JP credits must be a number'
@@ -106,7 +107,7 @@ export const contentTypeEnumSchema = z.enum(
 
 export const contentDetailsSchema = z.object({
   contentType: contentTypeEnumSchema,
-  mediaUrl: z.string().optional(),
+  mediaUrl: z.union([z.instanceof(File), z.string()]).optional(),
   document: z.string().optional(),
 });
 
@@ -153,7 +154,6 @@ export const jpCountValidator = {
 };
 
 // Field-level validators for content details
-export const mediaUrlValidator = z.string().min(1, 'Please upload a media file (video, audio, or PDF)');
 export const documentValidator = z.string().min(1, 'Please add content using the rich text editor below');
 
 // Media URL is required for non-article content types
@@ -162,7 +162,8 @@ export const contentDetailsWithMediaSchema = contentDetailsSchema.refine(
     if (data.contentType === CONTENT_TYPES.ARTICLE) {
       return true; // Article doesn't need media URL
     }
-    return !!data.mediaUrl && data.mediaUrl.length > 0;
+    // Accept File object or string URL
+    return !!data.mediaUrl && (data.mediaUrl instanceof File || (typeof data.mediaUrl === 'string' && data.mediaUrl.length > 0));
   },
   {
     message: 'Please upload a media file for this content type',

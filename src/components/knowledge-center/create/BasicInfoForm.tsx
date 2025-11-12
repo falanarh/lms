@@ -62,11 +62,12 @@ export default function BasicInfoForm({
 }: BasicInfoFormProps) {
   const [showSubjectManager, setShowSubjectManager] = useState(false);
   const [localTagInput, setLocalTagInput] = useState("");
-  const fieldRef = useRef<any>(null);
 
-  const { form, thumbnailPreview, currentTagInput, currentTags } = wizard;
-  const { handleThumbnailSelect, handleThumbnailRemove, setCurrentTagInput } =
-    wizard;
+  const { form, thumbnailPreview, formValues } = wizard;
+  const { handleThumbnailSelect, handleThumbnailRemove } = wizard;
+  
+  // Access tags directly from form values
+  const currentTags = formValues.tags || [];
 
   return (
     <div className="space-y-5">
@@ -273,11 +274,6 @@ export default function BasicInfoForm({
         }}
       >
         {(field: any) => {
-          // Store field ref for external access
-          if (!fieldRef.current) {
-            fieldRef.current = field;
-          }
-
           // Use field.state.value as source of truth
           const currentFieldTags = field.state.value || [];
 
@@ -340,7 +336,7 @@ export default function BasicInfoForm({
                 />
               </div>
               {field.state.meta.errors.length > 0 ? (
-                <p className="text-red-500 text-xs mt-1.5">
+                <p className="text-red-600 text-xs mt-1.5">
                   {field.state.meta.errors[0]}
                 </p>
               ) : (

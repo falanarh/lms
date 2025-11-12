@@ -63,7 +63,6 @@ export const useKnowledgeWizardForm = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-  const [currentTagInput, setCurrentTagInput] = useState('');
 
   // ============================================================================
   // TanStack Form with Native Zod Integration
@@ -127,30 +126,6 @@ export const useKnowledgeWizardForm = () => {
     setThumbnailPreview(null);
   }, [form]);
 
-  // ============================================================================
-  // Tag Management
-  // ============================================================================
-
-  const currentTags = useMemo(
-    () => formValues.tags || [],
-    [formValues.tags]
-  );
-
-  const handleAddTag = useCallback(() => {
-    const trimmedTag = currentTagInput.trim();
-    if (trimmedTag && !currentTags.includes(trimmedTag)) {
-      form.setFieldValue('tags' as any, [...currentTags, trimmedTag] as any);
-      setCurrentTagInput('');
-    }
-  }, [currentTagInput, currentTags, form]);
-
-  const handleRemoveTag = useCallback(
-    (tagToRemove: string) => {
-      const updatedTags = currentTags.filter((tag: string) => tag !== tagToRemove);
-      form.setFieldValue('tags' as any, updatedTags as any);
-    },
-    [currentTags, form]
-  );
 
   // ============================================================================
   // Step Validation - Progressive with Zod Schemas
@@ -308,7 +283,6 @@ export const useKnowledgeWizardForm = () => {
     form.reset();
     setCurrentStep(1);
     setThumbnailPreview(null);
-    setCurrentTagInput('');
   }, [form]);
 
   // ============================================================================
@@ -344,13 +318,6 @@ export const useKnowledgeWizardForm = () => {
     thumbnailPreview,
     handleThumbnailSelect,
     handleThumbnailRemove,
-
-    // Tag management
-    currentTags,
-    currentTagInput,
-    setCurrentTagInput,
-    handleAddTag,
-    handleRemoveTag,
 
     // Step navigation
     nextStep,

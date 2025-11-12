@@ -194,6 +194,51 @@ export const useCreateKnowledgeCenter = (
 export const getCurrentUserId = () => 'b157852b-82ff-40ed-abf8-2f8fe26377aa';
 
 /**
+ * Helper to parse API error response and set field errors
+ */
+const parseApiErrors = (error: any, form: any, onError: (msg: string) => void) => {
+  // Try to extract error details from response
+  const response = error?.response?.data;
+  
+  // Case 1: Structured field errors (e.g., { errors: { field: ['message'] } })
+  if (response?.errors && typeof response.errors === 'object') {
+    Object.entries(response.errors).forEach(([fieldPath, messages]: [string, any]) => {
+      const errorMessages = Array.isArray(messages) ? messages : [messages];
+      form.setFieldMeta(fieldPath as any, (prev: any) => ({
+        ...prev,
+        errors: errorMessages,
+      }));
+    });
+    onError(response.message || 'Validation failed. Please check the form.');
+    return true;
+  }
+  
+  // Case 2: Array of field errors (e.g., [{ field: 'title', message: 'Required' }])
+  if (Array.isArray(response?.errors)) {
+    response.errors.forEach((err: any) => {
+      if (err.field && err.message) {
+        form.setFieldMeta(err.field as any, (prev: any) => ({
+          ...prev,
+          errors: [err.message],
+        }));
+      }
+    });
+    onError(response.message || 'Validation failed. Please check the form.');
+    return true;
+  }
+  
+  // Case 3: Simple message
+  if (response?.message) {
+    onError(response.message);
+    return true;
+  }
+  
+  // Case 4: Generic error
+  onError(error?.message || 'An error occurred. Please try again.');
+  return false;
+};
+
+/**
  * Custom hook for Create Knowledge Page
  * Handles all business logic including:
  * - Media uploads (video, audio, PDF)
@@ -228,6 +273,12 @@ export const useCreateKnowledgePage = ({
   // Upload states
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+  
+  // Track which button was clicked for loading state
+  const [submittingAs, setSubmittingAs] = useState<'draft' | 'published' | null>(null);
+  
+  // Track if we're currently uploading any files
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   // ============================================================================
   // Media Upload Handlers
@@ -320,15 +371,25 @@ export const useCreateKnowledgePage = ({
 
   const handleSubmit = useCallback(
     async (status: 'draft' | 'published') => {
+      // Set which button was clicked
+      setSubmittingAs(status);
+      
       // Validate form data
       const validationError = validateFormDataForSubmission(formValues);
       if (validationError) {
         onError(validationError);
+        setSubmittingAs(null);
         return;
       }
 
       try {
-        // Handle thumbnail upload
+        // Set uploading state before starting any uploads
+        setIsUploadingFiles(true);
+        
+        // Clone formValues to update with uploaded URLs
+        const updatedFormValues = { ...formValues };
+
+        // 1. Handle thumbnail upload
         let thumbnailUrl =
           typeof formValues.thumbnail === 'string' && formValues.thumbnail
             ? formValues.thumbnail
@@ -337,44 +398,102 @@ export const useCreateKnowledgePage = ({
         if (formValues.thumbnail instanceof File) {
           try {
             const uploadedUrl = await knowledgeApi.uploadImage(formValues.thumbnail);
-            // Sanitize URL to handle special characters like spaces
             thumbnailUrl = encodeMediaUrl(uploadedUrl);
           } catch (uploadError) {
             console.error('Failed to upload thumbnail:', uploadError);
-            onError('Failed to upload thumbnail. Please try again.');
+            parseApiErrors(uploadError, wizard.form, onError);
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
+            return;
+          }
+        }
+
+        // 2. Handle media upload for Content (video, audio, or PDF)
+        if (updatedFormValues.knowledgeContent?.mediaUrl instanceof File) {
+          try {
+            const file = updatedFormValues.knowledgeContent.mediaUrl;
+            const contentType = updatedFormValues.knowledgeContent.contentType;
+            
+            let uploadedUrl: string;
+            if (contentType === 'video') {
+              uploadedUrl = await knowledgeApi.uploadVideo(file);
+            } else if (contentType === 'podcast') {
+              uploadedUrl = await knowledgeApi.uploadAudio(file);
+            } else if (contentType === 'file') {
+              uploadedUrl = await knowledgeApi.uploadPDF(file);
+            } else {
+              throw new Error('Invalid content type for media upload');
+            }
+            
+            updatedFormValues.knowledgeContent.mediaUrl = encodeMediaUrl(uploadedUrl);
+          } catch (uploadError) {
+            console.error('Failed to upload media:', uploadError);
+            parseApiErrors(uploadError, wizard.form, onError);
+            wizard.form.setFieldMeta('knowledgeContent.mediaUrl' as any, (prev: any) => ({
+              ...prev,
+              errors: ['Failed to upload media file. Please try again.'],
+            }));
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
+            return;
+          }
+        }
+
+        // 3. Handle PDF notes upload for Webinar
+        if (updatedFormValues.webinar?.noteFile instanceof File) {
+          try {
+            const uploadedUrl = await knowledgeApi.uploadPDF(updatedFormValues.webinar.noteFile);
+            updatedFormValues.webinar.contentText = encodeMediaUrl(uploadedUrl);
+            // Remove noteFile after uploading (it's now in contentText)
+            delete updatedFormValues.webinar.noteFile;
+          } catch (uploadError) {
+            console.error('Failed to upload PDF notes:', uploadError);
+            parseApiErrors(uploadError, wizard.form, onError);
+            wizard.form.setFieldMeta('webinar.noteFile' as any, (prev: any) => ({
+              ...prev,
+              errors: ['Failed to upload PDF notes. Please try again.'],
+            }));
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
 
         // Transform form data to API payload using utility
-        const apiData = transformFormDataToAPI(formValues, status, thumbnailUrl);
+        const apiData = transformFormDataToAPI(updatedFormValues, status, thumbnailUrl);
 
         // Submit to API
         await createKnowledgeMutation.mutateAsync(apiData);
 
-        // Navigate to knowledge center on success
+        // Clear uploading state and navigate to knowledge center on success
+        setIsUploadingFiles(false);
         router.push('/knowledge-center');
       } catch (error) {
         console.error('Failed to create knowledge:', error);
-        onError('Failed to create knowledge. Please try again.');
+        
+        // Parse and set field-specific errors from API
+        const hasFieldErrors = parseApiErrors(error, wizard.form, onError);
+        
+        // If there are field errors, scroll to first error
+        if (hasFieldErrors) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        setIsUploadingFiles(false);
+        setSubmittingAs(null);
       }
     },
-    [formValues, createKnowledgeMutation, router, onError]
+    [formValues, createKnowledgeMutation, router, onError, wizard.form]
   );
 
   return {
-    // Upload handlers
-    handleMediaUpload,
-    handleNotesUpload,
-    isUploadingMedia,
-    isUploadingPDF,
-
     // Navigation handlers
     handleNextStep,
     handleStepNavigation,
 
     // Submission handler
     handleSubmit,
-    isCreating: createKnowledgeMutation.isPending,
+    isCreating: isUploadingFiles || createKnowledgeMutation.isPending, // Show loading during file upload or API submission
+    submittingAs, // Track which button is being submitted
   };
 };

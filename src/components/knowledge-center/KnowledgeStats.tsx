@@ -142,7 +142,7 @@ export default function KnowledgeStats() {
           })}
         </div>
 
-        {(topSubjects.length > 0 || stats.averageViews > 0) && (
+        {/* {(topSubjects.length > 0 || stats.averageViews > 0) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {topSubjects.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -207,7 +207,7 @@ export default function KnowledgeStats() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </section>
   );

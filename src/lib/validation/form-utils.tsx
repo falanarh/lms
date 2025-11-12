@@ -36,6 +36,7 @@ export function getErrorMessage(error: any): string {
 /**
  * TanStack Form Field Info Component (Official Pattern)
  * Displays field errors and validation state according to official docs
+ * Standard error styling: text-red-600 text-xs mt-1.5
  */
 export function FieldInfo({ field }: { field: FormField }) {
   const errors = field.state.meta.errors.filter(Boolean).map(getErrorMessage);
@@ -46,11 +47,25 @@ export function FieldInfo({ field }: { field: FormField }) {
   return (
     <>
       {uniqueErrors.length > 0 ? (
-        <em className="text-red-600 text-xs mt-1.5">
+        <p className="text-red-600 text-xs mt-1.5">
           {uniqueErrors.join(', ')}
-        </em>
+        </p>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Standalone Error Message Component for consistent error styling
+ * Use this for custom fields that don't use FormField
+ */
+export function ErrorMessage({ errors }: { errors?: string[] }) {
+  if (!errors || errors.length === 0) return null;
+  
+  return (
+    <p className="text-red-600 text-xs mt-1.5">
+      {errors[0]}
+    </p>
   );
 }
 

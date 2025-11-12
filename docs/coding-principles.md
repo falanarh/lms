@@ -214,7 +214,7 @@ API Layer (data fetching) → Hooks Layer (state management) → UI Layer (compo
 - Custom solutions untuk masalah yang sudah solved
 - Libraries yang tidak terlalu perlu
 
-## 10. Forum Implementation Examples
+## 10. Implementation Examples
 
 ### **Entity-Based Hook Pattern**
 ```tsx
@@ -226,10 +226,10 @@ export function useForum(id: string) {
   });
 }
 
-export function useTopic(forumId: string) {
+export function useKnowledge(params: KnowledgeQueryParams) {
   return useQuery({
-    queryKey: ['topics', forumId],
-    queryFn: () => fetchTopics(forumId)
+    queryKey: ['knowledge-centers', params],
+    queryFn: () => fetchKnowledgeCenters(params)
   });
 }
 
@@ -543,3 +543,235 @@ export function useKnowledgeDetail(id: string) {
 ---
 
 **Ingat**: Kode yang baik adalah kode yang sederhana, mudah dipahami, dan efektif menyelesaikan masalah.
+
+## 12. Knowledge Center Create Implementation
+
+### 🎯 Wizard Form Pattern dengan TanStack Form
+
+**Filosofi**: Multi-step form dengan progressive validation dan clean state management
+
+#### **Architecture Overview**
+```
+Page Component → Business Logic Hook → Wizard Form Hook → TanStack Form
+     ↓                    ↓                   ↓              ↓
+  UI Logic         API Calls         Step Management    Form State
+```
+
+#### **1. Page Component - Pure UI Logic**
+```tsx
+// ✅ Benar: Page hanya handle UI orchestration
+export default function CreateKnowledgePage() {
+  const wizard = useKnowledgeWizardForm(); // Form state management
+  const businessLogic = useCreateKnowledgePage({ // Business logic extraction
+    wizard,
+    router,
+    onSuccess: toastState.showSuccess,
+    onError: toastState.showError,
+  });
+
+  // Pure UI rendering dengan step-based components
+  return (
+    <div className="wizard-layout">
+      <WizardHeader currentStep={wizard.currentStep} />
+      <WizardSidebar steps={steps} currentStep={wizard.currentStep} />
+      
+      {/* Step-based rendering */}
+      {wizard.currentStep === 1 && <KnowledgeTypeSelector wizard={wizard} />}
+      {wizard.currentStep === 2 && <BasicInfoForm wizard={wizard} />}
+      {wizard.currentStep === 3 && <ContentDetailsForm wizard={wizard} />}
+      {wizard.currentStep === 4 && <ReviewStep wizard={wizard} />}
+      
+      <WizardActions 
+        wizard={wizard}
+        onNext={businessLogic.handleNextStep}
+        onSubmit={businessLogic.handleSubmit}
+      />
+    </div>
+  );
+}
+```
+
+#### **2. Business Logic Hook - API & Navigation**
+```tsx
+// ✅ Benar: Business logic terpisah dari UI
+export const useCreateKnowledgePage = ({ wizard, router, onSuccess, onError }) => {
+  const createMutation = useMutation({
+    mutationFn: knowledgeCenterApi.createKnowledgeCenter,
+    onSuccess: (data) => {
+      onSuccess('Knowledge center created successfully!');
+      router.push(`/knowledge-center/${data.id}`);
+    },
+    onError: (error) => onError(error.message),
+  });
+
+  const handleSubmit = async (status: 'draft' | 'published') => {
+    const isValid = await wizard.validateCurrentStep();
+    if (!isValid) return;
+
+    // Transform form data to API payload
+    const apiData = transformFormDataToAPI(wizard.formValues, status, thumbnailUrl);
+    await createMutation.mutateAsync(apiData);
+  };
+
+  return {
+    handleNextStep: wizard.nextStep,
+    handleSubmit,
+    isCreating: createMutation.isPending,
+  };
+};
+```
+
+#### **3. Wizard Form Hook - State Management**
+```tsx
+// ✅ Benar: TanStack Form dengan progressive validation
+export const useKnowledgeWizardForm = () => {
+  const [currentStep, setCurrentStep] = useState(1);
+  
+  const form = useForm({
+    defaultValues: getInitialFormValues(),
+    validators: {
+      onSubmit: ({ value }) => {
+        const result = completeFormSchema.safeParse(value);
+        return result.success ? undefined : result.error.errors[0]?.message;
+      },
+    },
+  });
+
+  const validateCurrentStep = useCallback(async (): Promise<boolean> => {
+    const schema = getStepSchema(currentStep, form.state.values.type);
+    const result = schema.safeParse(form.state.values);
+    
+    if (!result.success) {
+      // Set field errors declaratively
+      result.error.errors.forEach((error) => {
+        const fieldPath = error.path.join('.');
+        form.setFieldMeta(fieldPath, (prev) => ({
+          ...prev,
+          errors: [error.message],
+        }));
+      });
+      return false;
+    }
+    return true;
+  }, [currentStep, form]);
+
+  return {
+    form,
+    currentStep,
+    formValues: form.state.values,
+    nextStep: async () => {
+      const isValid = await validateCurrentStep();
+      if (isValid) setCurrentStep(prev => Math.min(prev + 1, 4));
+    },
+    validateCurrentStep,
+  };
+};
+```
+
+#### **4. Component Composition Pattern**
+```tsx
+// ✅ Benar: Sub-component dengan clear responsibilities
+export default function ContentDetailsForm({ wizard }) {
+  const { currentType } = wizard;
+
+  // Conditional rendering berdasarkan content type
+  if (currentType === KNOWLEDGE_TYPES.WEBINAR) {
+    return <WebinarDetailsForm wizard={wizard} />;
+  }
+
+  if (currentType === KNOWLEDGE_TYPES.CONTENT) {
+    return <GeneralContentForm wizard={wizard} />;
+  }
+
+  return null;
+}
+
+// Sub-component dengan focused responsibility
+export default function GeneralContentForm({ wizard }) {
+  return (
+    <wizard.form.Subscribe selector={(state) => state.values.knowledgeContent?.contentType}>
+      {(selectedContentType) => {
+        if (!selectedContentType) {
+          return <ContentTypeSelector onSelect={handleContentTypeSelect} />;
+        }
+
+        return (
+          <div className="space-y-6">
+            <ContentTypeHeader contentType={selectedContentType} />
+            <MediaUploadField wizard={wizard} />
+            <BlockNoteEditor wizard={wizard} />
+          </div>
+        );
+      }}
+    </wizard.form.Subscribe>
+  );
+}
+```
+
+#### **5. Data Transformation Layer**
+```tsx
+// ✅ Benar: Business logic terpisah di utility functions
+export const transformFormDataToAPI = (
+  formValues: CreateKnowledgeFormData,
+  status: 'draft' | 'published',
+  thumbnailUrl: string
+): CreateKnowledgeCenterRequest => {
+  const apiData: CreateKnowledgeCenterRequest = {
+    // Base fields
+    createdBy: formValues.createdBy,
+    title: formValues.title,
+    type: formValues.type!,
+    isFinal: status === 'published',
+  };
+
+  // Conditional data berdasarkan type
+  if (formValues.type === KNOWLEDGE_TYPES.WEBINAR && formValues.webinar) {
+    apiData.webinar = {
+      zoomDate: formValues.webinar.zoomDate || new Date().toISOString(),
+      zoomLink: encodeMediaUrl(formValues.webinar.zoomLink) || 'https://zoom.us',
+      jpCount: formValues.webinar.jpCount || 0,
+    };
+  }
+
+  if (formValues.type === KNOWLEDGE_TYPES.CONTENT && formValues.knowledgeContent) {
+    apiData.knowledgeContent = {
+      contentType: formValues.knowledgeContent.contentType,
+      document: formValues.knowledgeContent.document || '',
+      mediaUrl: formValues.knowledgeContent.mediaUrl ? 
+        encodeMediaUrl(formValues.knowledgeContent.mediaUrl) : undefined,
+    };
+  }
+
+  return apiData;
+};
+```
+
+### 🎯 Key Benefits Pattern Ini
+
+#### **1. Separation of Concerns**
+- **Page**: UI orchestration dan layout
+- **Business Hook**: API calls dan navigation logic
+- **Wizard Hook**: Form state dan validation
+- **Transform**: Data transformation logic
+
+#### **2. Progressive Validation**
+- Step-by-step validation dengan Zod schemas
+- Real-time field validation
+- Declarative error handling
+
+#### **3. Type Safety**
+- 100% TypeScript dengan proper inference
+- Form data types yang match API structure
+- Compile-time validation
+
+#### **4. Reusable Components**
+- Sub-components dengan clear interfaces
+- Composable wizard steps
+- Shared form utilities
+
+#### **5. Performance Optimization**
+- Memoized form values
+- Efficient re-rendering dengan Subscribe
+- Proper dependency arrays
+
+---

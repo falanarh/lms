@@ -421,6 +421,197 @@ console.log('🔄 [QUERY INVALIDATION] Create Discussion Success:', {
 - Component-level error boundaries
 - Network error detection dan fallback strategies
 
+## 12. Knowledge Center Create Implementation
+
+### 🎯 Multi-Step Form Data Flow
+
+**Pattern**: Wizard Form dengan Progressive Validation dan State Management
+
+#### **Architecture Overview**
+```
+Form State (TanStack) → Validation (Zod) → Transform → API → Server
+        ↑                    ↑              ↑        ↑
+   User Input         Step Validation   Business    HTTP
+                                        Logic      Request
+```
+
+### **A. Form State Management Pattern**
+
+#### **TanStack Form Integration**
+```typescript
+// Hook: useKnowledgeWizardForm.ts
+export const useKnowledgeWizardForm = () => {
+  const form = useForm({
+    defaultValues: getInitialFormValues(),
+    validators: {
+      onSubmit: ({ value }) => {
+        const result = completeFormSchema.safeParse(value);
+        return result.success ? undefined : result.error.errors[0]?.message;
+      },
+    },
+  });
+
+  const validateCurrentStep = useCallback(async (): Promise<boolean> => {
+    const schema = getStepSchema(currentStep, form.state.values.type);
+    const result = schema.safeParse(form.state.values);
+    
+    if (!result.success) {
+      result.error.errors.forEach((error) => {
+        const fieldPath = error.path.join('.');
+        form.setFieldMeta(fieldPath, (prev) => ({
+          ...prev,
+          errors: [error.message],
+        }));
+      });
+      return false;
+    }
+    return true;
+  }, [currentStep, form]);
+
+  return { form, validateCurrentStep };
+};
+```
+
+### **B. Data Transformation Layer**
+
+#### **Form → API Transformation**
+```typescript
+// lib/knowledge-center/transform.ts
+export const transformFormDataToAPI = (
+  formValues: CreateKnowledgeFormData,
+  status: 'draft' | 'published',
+  thumbnailUrl: string
+): CreateKnowledgeCenterRequest => {
+  const apiData: CreateKnowledgeCenterRequest = {
+    createdBy: formValues.createdBy,
+    title: formValues.title,
+    type: formValues.type!,
+    thumbnail: thumbnailUrl,
+    isFinal: status === 'published',
+  };
+
+  // Conditional transformation berdasarkan content type
+  if (formValues.type === KNOWLEDGE_TYPES.WEBINAR && formValues.webinar) {
+    apiData.webinar = {
+      zoomDate: formValues.webinar.zoomDate || new Date().toISOString(),
+      zoomLink: encodeMediaUrl(formValues.webinar.zoomLink) || 'https://zoom.us',
+      jpCount: formValues.webinar.jpCount || 0,
+    };
+  }
+
+  if (formValues.type === KNOWLEDGE_TYPES.CONTENT && formValues.knowledgeContent) {
+    apiData.knowledgeContent = {
+      contentType: formValues.knowledgeContent.contentType,
+      document: formValues.knowledgeContent.document || '',
+      mediaUrl: formValues.knowledgeContent.contentType !== CONTENT_TYPES.ARTICLE ?
+        encodeMediaUrl(formValues.knowledgeContent.mediaUrl || '') : undefined,
+    };
+  }
+
+  return apiData;
+};
+```
+
+### **C. Progressive Validation Strategy**
+
+#### **Step-Based Zod Schema Validation**
+```typescript
+// lib/validation/knowledge-schemas.ts
+export const getStepSchema = (step: number, type?: KnowledgeType) => {
+  switch (step) {
+    case 1:
+      return z.object({
+        type: z.enum(['webinar', 'content'], {
+          required_error: 'Please select a content type',
+        }),
+      });
+    case 2:
+      return basicInfoSchema; // Title, description, subject, etc.
+    case 3:
+      return type === KNOWLEDGE_TYPES.WEBINAR ? 
+        webinarDetailsSchema : contentDetailsWithMediaSchema;
+    case 4:
+      return completeFormSchema; // Full validation
+    default:
+      return z.object({});
+  }
+};
+```
+
+### **D. Business Logic Separation**
+
+#### **Page-Level Business Logic Hook**
+```typescript
+// hooks/useKnowledgeCenter.ts
+export const useCreateKnowledgePage = ({ wizard, router, onSuccess, onError }) => {
+  const createMutation = useMutation({
+    mutationFn: knowledgeCenterApi.createKnowledgeCenter,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      onSuccess('Knowledge center berhasil dibuat!');
+      router.push(`/knowledge-center/${data.id}`);
+    },
+    onError: (error) => onError(error.message),
+  });
+
+  const handleSubmit = async (status: 'draft' | 'published') => {
+    const isValid = await wizard.validateCurrentStep();
+    if (!isValid) return;
+
+    // Upload files dan transform data
+    const thumbnailUrl = await handleThumbnailUpload();
+    const apiData = transformFormDataToAPI(wizard.formValues, status, thumbnailUrl);
+    
+    await createMutation.mutateAsync(apiData);
+  };
+
+  return { handleSubmit, isCreating: createMutation.isPending };
+};
+```
+
+### **E. Component Composition Pattern**
+
+#### **Step-Based Rendering dengan Data Flow**
+```typescript
+// app/knowledge-center/create/page.tsx
+export default function CreateKnowledgePage() {
+  const wizard = useKnowledgeWizardForm();
+  const businessLogic = useCreateKnowledgePage({ wizard, router, onSuccess, onError });
+
+  const renderCurrentStep = () => {
+    switch (wizard.currentStep) {
+      case 1: return <KnowledgeTypeSelector wizard={wizard} />;
+      case 2: return <BasicInfoForm wizard={wizard} subjects={subjects} />;
+      case 3: return <ContentDetailsForm wizard={wizard} />;
+      case 4: return <ReviewStep wizard={wizard} />;
+    }
+  };
+
+  return (
+    <div className="wizard-layout">
+      <WizardHeader currentStep={wizard.currentStep} />
+      {renderCurrentStep()}
+      <WizardActions wizard={wizard} onSubmit={businessLogic.handleSubmit} />
+    </div>
+  );
+}
+```
+
+### **F. Performance Optimizations**
+
+#### **Efficient Form State Access**
+```typescript
+// Memoized form values untuk prevent unnecessary re-renders
+const formValues = useMemo(() => form.state.values, [form.state.values]);
+
+// Selective re-rendering dengan Subscribe
+<form.Subscribe selector={(state) => state.values.knowledgeContent?.contentType}>
+  {(selectedContentType) => (
+    <ContentTypeSpecificForm contentType={selectedContentType} />
+  )}
+</form.Subscribe>
+```
+
 ## Summary
 
 Alur data management dalam aplikasi ini mengikuti pattern yang modern dan scalable:
@@ -430,9 +621,16 @@ Alur data management dalam aplikasi ini mengikuti pattern yang modern dan scalab
 3. **Hooks → Components**: Custom hooks yang menyediakan data dan actions
 4. **Components → UI**: React components dengan type-safe props dan error handling
 
+**Knowledge Center Create** menambahkan layer kompleksitas dengan:
+5. **Form State**: TanStack Form dengan progressive validation
+6. **Data Transformation**: Business logic separation untuk form → API conversion
+7. **File Handling**: Upload management dengan preview dan error handling
+8. **Multi-Step Flow**: Wizard pattern dengan step-based validation
+
 Pattern ini memastikan:
 - **Data Consistency**: Single source of truth dari server
 - **Performance**: Optimal caching dan selective refetching
 - **Developer Experience**: Type safety dan debugging tools
 - **User Experience**: Graceful error handling dan loading states
 - **Scalability**: Modular architecture yang mudah diextend
+- **Form Reliability**: Progressive validation dan error recovery
