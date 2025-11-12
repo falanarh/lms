@@ -87,8 +87,8 @@ export default function KnowledgePreviewModal({
     [isOpen, formData.type, formData.knowledgeContent?.mediaUrl, getResourceUrl]
   );
   const resolvedNotulensiUrl = useMemo(
-    () => (isOpen ? getResourceUrl(formData.type === KNOWLEDGE_TYPES.WEBINAR ? formData.webinar?.noteFile : undefined) : undefined),
-    [isOpen, formData.webinar?.noteFile, getResourceUrl]
+    () => (isOpen ? getResourceUrl(formData.type === KNOWLEDGE_TYPES.WEBINAR ? (formData.webinar?.noteFile || formData.webinar?.contentText) : undefined) : undefined),
+    [isOpen, formData.webinar?.noteFile, formData.webinar?.contentText, getResourceUrl]
   );
   const resolvedThumbnail = useMemo(
     () =>
@@ -140,6 +140,7 @@ export default function KnowledgePreviewModal({
           recordLink: formData.webinar?.recordLink || "",
           vbLink: formData.webinar?.vbLink || "",
           noteFile: resolvedNotulensiUrl || "",
+          contentText: resolvedNotulensiUrl || "",
           jpCount: formData.webinar?.jpCount || 0,
         },
       }

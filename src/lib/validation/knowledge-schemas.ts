@@ -69,7 +69,7 @@ export const basicInfoSchema = z.object({
   createdBy: z.string().min(1, 'Please enter the author name'),
   publishedAt: z.string().min(1, 'Please select a published date and time'),
   thumbnail: thumbnailValidator,
-  tags: z.array(z.string()).optional().default([]),
+  tags: z.array(z.string()).min(1, 'Please add at least one tag'),
 });
 
 // ============================================================================

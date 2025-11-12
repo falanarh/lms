@@ -173,7 +173,7 @@ export const useKnowledgeWizardForm = () => {
       // Step 2: Basic Info - Declarative validation with schema
       if (currentStep === 2) {
         // First, trigger validation on all required fields to show errors in UI
-        const requiredFields = ['title', 'description', 'idSubject', 'penyelenggara', 'createdBy', 'publishedAt', 'thumbnail'];
+        const requiredFields = ['title', 'description', 'idSubject', 'penyelenggara', 'createdBy', 'publishedAt', 'thumbnail', 'tags'];
         
         // Trigger validation for each field
         for (const fieldName of requiredFields) {
