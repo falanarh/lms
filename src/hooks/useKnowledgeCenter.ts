@@ -5,13 +5,15 @@
  * Each hook manages state for a specific domain entity
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   getKnowledgeDetailQueryOptions,
   getKnowledgeQueryOptions,
   knowledgeCenterApi,
+  incrementKnowledgeCenterView,
+  toggleKnowledgeCenterLike,
 } from '@/api/knowledge-center';
 import { knowledgeApi } from '@/api';
 import {
@@ -83,29 +85,109 @@ export const useKnowledgeDetail = (id: string) => {
   });
 };
 
+// Hook for incrementing view count with mutation
+export const useIncrementViewCount = () => {
+  return useMutation({
+    mutationFn: incrementKnowledgeCenterView,
+    onError: (error) => {
+      // Silently log errors without disrupting user experience
+      console.warn('Failed to increment view count:', error);
+    },
+    onSuccess: () => {
+      console.log('View count incremented successfully');
+    },
+  });
+};
+
+// Hook for toggling like status
+export const useToggleLike = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, like }: { id: string; like: boolean }) => 
+      toggleKnowledgeCenterLike(id, like),
+    onMutate: async ({ id, like }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['knowledge-centers', 'detail', id] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['knowledge-centers', 'detail', id]);
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(['knowledge-centers', 'detail', id], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          likeCount: like ? old.likeCount + 1 : Math.max(0, old.likeCount - 1)
+        };
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousData) {
+        queryClient.setQueryData(['knowledge-centers', 'detail', variables.id], context.previousData);
+      }
+      console.error('Failed to toggle like:', err);
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success to ensure we have the latest data
+      queryClient.invalidateQueries({ 
+        queryKey: ['knowledge-centers', 'detail', variables.id] 
+      });
+      
+      // Optionally invalidate knowledge list queries to update like counts in lists
+      queryClient.invalidateQueries({ 
+        queryKey: ['knowledge-centers'] 
+      });
+    },
+  });
+};
+
 interface UseKnowledgeDetailPageParams {
   id: string;
 }
 
 export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [isLiking, setIsLiking] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const viewCountIncrementedRef = useRef(false);
 
   const detailQuery = useKnowledgeDetail(id);
+  const likeMutation = useToggleLike();
+
+  // Increment view count when knowledge center data is loaded (only once)
+  useEffect(() => {
+    if (detailQuery.data && !viewCountIncrementedRef.current) {
+      viewCountIncrementedRef.current = true;
+      incrementKnowledgeCenterView(id);
+    }
+  }, [detailQuery.data, id]);
+
+  // Initialize like status based on knowledge center data
+  useEffect(() => {
+    if (detailQuery.data) {
+      // TODO: Update this when API returns isLikedByUser field
+      // For now, initialize as false - this will be managed by user interactions
+      setIsLiked(false);
+    }
+  }, [detailQuery.data]);
 
   const relatedParams = useMemo<KnowledgeQueryParams>(
     () => ({
       page: 1,
       limit: 4,
       sort: SORT_OPTIONS.POPULAR,
-      subject: detailQuery.data?.subject ? [detailQuery.data.subject] : undefined,
+      subject: detailQuery.data?.idSubject ? [detailQuery.data.idSubject] : undefined,
     }),
-    [detailQuery.data?.subject],
+    [detailQuery.data?.idSubject],
   );
 
   const relatedQuery = useQuery({
     ...getKnowledgeQueryOptions(relatedParams),
-    enabled: Boolean(detailQuery.data?.subject),
+    enabled: Boolean(detailQuery.data?.idSubject),
     placeholderData: keepPreviousData,
   });
 
@@ -142,14 +224,24 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
 
   const handleLike = useCallback(async () => {
     if (!detailQuery.data) return;
-    setIsLiking(true);
+    
+    const newLikeStatus = !isLiked;
+    
     try {
-      // Placeholder for real API mutation
-      await new Promise((resolve) => setTimeout(resolve, 400));
-    } finally {
-      setIsLiking(false);
+      // Optimistically update local state
+      setIsLiked(newLikeStatus);
+      
+      // Call the API
+      await likeMutation.mutateAsync({
+        id: detailQuery.data.id,
+        like: newLikeStatus,
+      });
+    } catch (error) {
+      // Revert local state on error
+      setIsLiked(isLiked);
+      console.error('Failed to toggle like:', error);
     }
-  }, [detailQuery.data]);
+  }, [detailQuery.data, isLiked, likeMutation]);
 
   return {
     knowledge: detailQuery.data ?? null,
@@ -157,7 +249,8 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
     isLoading: detailQuery.isLoading,
     error: detailQuery.error,
     isBookmarked,
-    isLiking,
+    isLiked,
+    isLiking: likeMutation.isPending,
     handleShare,
     handleBookmark,
     handleLike,

@@ -31,7 +31,7 @@ export default function KnowledgeStats() {
 
   const statCards = [
     {
-      title: 'Total Resources',
+      title: 'Total Contents',
       value: stats.totalKnowledge,
       icon: BookOpen,
       background: 'bg-gradient-to-br from-blue-500 to-blue-600',
@@ -39,7 +39,7 @@ export default function KnowledgeStats() {
       subTextColor: 'text-blue-100',
     },
     {
-      title: 'Webinars',
+      title: 'Total Webinars',
       value: stats.totalWebinars,
       icon: Users,
       background: 'bg-white border-2 border-green-100',

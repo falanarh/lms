@@ -100,7 +100,7 @@ export default function KnowledgeHero({
               <div className="text-left">
                 <div className="text-xs text-blue-600 font-semibold mb-0.5">Categories</div>
                 <div className="text-sm font-bold text-gray-900">
-                  {knowledgeSubjects.length} Topics
+                  {knowledgeSubjects.length} Subjects
                 </div>
               </div>
             </div>

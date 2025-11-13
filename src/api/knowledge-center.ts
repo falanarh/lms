@@ -18,10 +18,6 @@ import {
   KnowledgeCenterResponse,
   ApiResponse,
   KnowledgeCenterStatsData,
-  KnowledgeType,
-  SortField,
-  SortDirection,
-  OrderByParam,
 } from '@/types/knowledge-center';
 import { API_ENDPOINTS, API_CONFIG } from '@/config/api';
 
@@ -38,11 +34,6 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 12;
 const DEFAULT_STALE_TIME = 1000 * 60 * 5; // 5 minutes
 const DEFAULT_GC_TIME = 1000 * 60 * 10; // 10 minutes
-
-const sanitizeArrayParam = <T extends string>(values?: T[]) => {
-  if (!values?.length) return undefined;
-  return Array.from(new Set(values.filter(Boolean))).sort();
-};
 
 const sanitizeKnowledgeParams = (params: KnowledgeQueryParams = {}) => {
   const query: Record<string, any> = {};
@@ -103,6 +94,7 @@ const sanitizeKnowledgeParams = (params: KnowledgeQueryParams = {}) => {
       case 'search':
         if (typeof value === 'string' && value.trim()) {
           query['title[contains]'] = value.trim();
+          query['title[mode]'] = 'insensitive';
         }
         break;
       case 'knowledgeType':
@@ -119,6 +111,21 @@ const sanitizeKnowledgeParams = (params: KnowledgeQueryParams = {}) => {
         }
         break;
       case 'subject':
+        // Handle subject filtering using subject[id] parameter
+        if (Array.isArray(value) && value.length > 0) {
+          // Filter out 'all' and use subject IDs
+          const validSubjects = value.filter(subject => subject !== 'all');
+          if (validSubjects.length > 0) {
+            if (validSubjects.length === 1) {
+              query['subject[id]'] = validSubjects[0];
+            } else {
+              query['subject[id][in]'] = validSubjects.join(',');
+            }
+          }
+        } else if (typeof value === 'string' && value !== 'all') {
+          query['subject[id]'] = value;
+        }
+        break;
       case 'penyelenggara':
       case 'mediaType':
       case 'tags':
@@ -178,8 +185,9 @@ export const buildKnowledgeQueryParams = {
 
   // Filter helpers
   filters: {
-    byTitle: (title: string, operator: 'contains' | 'equals' | 'startsWith' | 'endsWith' = 'contains') => ({
+    byTitle: (title: string, operator: 'contains' | 'equals' | 'startsWith' | 'endsWith' = 'contains', mode: 'insensitive' | 'default' = 'insensitive') => ({
       [`title[${operator}]`]: title,
+      'title[mode]': mode,
     }),
     byType: (type: 'webinar' | 'content') => ({ type }),
     byTypes: (types: Array<'webinar' | 'content'>) => ({ 'type[in]': types.join(',') }),
@@ -205,6 +213,8 @@ export const buildKnowledgeQueryParams = {
       if (endDate) filters[`${field}[lte]`] = endDate;
       return filters;
     },
+    bySubject: (subjectId: string) => ({ 'subject[id]': subjectId }),
+    bySubjects: (subjectIds: string[]) => ({ 'subject[id][in]': subjectIds.join(',') }),
     publishedOnly: () => ({ 'publishedAt[not]': 'null' }),
     recentlyCreated: (days: number = 30) => {
       const date = new Date();
@@ -470,4 +480,47 @@ export const knowledgeCenterApi = {
       throw error;
     }
   },
+};
+
+// View count increment API function
+export const incrementKnowledgeCenterView = async (id: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.KNOWLEDGE_CENTERS}/${id}/like`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ view: true }),
+    });
+
+    if (!response.ok) {
+      // Don't throw error for view count failures to avoid disrupting user experience
+      console.warn(`Failed to increment view count for knowledge center ${id}:`, response.status);
+      return;
+    }
+
+    // Optionally handle success response
+    const result = await response.json();
+    console.log('View count incremented successfully:', result);
+  } catch (error) {
+    // Silently handle errors to avoid disrupting user experience
+    console.warn('Error incrementing view count:', error);
+  }
+};
+
+// Like/Unlike knowledge center API function
+export const toggleKnowledgeCenterLike = async (id: string, like: boolean): Promise<{ success: boolean; message?: string }> => {
+  const response = await fetch(`${API_ENDPOINTS.KNOWLEDGE_CENTERS}/${id}/like`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ like }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to ${like ? 'like' : 'unlike'} knowledge center: ${response.status}`);
+  }
+
+  return response.json();
 };

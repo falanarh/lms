@@ -33,6 +33,7 @@ export default function KnowledgeDetailPage() {
     isLoading,
     error,
     isBookmarked,
+    isLiked,
     handleShare,
     handleBookmark,
     handleLike,
@@ -70,6 +71,7 @@ export default function KnowledgeDetailPage() {
         {/* Action Bar */}
         <KnowledgeDetailActionBar
           knowledge={knowledge}
+          isLiked={isLiked}
           isLiking={isLiking}
           onLike={handleLike}
         />

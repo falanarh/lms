@@ -174,6 +174,7 @@ export interface KnowledgeFilters {
   'title[equals]'?: string;
   'title[startsWith]'?: string;
   'title[endsWith]'?: string;
+  'title[mode]'?: 'insensitive' | 'default';
   'description[contains]'?: string;
   'description[equals]'?: string;
   
@@ -207,6 +208,10 @@ export interface KnowledgeFilters {
   'createdBy'?: string;
   'createdBy[in]'?: string;
   'isKnowledgeCategory'?: string;
+  
+  // Subject filters
+  'subject[id]'?: string;
+  'subject[id][in]'?: string;
   
   // Legacy filters for backward compatibility
   subject?: string[];
