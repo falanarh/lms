@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL } from "@/config/api";
+import { API_COURSE_BASE_URL } from "@/config/api";
 
 export type ReviewUser = {
   name: string;
@@ -36,7 +36,7 @@ export const getReviewsByGroupCourse = async (
   perPage: number = 20
 ): Promise<ReviewResponse> => {
   const response = await axios.get(
-    `${API_BASE_URL}/activities/group-course/${groupCourseId}/rating-reviews`,
+    `${API_COURSE_BASE_URL}/activities/group-course/${groupCourseId}/rating-reviews`,
     {
       params: {
         page,
@@ -48,6 +48,6 @@ export const getReviewsByGroupCourse = async (
 };
 
 export const getReviewById = async (id: string): Promise<Review> => {
-  const response = await axios.get(`${API_BASE_URL}/reviews/${id}`);
+  const response = await axios.get(`${API_COURSE_BASE_URL}/reviews/${id}`);
   return response.data.data;
 };

@@ -15,7 +15,13 @@ import { useGroupCourse } from "@/hooks/useGroupCourse";
 import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
 import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
 import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton } from "@/features/my-course/components";
-import { Content } from "@/api/contents";
+import { Content, getContentsBySectionId } from "@/api/contents";
+
+// Extended Content type for navigation
+type ExtendedContent = Content & {
+  sectionId?: string;
+  sectionName?: string;
+};
 
 interface MyCoursePageProps {
   params: Promise<{
@@ -32,6 +38,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
+  const [allContents, setAllContents] = useState<ExtendedContent[]>([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isBootingContent, setIsBootingContent] = useState(false);
 
@@ -90,28 +97,74 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     );
   };
 
-  // Navigation handlers - simplified for now
+  // Build flat list of all contents from all sections for navigation
+  useEffect(() => {
+    if (!sections) return;
+    
+    const fetchAllContents = async () => {
+      const allContentsPromises = sections.map(async (section) => {
+        try {
+          const contents = await getContentsBySectionId(section.id);
+          return contents.map((content: Content) => ({
+            ...content,
+            sectionId: section.id,
+            sectionName: section.name
+          }));
+        } catch (error) {
+          console.error(`Error fetching contents for section ${section.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allContentsArrays = await Promise.all(allContentsPromises);
+      const flatContents = allContentsArrays.flat().sort((a, b) => {
+        // Sort by section sequence first, then by content sequence
+        const sectionA = sections.find(s => s.id === a.sectionId);
+        const sectionB = sections.find(s => s.id === b.sectionId);
+        
+        if (sectionA?.sequence !== sectionB?.sequence) {
+          return (sectionA?.sequence || 0) - (sectionB?.sequence || 0);
+        }
+        
+        return a.sequence - b.sequence;
+      });
+      
+      setAllContents(flatContents);
+    };
+    
+    fetchAllContents();
+  }, [sections]);
+
+  // Navigation handlers with sequential logic
   const handlePrevious = () => {
-    // TODO: Implement navigation when content structure is finalized
+    if (!selectedContent || !allContents.length) return;
+    
+    const currentIndex = allContents.findIndex(content => content.id === selectedContent.id);
+    if (currentIndex > 0) {
+      setSelectedContent(allContents[currentIndex - 1]);
+    }
   };
 
   const handleNext = () => {
-    // TODO: Implement navigation when content structure is finalized
+    if (!selectedContent || !allContents.length) return;
+    
+    const currentIndex = allContents.findIndex(content => content.id === selectedContent.id);
+    if (currentIndex < allContents.length - 1) {
+      // Auto-mark current content as completed when moving to next
+      if (!completedContentIds.includes(selectedContent.id)) {
+        setCompletedContentIds(prev => [...prev, selectedContent.id]);
+      }
+      setSelectedContent(allContents[currentIndex + 1]);
+    }
   };
 
-  const handleMarkAsDone = () => {
-    if (!selectedContent) return;
-    setCompletedContentIds(prev =>
-      prev.includes(selectedContent.id)
-        ? prev.filter(id => id !== selectedContent.id)
-        : [...prev, selectedContent.id]
-    );
-  };
-
-  // Check navigation availability - simplified
-  const hasPrevious = false; // TODO: Implement when navigation is ready
-  const hasNext = false; // TODO: Implement when navigation is ready
-  const isCompleted = selectedContent ? completedContentIds.includes(selectedContent.id) : false;
+  // Check navigation availability
+  const currentIndex = selectedContent && allContents.length > 0 
+    ? allContents.findIndex(content => content.id === selectedContent.id)
+    : -1;
+  
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < allContents.length - 1;
 
   // Handle write review
   const handleWriteReview = () => {
@@ -171,15 +224,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           <ContentPlayer content={selectedContent} isSidebarOpen={isSidebarOpen} />
 
-          {/* Navigation Buttons */}
           {selectedContent && (
             <ContentNavigation
               onPrevious={handlePrevious}
               onNext={handleNext}
-              onMarkAsDone={handleMarkAsDone}
               hasPrevious={hasPrevious}
               hasNext={hasNext}
-              isCompleted={isCompleted}
             />
           )}
 

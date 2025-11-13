@@ -116,8 +116,8 @@ export const ContentPlayer = ({ content, isSidebarOpen = true }: ContentPlayerPr
         return (
           <div className={`relative w-full bg-white rounded-md overflow-hidden transition-all duration-500 ${
             isSidebarOpen 
-              ? 'aspect-[4/3] md:max-h-[450px]' 
-              : 'aspect-[4/3] md:max-h-[450px]'
+              ? 'aspect-[3/4] md:h-[450px]' 
+              : 'aspect-[3/4] md:h-[450px]'
           }`}>
             <iframe
               key={content.id}
@@ -133,11 +133,11 @@ export const ContentPlayer = ({ content, isSidebarOpen = true }: ContentPlayerPr
 
       case "quiz":
         return (
-          <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 flex items-center justify-center ${
+          <div className={`w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 flex items-center justify-center ${
             isSidebarOpen 
-              ? 'aspect-[4/3] md:h-[450px]' 
-              : 'aspect-[4/3]  md:aspect-ratio-[4/3] '
-          }">
+              ? 'aspect-[3/4] md:h-[450px]' 
+              : 'aspect-[3/4]  md:h-[450px]'
+          }`}>
             <div className="text-center p-8">
               <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-10 h-10 text-blue-600" />

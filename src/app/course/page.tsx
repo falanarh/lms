@@ -11,31 +11,44 @@ import {
   CourseLayout,
 } from "@/features/course/components";
 import { useGroupCourses } from "@/hooks/useGroupCourses";
+import { useCategories } from "@/hooks/useCategories";
+import { COURSE_CATEGORIES } from "@/features/course/constant/course";
 
-const COURSES_PER_PAGE = 8;
+const COURSES_PER_PAGE = 8
 
 export default function CoursePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [sortBy, setSortBy] = useState("title-asc");
+  const [sortBy, setSortBy] = useState("none");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewModeValue>("grid-4");
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const { data: courses = [], isLoading: isLoadingCourses } = useGroupCourses({
+  // Call categories API
+  const { data: categoriesData, isLoading: isLoadingCategories, error: categoriesError } = useCategories();
+
+  // Call courses API
+  const { data: response, isLoading: isLoadingCourses } = useGroupCourses({
     searchQuery: debouncedSearchQuery,
     selectedCategory,
-    sortBy
+    sortBy,
+    page: currentPage,
+    perPage: COURSES_PER_PAGE
   });
 
-  const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
+  // Prepare categories with fallback
+  const categories = useMemo(() => {
+    if (categoriesError || !categoriesData) {
+      // Fallback ke constant jika API gagal
+      return COURSE_CATEGORIES;
+    }
+    return ['All Categories', ...categoriesData];
+  }, [categoriesData, categoriesError]);
 
-  const paginatedCourses = useMemo(() => {
-    const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
-    const endIndex = startIndex + COURSES_PER_PAGE;
-    return courses.slice(startIndex, endIndex);
-  }, [courses, currentPage]);
+  const courses = response?.data || [];
+  const pageMeta = response?.pageMeta;
+  const totalPages = pageMeta?.totalPageCount || 1;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -62,10 +75,12 @@ export default function CoursePage() {
         onSortChange={setSortBy}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        categories={categories}
+        isLoadingCategories={isLoadingCategories}
       />
 
       <CourseGrid
-        courses={paginatedCourses}
+        courses={courses}
         viewMode={viewMode}
         isLoading={isLoadingCourses}
       />

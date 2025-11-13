@@ -2,6 +2,23 @@ import { API_COURSE_BASE_URL } from "@/config/api";
 import axios from "axios";
 
 // Type for group-courses list response (matches API structure)
+export type PageMeta = {
+  page: number;
+  perPage: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  totalPageCount: number;
+  showingFrom: number;
+  showingTo: number;
+  resultCount: number;
+  totalResultCount: number;
+};
+
+export type GroupCoursesResponse = {
+  data: GroupCourse[];
+  pageMeta: PageMeta;
+};
+
 export type GroupCourse = {
   id: string;
   idTeacher: string;
@@ -49,9 +66,15 @@ export type GroupCourseDetail = {
 export const getGroupCourses = async (
   searchQuery?: string,
   selectedCategory?: string,
-  sortBy?: string
-): Promise<GroupCourse[]> => {
+  sortBy?: string,
+  page: number = 1,
+  perPage: number = 8
+): Promise<GroupCoursesResponse> => {
   const params = new URLSearchParams();
+  
+  // Pagination parameters
+  params.append('page', page.toString());
+  params.append('perPage', perPage.toString());
   
   // Search parameter
   if (searchQuery && searchQuery.trim()) {
@@ -66,8 +89,11 @@ export const getGroupCourses = async (
   }
   
   // Sorting parameters
-  if (sortBy) {
+  if (sortBy && sortBy !== 'none') {
     switch (sortBy) {
+      case 'title-asc':
+        params.append('orderBy[0][course][title]', 'asc');
+        break;
       case 'title-desc':
         params.append('orderBy[0][course][title]', 'desc');
         break;
@@ -75,20 +101,19 @@ export const getGroupCourses = async (
         params.append('orderBy[0][rating]', 'desc');
         break;
       case 'students-desc':
-        params.append('orderBy[0][_count][listActivity]', 'desc');
+        params.append('orderBy[0][listActivity][_count]', 'desc');
         break;
-      // 'title-asc' adalah default, tidak perlu parameter
     }
   }
   
   const queryString = params.toString();
-  const url = queryString 
-    ? `${API_COURSE_BASE_URL}/group-courses?${queryString}`
-    : `${API_COURSE_BASE_URL}/group-courses`;
+  const url = `${API_COURSE_BASE_URL}/group-courses?${queryString}`;
     
   const response = await axios.get(url);
-  const courses = response.data.data;
-  return courses;
+  return {
+    data: response.data.data,
+    pageMeta: response.data.pageMeta
+  };
 };
 
 export const getGroupCourseById = async (id: string): Promise<GroupCourseDetail> => {
