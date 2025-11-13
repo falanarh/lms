@@ -3,9 +3,9 @@ import { Course } from '../types';
 export const COURSE_CATEGORIES = [
   'All Categories',
   'Programming',
-  'Design',
-  'Business',
-  'Marketing',
+  'Web Development',
+  'Mobile Development',
+  'Database',
   'Data Science'
 ];
 

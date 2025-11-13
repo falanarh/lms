@@ -47,3 +47,4 @@ export const API_CONFIG = {
 } as const;
 
 export default API_ENDPOINTS;
+export const API_COURSE_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://service-courses.vercel.app/api/v1";
