@@ -1,12 +1,10 @@
 "use client"
 
-import { Post } from '@/api/posts'
 import { useContents } from '@/hooks/useContent'
-import { useSections } from '@/hooks/useSections'
-import React, { useState } from 'react'
+import React from 'react'
 
 export const ContentList = () => {
-  const { data, isPending, isFetching } = useContents()
+  const { data, isPending } = useContents()
   
   console.log(data)
 

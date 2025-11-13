@@ -77,7 +77,6 @@ export function Navbar({
   ],
   activeKey = "my-course",
   onItemSelect,
-  brandTitle = "E-Warkop",
   brandIcon = <LogoEwarkop />,
   showNotifications = false,
   onNotificationClick,

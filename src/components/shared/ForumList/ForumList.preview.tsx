@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import ForumList, { Forum, ForumListContainer } from "./ForumList";
+import { Forum, ForumListContainer } from "./ForumList";
 
 const mockForums: Forum[] = [
   {

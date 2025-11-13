@@ -21,7 +21,7 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
   const getActiveKey = (path: string): string => {
     // Remove trailing slash and get first segment
     const cleanPath = path === '/' ? 'home' : path.replace(/^\//, '').split('/')[0];
-    
+
     // Map paths to navbar keys
     const pathMap: Record<string, string> = {
       '': 'home',
@@ -30,6 +30,7 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
       'course': 'course',
       'faq': 'faq',
       'forum': 'forum',
+      'knowledge-center': 'knowledge-center',
     };
 
     return pathMap[cleanPath] || ''; // Return empty string for 404 or unknown routes
@@ -42,8 +43,9 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
     { key: 'home', label: 'Home', href: '/' },
     { key: 'my-course', label: 'My Course', href: '/my-course' },
     { key: 'course', label: 'Kursus', href: '/course' },
-     { key: 'faq', label: 'FAQ', href: '/faq' },
+    { key: 'faq', label: 'FAQ', href: '/faq' },
     { key: 'forum', label: 'Forum', href: '/forum' },
+    { key: 'knowledge-center', label: 'Knowledge Center', href: '/knowledge-center' },
   ];
 
   // Handle navigation ketika item di-klik

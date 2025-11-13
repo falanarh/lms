@@ -1,0 +1,150 @@
+"use client";
+
+import React, { useState } from "react";
+import { Eye } from "lucide-react";
+import KnowledgePreviewModal from "./KnowledgePreviewModal";
+import { ContentType, KNOWLEDGE_TYPES, KnowledgeCenter } from "@/types";
+
+interface ReviewStepProps {
+  formData: KnowledgeCenter;
+  contentType: ContentType | null;
+  thumbnailPreview: string | null;
+}
+
+export default function ReviewStep({
+  formData,
+  contentType,
+  thumbnailPreview,
+}: ReviewStepProps) {
+  const [showPreview, setShowPreview] = useState(false);
+  const hasWebinarDetails =
+    formData.type === KNOWLEDGE_TYPES.WEBINAR &&
+    Boolean(formData.webinar?.zoomDate);
+  const getTypeLabel = () => {
+    if (formData.type === KNOWLEDGE_TYPES.WEBINAR) {
+      return "Webinar";
+    }
+    if (contentType) {
+      return `Content (${contentType.charAt(0).toUpperCase() + contentType.slice(1)})`;
+    }
+    return "Content";
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-blue-50 via-cyan-50/50 to-green-50/30 rounded-lg p-6 border-2 border-blue-200/50 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <span className="text-xs font-semibold text-blue-600">Type</span>
+            <p className="font-medium text-gray-900">{getTypeLabel()}</p>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-blue-600">Subject</span>
+            <p className="font-medium text-gray-900">{formData.subject}</p>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-blue-600">
+              Organizer
+            </span>
+            <p className="font-medium text-gray-900">
+              {formData.penyelenggara}
+            </p>
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-blue-600">Author</span>
+            <p className="font-medium text-gray-900">{formData.createdBy}</p>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-blue-200/50">
+          <span className="text-xs font-semibold text-blue-600">Title</span>
+          <p className="font-semibold text-gray-900 text-lg mt-1">
+            {formData.title}
+          </p>
+        </div>
+
+        <div>
+          <span className="text-xs font-semibold text-blue-600">
+            Description
+          </span>
+          <p className="text-gray-700 mt-1">{formData.description}</p>
+        </div>
+
+        {thumbnailPreview && (
+          <div>
+            <span className="text-xs font-semibold text-blue-600 block mb-2">
+              Thumbnail
+            </span>
+            <div className="rounded-lg overflow-hidden border-2 border-blue-200">
+              <img
+                src={thumbnailPreview}
+                alt="Thumbnail"
+                className="w-full h-48 object-cover"
+              />
+            </div>
+          </div>
+        )}
+
+        {formData.tags.length > 0 && (
+          <div>
+            <span className="text-xs font-semibold text-blue-600 block mb-2">
+              Tags
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {formData.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4 pt-4 border-t border-blue-200/50 sm:flex-row sm:items-center sm:justify-between">
+          {hasWebinarDetails && (
+            <div>
+              <span className="text-xs font-semibold text-green-600 block mb-2">
+                Webinar Details
+              </span>
+              <div className="text-sm space-y-1">
+                <p className="text-gray-700">
+                  Date:{" "}
+                  {new Date(
+                    formData.webinar?.zoomDate as string
+                  ).toLocaleString("id-ID")}
+                </p>
+                {formData.webinar?.jpCount && (
+                  <p className="text-gray-700">
+                    JP: {formData.webinar?.jpCount}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowPreview(true)}
+              className="flex items-center h-12 gap-2 px-4 py-2.5 bg-white border-2 border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 font-medium shadow-sm"
+            >
+              <Eye className="w-4 h-4" />
+              <span>Preview</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Modal */}
+      <KnowledgePreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        formData={formData}
+        thumbnailPreview={thumbnailPreview}
+        contentType={contentType}
+      />
+    </div>
+  );
+}

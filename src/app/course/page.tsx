@@ -27,7 +27,7 @@ export default function CoursePage() {
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const filteredAndSortedCourses = useMemo(() => {
-    let filtered = courses.filter((course) => {
+    const filtered = courses.filter((course) => {
       const matchesSearch = course.title
         .toLowerCase()
         .includes(debouncedSearchQuery.toLowerCase());

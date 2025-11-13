@@ -56,6 +56,9 @@ function variantClasses(variant: DropdownVariant, error?: boolean) {
     case "ghost":
       return "bg-transparent text-gray-900 hover:bg-blue-50 border border-transparent";
     case "solid":
+      return [
+        "border-2 border-[var(--border,rgba(0,0,0,0.12))]",
+      ]
     default:
       return "bg-white text-gray-900 border border-gray-300";
   }
@@ -179,13 +182,13 @@ export function Dropdown({
         </span>
       )}
       {name && <input type="hidden" name={name} value={selectedValue ?? ""} />}
-      
-      <div className="relative">
+
+      <div className="relative w-full">
         <button
           ref={buttonRef}
           type="button"
           className={[
-            "inline-flex items-center justify-between min-w-48",
+            "w-full inline-flex items-center justify-between",
             sz.button,
             sz.text,
             variantClasses(variant, error),
@@ -255,7 +258,7 @@ export function Dropdown({
                 const selected = it.value === selectedValue;
                 const focused = idx === activeIndex;
                 return (
-                  <li key={it.value} role="option" aria-selected={selected}>
+                  <li key={it.value+idx} role="option" aria-selected={selected}>
                     <button
                       type="button"
                       className={[

@@ -61,7 +61,7 @@ export const useUpdateSection = (
       id: string; 
       data: Partial<Omit<Section, "id" | "group" | "createdAt" | "updatedAt">> 
     }) => updateSection(id, data),
-    onSuccess: async (data, variables, context) => {
+    onSuccess: async (data) => {
       await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
       await config.onSuccess?.(data);
     },

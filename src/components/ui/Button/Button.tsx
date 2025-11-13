@@ -75,7 +75,7 @@
  * <Button rightIcon={<IconArrowRight />}>Continue</Button>
  *
  * // Handler dan type
- * <Button type="submit" onClick={() => console.log("clicked")}>
+ * <Button type="submit" onClick={() => {}}>
  *   Save
  * </Button>
  * ```

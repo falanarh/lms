@@ -2,10 +2,10 @@
 
 import { Post } from '@/api/posts'
 import { usePosts } from '@/hooks/usePost'
-import React, { useState } from 'react'
+import React from 'react'
 
 export const PostList = () => {
-  const { data, isPending, isFetching } = usePosts()
+  const { data, isPending } = usePosts()
   
   if (isPending) return <div>Loading</div>
 
