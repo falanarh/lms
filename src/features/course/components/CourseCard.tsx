@@ -36,7 +36,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {course.course.description.category}
+                {course.course.description?.category}
               </Badge>
               <div className="min-h-[56px] md:min-h-[64px]">
                 <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
@@ -100,7 +100,7 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="flex-1 p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {course.course.description.category}
+                {course.course.description?.category}
               </Badge>
               <div className="min-h-[56px] md:min-h-[64px]">
                 <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
@@ -164,12 +164,12 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="flex-1 p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {course.course.description.category}
+                {course.course.description?.category}
               </Badge>
               <h3 className="font-bold text-lg text-zinc-900 line-clamp-1 transition-colors duration-200">
                 {course.course.title}
               </h3>
-              {course.course.description.description && (
+              {course.course.description?.description && (
                 <p className="text-zinc-600 text-sm line-clamp-2">
                   {course.course.description.description}
                 </p>

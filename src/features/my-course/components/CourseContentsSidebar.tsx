@@ -7,30 +7,25 @@ import { Content } from "@/api/contents";
 
 interface CourseContentsSidebarProps {
   sections: Section[];
-  activities: Record<string, Content[]>;
   expandedSections: string[];
   onToggleSection: (sectionId: string) => void;
   selectedContentId?: string;
   onSelectContent: (content: Content) => void;
   onClose: () => void;
   completedContentIds?: string[];
+  disableFetchFirstForIndexZero?: boolean;
 }
 
 export const CourseContentsSidebar = ({
   sections,
-  activities,
   expandedSections,
   onToggleSection,
   selectedContentId,
   onSelectContent,
   onClose,
   completedContentIds = [],
+  disableFetchFirstForIndexZero = false,
 }: CourseContentsSidebarProps) => {
-  // Calculate total activities
-  const totalActivities = Object.values(activities).reduce(
-    (sum, contents) => sum + contents.length,
-    0
-  );
 
   return (
     <>
@@ -80,11 +75,11 @@ export const CourseContentsSidebar = ({
                 index={index}
                 isExpanded={expandedSections.includes(section.id)}
                 onToggle={onToggleSection}
-                contents={activities[section.id] || []}
                 selectedContentId={selectedContentId}
                 onSelectContent={onSelectContent}
                 variant="sidebar"
                 completedContentIds={completedContentIds}
+                disableFetch={disableFetchFirstForIndexZero && index === 0}
               />
             ))}
           </div>
@@ -94,7 +89,7 @@ export const CourseContentsSidebar = ({
         <div className="flex-shrink-0 h-16 border-t border-gray-200 px-4 py-3 bg-gray-50">
           <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
             <span className="font-medium">Your Progress</span>
-            <span className="font-semibold">0/{totalActivities}</span>
+            <span className="font-semibold">0/{sections.length} sections</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 

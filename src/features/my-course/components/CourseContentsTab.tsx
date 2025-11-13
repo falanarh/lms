@@ -5,28 +5,25 @@ import { Content } from "@/api/contents";
 
 interface CourseContentsTabProps {
   sections: Section[];
-  activities: Record<string, Content[]>;
   expandedSections: string[];
   onToggleSection: (sectionId: string) => void;
   selectedContentId?: string;
-  onSelectContent: (content: Content) => void;
+  onSelectContent?: (content: Content) => void;
   completedContentIds?: string[];
+  mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
+  disableFetchFirstForIndexZero?: boolean;
 }
 
 export const CourseContentsTab = ({
   sections,
-  activities,
   expandedSections,
   onToggleSection,
   selectedContentId,
   onSelectContent,
   completedContentIds = [],
+  mode = 'learning',
+  disableFetchFirstForIndexZero = false,
 }: CourseContentsTabProps) => {
-  // Calculate total activities
-  const totalActivities = Object.values(activities).reduce(
-    (sum, contents) => sum + contents.length,
-    0
-  );
 
   return (
     <div className="space-y-6">
@@ -54,11 +51,12 @@ export const CourseContentsTab = ({
             index={index}
             isExpanded={expandedSections.includes(section.id)}
             onToggle={onToggleSection}
-            contents={activities[section.id] || []}
             selectedContentId={selectedContentId}
             onSelectContent={onSelectContent}
             variant="tab"
             completedContentIds={completedContentIds}
+            mode={mode}
+            disableFetch={disableFetchFirstForIndexZero && index === 0}
           />
         ))}
       </div>

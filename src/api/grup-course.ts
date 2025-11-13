@@ -14,7 +14,7 @@ export type GroupCourse = {
     id: string;
     title: string;
     thumbnail: string | null;
-    description: {
+    description?: {
       category: string;
       description: string;
     };
@@ -46,8 +46,47 @@ export type GroupCourseDetail = {
   };
 };
 
-export const getGroupCourses = async (): Promise<GroupCourse[]> => {
-  const response = await axios.get(`${API_BASE_URL}/group-courses`);
+export const getGroupCourses = async (
+  searchQuery?: string,
+  selectedCategory?: string,
+  sortBy?: string
+): Promise<GroupCourse[]> => {
+  const params = new URLSearchParams();
+  
+  // Search parameter
+  if (searchQuery && searchQuery.trim()) {
+    params.append('course[title][contains]', searchQuery);
+    params.append('course[title][mode]', 'insensitive');
+  }
+  
+  // Category parameter
+  if (selectedCategory && selectedCategory !== 'All Categories') {
+    params.append('course[description][category][contains]', selectedCategory);
+    params.append('course[description][category][mode]', 'insensitive');
+  }
+  
+  // Sorting parameters
+  if (sortBy) {
+    switch (sortBy) {
+      case 'title-desc':
+        params.append('orderBy[0][course][title]', 'desc');
+        break;
+      case 'rating-desc':
+        params.append('orderBy[0][rating]', 'desc');
+        break;
+      case 'students-desc':
+        params.append('orderBy[0][_count][listActivity]', 'desc');
+        break;
+      // 'title-asc' adalah default, tidak perlu parameter
+    }
+  }
+  
+  const queryString = params.toString();
+  const url = queryString 
+    ? `${API_BASE_URL}/group-courses?${queryString}`
+    : `${API_BASE_URL}/group-courses`;
+    
+  const response = await axios.get(url);
   const courses = response.data.data;
   return courses;
 };

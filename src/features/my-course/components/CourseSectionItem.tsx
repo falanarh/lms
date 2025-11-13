@@ -1,23 +1,20 @@
-import { ChevronDown, FileText, Video, Link as LinkIcon, Package, ClipboardList, FileCheck, File, Check } from "lucide-react";
+import { ChevronDown, FileText, Video, Link as LinkIcon, Package, ClipboardList, FileCheck, File, Check, Lock } from "lucide-react";
+import { useEffect } from "react";
 import { Content } from "@/api/contents";
-
-interface Section {
-  id: string;
-  name: string;
-  description: string;
-  sequence: number;
-}
+import { Section } from "@/api/sections";
+import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
 
 interface CourseSectionItemProps {
   section: Section;
   index: number;
   isExpanded: boolean;
   onToggle: (sectionId: string) => void;
-  contents: Content[];
   selectedContentId?: string;
-  onSelectContent: (content: Content) => void;
+  onSelectContent?: (content: Content) => void;
   variant?: 'sidebar' | 'tab';
   completedContentIds?: string[];
+  mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
+  disableFetch?: boolean;
 }
 
 const getContentIcon = (type: string, isTabVariant: boolean = false) => {
@@ -55,7 +52,7 @@ const getContentIcon = (type: string, isTabVariant: boolean = false) => {
           <FileCheck className={`${iconSize} text-orange-600`} />
         </div>
       );
-    case "assignment":
+    case "task":
       return (
         <div className={`${boxSize} rounded-md bg-green-100 flex items-center justify-center flex-shrink-0`}>
           <ClipboardList className={`${iconSize} text-green-600`} />
@@ -75,13 +72,35 @@ export const CourseSectionItem = ({
   index,
   isExpanded,
   onToggle,
-  contents,
   selectedContentId,
   onSelectContent,
   variant = 'sidebar',
   completedContentIds = [],
+  mode = 'learning',
+  disableFetch = false,
 }: CourseSectionItemProps) => {
   const isTabVariant = variant === 'tab';
+  const isPreviewMode = mode === 'preview';
+  const isLearningMode = mode === 'learning';
+  
+  // Fetch contents when section is expanded
+  const { data: contents, isLoading: isLoadingContents } = useContentsBySectionId({
+    sectionId: section.id,
+    enabled: isExpanded && !disableFetch,
+  });
+
+  useEffect(() => {
+    if (
+      isExpanded &&
+      isLearningMode &&
+      index === 0 &&
+      !selectedContentId &&
+      contents &&
+      contents.length > 0
+    ) {
+      onSelectContent?.(contents[0]);
+    }
+  }, [isExpanded, isLearningMode, index, selectedContentId, contents, onSelectContent]);
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Section Header */}
@@ -135,26 +154,42 @@ export const CourseSectionItem = ({
           <div className={`
             ${isTabVariant ? 'px-5 pb-3 space-y-3' : 'px-4 pb-2 space-y-2'}
           `}>
-            {contents.map((content) => {
+            {isLoadingContents ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="text-sm text-gray-500">Loading contents...</div>
+              </div>
+            ) : contents && contents.length > 0 ? (
+              contents.map((content) => {
               const isSelected = selectedContentId === content.id;
               const isCompleted = completedContentIds.includes(content.id);
               
               return (
                 <button
                   key={content.id}
-                  onClick={() => onSelectContent(content)}
+                  onClick={() => isLearningMode ? onSelectContent?.(content) : undefined}
+                  disabled={isPreviewMode}
                   className={`
                     w-full flex items-center gap-3 rounded-lg transition-all border
                     ${isTabVariant ? 'p-4' : 'p-3'}
-                    ${isSelected 
+                    ${isLearningMode 
+                      ? 'hover:bg-gray-100 hover:border-gray-300 cursor-pointer' 
+                      : 'cursor-default opacity-75'
+                    }
+                    ${isSelected && isLearningMode
                       ? 'bg-blue-50 border-blue-500' 
-                      : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+                      : 'border-gray-200'
                     }
                   `}
                 >
                   {/* Icon */}
                   <div className="flex-shrink-0">
-                    {getContentIcon(content.type, isTabVariant)}
+                    {isPreviewMode ? (
+                      <div className={`${isTabVariant ? 'w-10 h-10' : 'w-6 h-6'} rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0`}>
+                        <Lock className={`${isTabVariant ? 'w-5 h-5' : 'w-4 h-4'} text-gray-400`} />
+                      </div>
+                    ) : (
+                      getContentIcon(content.type, isTabVariant)
+                    )}
                   </div>
 
                   {/* Content Info */}
@@ -162,20 +197,25 @@ export const CourseSectionItem = ({
                     <h4 className={`
                       font-medium truncate
                       ${isTabVariant ? 'text-base' : 'text-sm'}
-                      ${isSelected ? 'text-blue-900' : 'text-gray-900'}
+                      ${isPreviewMode 
+                        ? 'text-gray-500' 
+                        : isSelected ? 'text-blue-900' : 'text-gray-900'
+                      }
                     `}>
                       {content.name}
                     </h4>
-                    {isTabVariant && content.description && (
+                    {isLearningMode && isTabVariant && content.description && (
                       <p className="hidden md:block text-sm text-gray-500 mt-1">
                         {content.description}
                       </p>
                     )}
                   </div>
 
-                  {/* Completed Check Mark - Always reserve space in sidebar */}
+                  {/* Status Indicator */}
                   <div className="flex-shrink-0">
-                    {isCompleted ? (
+                    {isPreviewMode ? (
+                      <span className="text-xs text-gray-400">Preview</span>
+                    ) : isCompleted ? (
                       <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center">
                         <Check className="w-3 h-3 text-green-600" strokeWidth={3} />
                       </div>
@@ -185,7 +225,12 @@ export const CourseSectionItem = ({
                   </div>
                 </button>
               );
-            })}
+            })
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <div className="text-sm text-gray-500">No contents available</div>
+              </div>
+            )}
           </div>
         </div>
       )}

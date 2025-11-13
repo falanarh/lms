@@ -6,3 +6,4 @@ export { SidebarToggleButton } from "./SidebarToggleButton";
 export { CourseSectionItem } from "./CourseSectionItem";
 export { RatingsReviewsHeader } from "./RatingsReviewsHeader";
 export { WriteReviewModal } from "./WriteReviewModal";
+export { MyCoursePageSkeleton } from "./MyCoursePageSkeleton";

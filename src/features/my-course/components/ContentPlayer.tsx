@@ -151,7 +151,7 @@ export const ContentPlayer = ({ content, isSidebarOpen = true }: ContentPlayerPr
           </div>
         );
 
-      case "assignment":
+      case "task":
         return (
           <div className="w-full aspect-video bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 flex items-center justify-center">
             <div className="text-center p-8">

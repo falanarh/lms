@@ -127,10 +127,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
           {activeTab === "ratings_reviews" && (
             <RatingsReviewsTab
-              averageRating={course.rating}
-              totalRatings={mockReviews.length}
-              ratingDistribution={{5: 2, 4: 1, 3: 0, 2: 0, 1: 0}}
-              reviews={mockReviews}
+              groupCourseId={id}
             />
           )}
         </div>
