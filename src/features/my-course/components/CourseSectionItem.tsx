@@ -49,13 +49,13 @@ const getContentIcon = (type: string, isTabVariant: boolean = false) => {
     case "quiz":
       return (
         <div className={`${boxSize} rounded-md bg-orange-100 flex items-center justify-center flex-shrink-0`}>
-          <FileCheck className={`${iconSize} text-orange-600`} />
+          <ClipboardList className={`${iconSize} text-orange-600`} />
         </div>
       );
     case "task":
       return (
         <div className={`${boxSize} rounded-md bg-green-100 flex items-center justify-center flex-shrink-0`}>
-          <ClipboardList className={`${iconSize} text-green-600`} />
+          <FileCheck className={`${iconSize} text-green-600`} />
         </div>
       );
     default:
