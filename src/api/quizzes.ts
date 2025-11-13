@@ -44,7 +44,7 @@ const BASE_URL =
 
 export const getQuizzes = async (): Promise<Quiz[]> => {
   try {
-    const response = await axios.get<Quiz[]>(`${BASE_URL}/quizzes`, {
+    const response = await axios.get<Quiz[]>(`${BASE_URL}/api/v1/quizzes`, {
       headers: {
         Accept: "application/json",
       },
@@ -60,12 +60,13 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
 
 export const getQuizById = async (id: string): Promise<Quiz> => {
   try {
-    const response = await axios.get<Quiz>(`${BASE_URL}/quizzes/${id}`, {
+    const response = await axios.get<Quiz>(`${BASE_URL}/api/v1/quizzes/${id}`, {
       headers: {
         Accept: "application/json",
       },
       withCredentials: false,
     });
+    console.log("ini quiznya: " , response?.data);
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching quiz by ID:", error);

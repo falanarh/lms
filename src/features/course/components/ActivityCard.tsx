@@ -63,10 +63,11 @@
  * - --color-foreground, --color-foreground-muted
  */
 import React, { useState } from "react";
-import { FileText, Video, Download, Eye, Link, X, ExternalLink } from "lucide-react";
+import { FileText, Video, Download, Eye, Link, X, ExternalLink, CircleQuestionMarkIcon, FileQuestion, TimerIcon, MessageCircleIcon, HelpCircleIcon, BrainIcon, HelpCircle, ListTodo, Edit3, List, Package } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ScormPreviewModal } from "@/components/ScormPlayer";
 
-export type MaterialType = "PDF" | "VIDEO" | "LINK" | "SCORM";
+export type MaterialType = "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK";
 
 export interface ActivityCardProps {
   title: string;
@@ -77,6 +78,10 @@ export interface ActivityCardProps {
   actionLabel?: string;
   showAction?: boolean;
   className?: string;
+  // Quiz specific props
+  questionCount?: number;
+  onManageQuestions?: () => void;
+  contentId?: string;
 }
 
 const materialConfig: Record<
@@ -111,12 +116,45 @@ const materialConfig: Record<
     label: "LINK",
   },
   SCORM: {
-    icon: FileText,
+    icon: Package,
     color: "yellow",
     bgColor: "bg-yellow-100",
     iconColor: "text-yellow-600",
     label: "SCORM",
   },
+  QUIZ: {
+    icon: HelpCircle,
+    color: "red",
+    bgColor: "bg-red-100",
+    iconColor: "text-red-600",
+    label: "QUIZ",
+  },
+  TASK: {
+    icon: ListTodo,
+    color: "gray",
+    bgColor: "bg-gray-100",
+    iconColor: "text-gray-600",
+    label: "TASK",
+  },
+};
+
+// Helper function to convert YouTube URL to embed format
+const getYouTubeEmbedUrl = (url: string): string => {
+  let videoId = '';
+
+  if (url.includes('youtube.com/watch?v=')) {
+    videoId = url.split('v=')[1]?.split('&')[0] || '';
+  } else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+  } else if (url.includes('youtube.com/embed/')) {
+    videoId = url.split('embed/')[1]?.split('?')[0] || '';
+  }
+
+  if (videoId) {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autohide=1&showinfo=0`;
+  }
+
+  return url; // Return original URL if parsing fails
 };
 
 const FileViewerModal = ({
@@ -134,21 +172,38 @@ const FileViewerModal = ({
 }) => {
   if (!isOpen) return null;
 
+  // Check if this is a YouTube URL
+  const isYouTubeUrl = url && (
+    url.includes('youtube.com') ||
+    url.includes('youtu.be') ||
+    url.includes('youtube-nocookie.com')
+  );
+
   const handleDownload = async () => {
+    // For S3/R2 files with CORS restrictions, open directly in new tab
+    // This allows the browser to handle the download with proper headers
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
+      // Try to open in new tab directly (best for CORS-restricted storage)
       const link = document.createElement("a");
-      link.href = downloadUrl;
+      link.href = url;
       link.download = title;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+
+      // Add to DOM and click
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
+
+      // Also open in new tab as fallback if direct download doesn't work
+      setTimeout(() => {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }, 100);
+
     } catch (error) {
       console.error("Download error:", error);
-      window.open(url, "_blank");
+      // Fallback: just open in new tab
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -158,18 +213,20 @@ const FileViewerModal = ({
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between bg-gray-50">
           <div className="flex items-center gap-3">
-            <div className={`size-8 rounded-lg flex items-center justify-center ${materialConfig[type].bgColor}`}>
-              {React.createElement(materialConfig[type].icon, {
-                className: `size-4 ${materialConfig[type].iconColor}`,
+            <div className={`size-8 rounded-lg flex items-center justify-center ${materialConfig[isYouTubeUrl ? "VIDEO" : type].bgColor}`}>
+              {React.createElement(materialConfig[isYouTubeUrl ? "VIDEO" : type].icon, {
+                className: `size-4 ${materialConfig[isYouTubeUrl ? "VIDEO" : type].iconColor}`,
               })}
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">{title}</h3>
-              <p className="text-xs text-gray-500">{type}</p>
+              <p className="text-xs text-gray-500">
+                {isYouTubeUrl ? "YouTube Video" : type}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {type !== "LINK" && (
+            {type !== "LINK" && !isYouTubeUrl && (
               <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="size-4 mr-2" />
                 Download
@@ -183,7 +240,8 @@ const FileViewerModal = ({
 
         {/* Content */}
         <div className="p-6 overflow-auto max-h-[calc(90vh-80px)]">
-          {type === "PDF" && (
+          {/* Handle PDF and TASK documents (both typically contain documents) */}
+          {(type === "PDF" || type === "TASK") && (
             <div className="w-full h-[70vh] border rounded-lg overflow-hidden">
               <iframe
                 src={url}
@@ -193,20 +251,34 @@ const FileViewerModal = ({
             </div>
           )}
 
-          {type === "VIDEO" && (
+          {/* Handle YouTube videos - either from LINK type with YouTube URL or VIDEO type */}
+          {(type === "VIDEO" || (type === "LINK" && isYouTubeUrl)) && (
             <div className="w-full">
-              <video controls className="w-full rounded-lg shadow-lg">
-                <source src={url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              {isYouTubeUrl ? (
+                <div className="w-full aspect-video rounded-lg overflow-hidden shadow-lg">
+                  <iframe
+                    src={getYouTubeEmbedUrl(url)}
+                    className="w-full h-full"
+                    title={title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    frameBorder="0"
+                  />
+                </div>
+              ) : (
+                <video controls className="w-full rounded-lg shadow-lg">
+                  <source src={url} type="video/mp4" />
+                  Your browser does not support video tag.
+                </video>
+              )}
             </div>
           )}
 
-          {type === "LINK" && (
+          {type === "LINK" && !isYouTubeUrl && (
             <div className="text-center py-12">
               <ExternalLink className="size-16 mx-auto mb-4 text-gray-400" />
               <h4 className="text-lg font-semibold mb-2">External Link</h4>
-              <p className="text-gray-600 mb-6">Click the button below to open the link</p>
+              <p className="text-gray-600 mb-6">Click button below to open link</p>
               <Button
                 onClick={() => window.open(url, "_blank")}
                 className="mx-auto"
@@ -217,18 +289,6 @@ const FileViewerModal = ({
               <div className="mt-6 p-4 bg-gray-50 rounded-lg max-w-2xl mx-auto">
                 <p className="text-xs text-gray-500 break-all">{url}</p>
               </div>
-            </div>
-          )}
-
-          {type === "SCORM" && (
-            <div className="text-center py-12">
-              <FileText className="size-16 mx-auto mb-4 text-gray-400" />
-              <h4 className="text-lg font-semibold mb-2">SCORM Package</h4>
-              <p className="text-gray-600 mb-6">Download to view the SCORM content</p>
-              <Button onClick={handleDownload}>
-                <Download className="size-4 mr-2" />
-                Download SCORM Package
-              </Button>
             </div>
           )}
         </div>
@@ -248,40 +308,115 @@ export const ActivityCard = React.forwardRef<HTMLDivElement, ActivityCardProps>(
       actionLabel = "Lihat",
       showAction = false,
       className,
+      // Quiz specific props
+      questionCount,
+      onManageQuestions,
+      contentId,
     },
     ref
   ) {
-    const config = materialConfig[type];
+    // Check if contentUrl is a YouTube URL
+    const isYouTubeUrl = contentUrl && (
+      contentUrl.includes('youtube.com') ||
+      contentUrl.includes('youtu.be') ||
+      contentUrl.includes('youtube-nocookie.com')
+    );
+
+    // If it's a YouTube URL, treat it as video type
+    const displayType = isYouTubeUrl ? "VIDEO" : type;
+    const config = materialConfig[displayType];
     const Icon = config.icon;
     const [showViewer, setShowViewer] = useState(false);
+    const [showScormPreview, setShowScormPreview] = useState(false);
+    const [scormLaunchUrl, setScormLaunchUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // ✅ Handle view action
-    const handleView = () => {
+    const handleView = async () => {
       if (onAction) {
         onAction();
+        return;
+      }
+    
+      if (type === "SCORM" && contentUrl) {
+        try {
+          console.log('🎬 Starting SCORM preview for:', contentUrl);
+          setIsLoading(true);
+          
+          const apiUrl = `${process.env.NEXT_PUBLIC_COURSE_BASE_URL}/scorm/extract`;
+          console.log('📡 Calling API:', apiUrl);
+          
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scormUrl: contentUrl }),
+          });
+    
+          console.log('📥 Response status:', response.status);
+    
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error:', errorText);
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          }
+    
+          const result = await response.json();
+          console.log('✅ API Response:', result);
+          
+          // ✅ Access the nested data: result.data.data.launchUrl
+          const launchUrl = result.data?.data?.launchUrl;
+          
+          if (launchUrl) {
+            console.log('🚀 Launch URL:', launchUrl);
+            setScormLaunchUrl(launchUrl);
+            setShowScormPreview(true);
+          } else {
+            console.error('❌ No launchUrl found. Full response:', result);
+            throw new Error('Could not extract SCORM package - no launch URL in response');
+          }
+        } catch (error) {
+          console.error('💥 SCORM Preview Error:', error);
+          
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : 'Unknown error occurred';
+          
+          alert(`Failed to load SCORM content:\n\n${errorMessage}\n\nPlease check the browser console for more details.`);
+        } finally {
+          setIsLoading(false);
+        }
       } else if (contentUrl) {
         setShowViewer(true);
       }
     };
 
-    // ✅ Handle download action
+    // Handle download action
     const handleDownload = async () => {
       if (!contentUrl) return;
-      
+
+      // For S3/R2 files with CORS restrictions, open directly in new tab
+      // This allows the browser to handle the download with proper headers
       try {
-        const response = await fetch(contentUrl);
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
+        // Try to open in new tab directly (best for CORS-restricted storage)
         const link = document.createElement("a");
-        link.href = downloadUrl;
+        link.href = contentUrl;
         link.download = title;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        // Add to DOM and click
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(downloadUrl);
+
+        // Also open in new tab as fallback if direct download doesn't work
+        setTimeout(() => {
+          window.open(contentUrl, "_blank", "noopener,noreferrer");
+        }, 100);
+
       } catch (error) {
         console.error("Download error:", error);
-        window.open(contentUrl, "_blank");
+        // Fallback: just open in new tab
+        window.open(contentUrl, "_blank", "noopener,noreferrer");
       }
     };
 
@@ -329,10 +464,19 @@ export const ActivityCard = React.forwardRef<HTMLDivElement, ActivityCardProps>(
                       `text-${config.color}-700`,
                     ].join(" ")}
                   >
-                    {config.label}
+                    {isYouTubeUrl ? "YouTube" : config.label}
                   </span>
+                  {/* Question count for quiz */}
+                  {type === "QUIZ" && questionCount !== undefined && (
+                    <>
+                      <span className="text-xs text-gray-300">•</span>
+                      <span className="text-xs text-blue-600 font-medium">
+                        {questionCount} soal
+                      </span>
+                    </>
+                  )}
                   {/* Optional Description */}
-                  {description && (
+                  {description && type !== "QUIZ" && (
                     <>
                       <span className="text-xs text-gray-300">•</span>
                       <span className="text-xs text-[var(--color-foreground-muted,#6b7280)]">
@@ -345,62 +489,105 @@ export const ActivityCard = React.forwardRef<HTMLDivElement, ActivityCardProps>(
             </div>
             
             {/* Right: Action Buttons */}
-            {(showAction || contentUrl) && (
-              <div className="flex items-center gap-2">
-                {/* View Button */}
-                {contentUrl && (
-                  <button
-                    onClick={handleView}
-                    className={[
-                      "flex items-center gap-2 px-3 py-2",
-                      "rounded-lg text-sm font-medium",
-                      "transition-colors flex-shrink-0",
-                      "text-gray-700 hover:text-gray-900",
-                      "bg-gray-100 hover:bg-gray-200",
-                      "focus-visible:outline-none",
-                      "focus-visible:ring-2 focus-visible:ring-blue-500",
-                      "focus-visible:ring-offset-2",
-                    ].join(" ")}
-                    aria-label={`View ${title}`}
-                  >
-                    <Eye className="size-4" />
-                    <span className="hidden sm:inline">Lihat</span>
-                  </button>
-                )}
-                
-                {/* Download Button */}
-                {contentUrl && type !== "LINK" && (
-                  <button
-                    onClick={handleDownload}
-                    className={[
-                      "flex items-center gap-2 px-3 py-2",
-                      "rounded-lg text-sm font-medium",
-                      "transition-colors flex-shrink-0",
-                      "text-gray-700 hover:text-gray-900",
-                      "bg-gray-100 hover:bg-gray-200",
-                      "focus-visible:outline-none",
-                      "focus-visible:ring-2 focus-visible:ring-blue-500",
-                      "focus-visible:ring-offset-2",
-                    ].join(" ")}
-                    aria-label={`Download ${title}`}
-                  >
-                    <Download className="size-4" />
-                    <span className="hidden sm:inline">Download</span>
-                  </button>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Manage Questions Button for Quiz */}
+              {type === "QUIZ" && onManageQuestions && (
+                <button
+                  onClick={onManageQuestions}
+                  className={[
+                    "flex items-center gap-2 px-3 py-2",
+                    "rounded-lg text-sm font-medium",
+                    "transition-colors flex-shrink-0",
+                    "text-blue-700 hover:text-blue-900",
+                    "bg-blue-100 hover:bg-blue-200",
+                    "focus-visible:outline-none",
+                    "focus-visible:ring-2 focus-visible:ring-blue-500",
+                    "focus-visible:ring-offset-2",
+                  ].join(" ")}
+                  aria-label={`Manage questions for ${title}`}
+                >
+                  <Edit3 className="size-4" />
+                  <span className="hidden sm:inline">Kelola Soal</span>
+                </button>
+              )}
+
+              {/* View Button */}
+              {contentUrl && (showAction || type !== "QUIZ") && (
+                <button
+                  onClick={handleView}
+                  disabled={isLoading}
+                  className={[
+                    "flex items-center gap-2 px-3 py-2",
+                    "rounded-lg text-sm font-medium",
+                    "transition-colors flex-shrink-0",
+                    isLoading 
+                      ? "text-gray-400 bg-gray-100 cursor-not-allowed" 
+                      : "text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200",
+                    "focus-visible:outline-none",
+                    "focus-visible:ring-2 focus-visible:ring-blue-500",
+                    "focus-visible:ring-offset-2",
+                  ].join(" ")}
+                  aria-label={`View ${title}`}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      <span className="hidden sm:inline">Loading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="size-4" />
+                      <span className="hidden sm:inline">
+                        {type === "SCORM" ? "Preview" : "Lihat"}
+                      </span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Download Button */}
+              {contentUrl && type !== "LINK" && type !== "QUIZ" && (
+                <button
+                  onClick={handleDownload}
+                  className={[
+                    "flex items-center gap-2 px-3 py-2",
+                    "rounded-lg text-sm font-medium",
+                    "transition-colors flex-shrink-0",
+                    "text-gray-700 hover:text-gray-900",
+                    "bg-gray-100 hover:bg-gray-200",
+                    "focus-visible:outline-none",
+                    "focus-visible:ring-2 focus-visible:ring-blue-500",
+                    "focus-visible:ring-offset-2",
+                  ].join(" ")}
+                  aria-label={`Download ${title}`}
+                >
+                  <Download className="size-4" />
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ✅ File Viewer Modal */}
+        {/* File Viewer Modal */}
         {contentUrl && (
           <FileViewerModal
             isOpen={showViewer}
             onClose={() => setShowViewer(false)}
             url={contentUrl}
             title={title}
-            type={type}
+            type={displayType}
+          />
+        )}
+
+        {/* SCORM Preview Modal */}
+        {type === "SCORM" && scormLaunchUrl && (
+          <ScormPreviewModal
+            isOpen={showScormPreview}
+            onClose={() => setShowScormPreview(false)}
+            scormUrl={scormLaunchUrl} // Use the extracted launch URL
+            title={title}
+            description={description}
           />
         )}
       </>

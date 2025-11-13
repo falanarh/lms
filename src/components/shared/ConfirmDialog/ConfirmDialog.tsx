@@ -29,7 +29,6 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
-  // Variant colors
   const variantStyles = {
     danger: {
       iconBg: "bg-red-100",
