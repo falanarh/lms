@@ -21,6 +21,7 @@ export default function KnowledgeDetailHero({ knowledge }: KnowledgeDetailHeroPr
         fill
         className="object-cover"
         priority
+        unoptimized={knowledge.thumbnail.includes('youtube.com') || knowledge.thumbnail.includes('r2.dev')}
       />
     </div>
   );

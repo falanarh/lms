@@ -11,7 +11,7 @@ import { useQuestions } from "@/hooks/useQuestions";
 
 interface QuizPageProps {
   params: Promise<{
-    courseId: string;
+    id: string;
     quizId: string;
   }>;
 }
@@ -189,7 +189,7 @@ export default function QuizPage({ params }: QuizPageProps) {
               items={[
                 { key: "courses", label: "Courses", href: "/course" },
                 { key: "manage", label: "Manage Course", href: "/course/manage" },
-                { key: "quiz", label: quiz.content?.name || "Quiz", href: `/course/${resolvedParams.courseId}/quiz/${resolvedParams.quizId}` },
+                { key: "quiz", label: quiz.content?.name || "Quiz", href: `/course/${resolvedParams.id}/quiz/${resolvedParams.quizId}` },
               ]}
             />
           </div>

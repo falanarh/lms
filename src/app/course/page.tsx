@@ -23,24 +23,11 @@ export default function CoursePage() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-<<<<<<< HEAD
-  const filteredAndSortedCourses = useMemo(() => {
-    const filtered = courses.filter((course) => {
-      const matchesSearch = course.title
-        .toLowerCase()
-        .includes(debouncedSearchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "All Categories" ||
-        course.categories === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-=======
   const { data: courses = [], isLoading: isLoadingCourses } = useGroupCourses({
     searchQuery: debouncedSearchQuery,
     selectedCategory,
     sortBy
   });
->>>>>>> 4e6ace569ee588ccc5527f19b97f411aa4a863db
 
   const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
 

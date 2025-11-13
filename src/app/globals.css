@@ -369,7 +369,6 @@ body {
   animation: highlight-bg 1.5s ease-out;
 }
 
-<<<<<<< HEAD
 /* Forum sidebar animations */
 @keyframes slideInLeft {
   0% {
@@ -628,8 +627,8 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-=======
-/* Custom Scrollbar for Sidebar */
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
 }
@@ -653,5 +652,4 @@ body {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
->>>>>>> 4e6ace569ee588ccc5527f19b97f411aa4a863db
 }
