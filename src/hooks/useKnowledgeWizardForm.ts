@@ -126,6 +126,13 @@ export const useKnowledgeWizardForm = () => {
     setThumbnailPreview(null);
   }, [form]);
 
+  // For edit mode: set thumbnail preview from URL
+  const setThumbnailPreviewFromUrl = useCallback((url: string) => {
+    console.log('🖼️ setThumbnailPreviewFromUrl called with:', url);
+    setThumbnailPreview(url);
+    console.log('🖼️ Thumbnail preview state updated');
+  }, []);
+
 
   // ============================================================================
   // Step Validation - Progressive with Zod Schemas
@@ -138,10 +145,12 @@ export const useKnowledgeWizardForm = () => {
 
       // Step 1: Content Type - Simple check
       if (currentStep === 1) {
+        console.log('🔍 Step 1 validation - Current type:', currentValues.type);
         if (!currentValues.type) {
           console.error('❌ Step 1: Please select a content type');
           return false;
         }
+        console.log('✅ Step 1: Content type is valid');
         return true;
       }
 
@@ -318,6 +327,7 @@ export const useKnowledgeWizardForm = () => {
     thumbnailPreview,
     handleThumbnailSelect,
     handleThumbnailRemove,
+    setThumbnailPreviewFromUrl,
 
     // Step navigation
     nextStep,

@@ -590,3 +590,298 @@ export const useCreateKnowledgePage = ({
     submittingAs, // Track which button is being submitted
   };
 };
+
+// ============================================================================
+// Knowledge Center Management Hook
+// ============================================================================
+
+interface UseKnowledgeManagementPageParams {
+  router: any;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}
+
+export const useKnowledgeManagementPage = ({
+  router,
+  onSuccess,
+  onError,
+}: UseKnowledgeManagementPageParams) => {
+  const queryClient = useQueryClient();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Delete knowledge center mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Note: Implement delete API call when available
+      // For now, this is a placeholder
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      throw new Error('Delete API not implemented yet');
+    },
+    onMutate: () => {
+      setIsDeleting(true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      onSuccess('Knowledge center deleted successfully');
+    },
+    onError: (error: any) => {
+      onError(error.message || 'Failed to delete knowledge center');
+    },
+    onSettled: () => {
+      setIsDeleting(false);
+    },
+  });
+
+  // Update knowledge center mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateKnowledgeCenterRequest> }) =>
+      knowledgeCenterApi.updateKnowledgeCenter(id, data),
+    onMutate: () => {
+      setIsUpdating(true);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      onSuccess('Knowledge center updated successfully');
+    },
+    onError: (error: any) => {
+      onError(error.message || 'Failed to update knowledge center');
+    },
+    onSettled: () => {
+      setIsUpdating(false);
+    },
+  });
+
+  // Handle edit action
+  const handleEdit = useCallback((knowledge: KnowledgeCenter) => {
+    router.push(`/knowledge-center/${knowledge.id}/edit`);
+  }, [router]);
+
+  // Handle delete action
+  const handleDelete = useCallback(async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this knowledge center? This action cannot be undone.')) {
+      try {
+        await deleteMutation.mutateAsync(id);
+      } catch (error) {
+        // Error handled by mutation
+      }
+    }
+  }, [deleteMutation]);
+
+  // Handle duplicate action
+  const handleDuplicate = useCallback((knowledge: KnowledgeCenter) => {
+    // Create a copy with modified title
+    const duplicateData = {
+      ...knowledge,
+      title: `Copy of ${knowledge.title}`,
+      isFinal: false, // Always create as draft
+    };
+    
+    // Navigate to create page with pre-filled data
+    const queryParams = new URLSearchParams({
+      duplicate: knowledge.id,
+      data: JSON.stringify(duplicateData),
+    });
+    
+    router.push(`/knowledge-center/create?${queryParams.toString()}`);
+  }, [router]);
+
+  // Handle toggle status (publish/unpublish)
+  const handleToggleStatus = useCallback(async (id: string, isFinal: boolean) => {
+    try {
+      await updateMutation.mutateAsync({ id, data: { isFinal } });
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }, [updateMutation]);
+
+  return {
+    handleEdit,
+    handleDelete,
+    handleDuplicate,
+    handleToggleStatus,
+    isDeleting,
+    isUpdating,
+  };
+};
+
+// ============================================================================
+// Knowledge Center Edit Hook
+// ============================================================================
+
+interface UseEditKnowledgePageParams {
+  knowledgeId: string;
+  wizard: any;
+  router: any;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}
+
+export const useEditKnowledgePage = ({
+  knowledgeId,
+  wizard,
+  router,
+  onSuccess,
+  onError,
+}: UseEditKnowledgePageParams) => {
+  const queryClient = useQueryClient();
+  const [submittingAs, setSubmittingAs] = useState<'draft' | 'published' | null>(null);
+
+  // Fetch existing knowledge center data
+  const {
+    data: knowledgeData,
+    isLoading,
+    error,
+  } = useKnowledgeDetail(knowledgeId);
+
+  // Populate form with existing data when loaded
+  useEffect(() => {
+    if (knowledgeData && wizard.form) {
+      console.log('🔍 Edit mode - Raw knowledge data:', knowledgeData);
+      
+      const formData = {
+        title: knowledgeData.title || '',
+        description: knowledgeData.description || '',
+        idSubject: knowledgeData.idSubject || '',
+        penyelenggara: knowledgeData.penyelenggara || '',
+        createdBy: knowledgeData.createdBy || '',
+        type: knowledgeData.type || undefined,
+        publishedAt: knowledgeData.publishedAt || new Date().toISOString(),
+        tags: knowledgeData.tags || [],
+        thumbnail: knowledgeData.thumbnail || '',
+        webinar: knowledgeData.webinar || null,
+        knowledgeContent: knowledgeData.knowledgeContent || null,
+      };
+      
+      console.log('🔍 Edit mode - Form data to populate:', formData);
+
+      // Set form values with proper state update
+      Object.entries(formData).forEach(([key, value]) => {
+        wizard.form.setFieldValue(key as any, value as any);
+      });
+
+      // Set thumbnail preview if exists (for edit mode)
+      if (knowledgeData.thumbnail) {
+        console.log('🖼️ Setting thumbnail preview:', knowledgeData.thumbnail);
+        // For edit mode, we need to set both the form value and preview directly
+        // since handleThumbnailSelect expects a File, not a URL
+        wizard.form.setFieldValue('thumbnail' as any, knowledgeData.thumbnail as any);
+        // Set thumbnail preview from URL for edit mode
+        wizard.setThumbnailPreviewFromUrl(knowledgeData.thumbnail);
+      }
+
+      // Force form state update and clear any validation errors after populating data
+      setTimeout(() => {
+        // Debug: Log form values to ensure they're set correctly
+        console.log('Edit mode - Form values after populate:', wizard.formValues);
+        console.log('Edit mode - Thumbnail preview after populate:', wizard.thumbnailPreview);
+        
+        // Clear any existing validation errors
+        if (wizard.form.validateAllFields) {
+          wizard.form.validateAllFields('change');
+        }
+      }, 100);
+    }
+  }, [knowledgeData, wizard]);
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateKnowledgeCenterRequest> }) =>
+      knowledgeCenterApi.updateKnowledgeCenter(id, data),
+    onMutate: (variables) => {
+      const status = variables.data.isFinal ? 'published' : 'draft';
+      setSubmittingAs(status as 'draft' | 'published');
+    },
+    onSuccess: (data, variables) => {
+      const status = variables.data.isFinal ? 'published' : 'draft';
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      queryClient.invalidateQueries({ queryKey: ['knowledge-center', knowledgeId] });
+      
+      const message = status === 'published' 
+        ? 'Knowledge center updated and published successfully!' 
+        : 'Knowledge center updated as draft successfully!';
+      
+      onSuccess(message);
+      
+      // Navigate back to detail page
+      router.push(`/knowledge-center/${knowledgeId}`);
+    },
+    onError: (error: any) => {
+      onError(error.message || 'Failed to update knowledge center');
+    },
+    onSettled: () => {
+      setSubmittingAs(null);
+    },
+  });
+
+  // Handle next step with validation
+  const handleNextStep = useCallback(async () => {
+    const currentStepNumber = wizard.currentStep;
+    
+    try {
+      // Validate current step using wizard's validation method
+      const isValid = await wizard.validateCurrentStep();
+      
+      if (isValid) {
+        // Move to next step
+        wizard.nextStep();
+      } else {
+        onError(`Please fill in all required fields for step ${currentStepNumber}`);
+      }
+    } catch (error) {
+      onError(`Please fill in all required fields for step ${currentStepNumber}`);
+    }
+  }, [wizard, onError]);
+
+  // Handle step navigation
+  const handleStepNavigation = useCallback((stepNumber: number) => {
+    wizard.goToStep(stepNumber);
+  }, [wizard]);
+
+  // Handle form submission
+  const handleSubmit = useCallback(async (submitAs: 'draft' | 'published') => {
+    try {
+      // Get current form values
+      const formData = wizard.formValues;
+      
+      // Basic validation - can be enhanced later
+      if (!formData.title || !formData.description || !formData.type) {
+        onError('Please fill in all required fields');
+        return;
+      }
+
+      // Use form data directly (transformation logic can be added later)
+      const apiData = formData;
+      
+      // Set final status based on submit type
+      const updateData = {
+        ...apiData,
+        isFinal: submitAs === 'published',
+      };
+
+      // Submit update
+      await updateMutation.mutateAsync({ 
+        id: knowledgeId, 
+        data: updateData 
+      });
+
+    } catch (error: any) {
+      onError(error.message || `Failed to ${submitAs === 'published' ? 'publish' : 'save'} knowledge center`);
+    }
+  }, [wizard, knowledgeId, updateMutation, onError]);
+
+  return {
+    // Navigation handlers
+    handleNextStep,
+    handleStepNavigation,
+
+    // Submission handler
+    handleSubmit,
+    isUpdating: updateMutation.isPending,
+    submittingAs,
+
+    // Data loading
+    isLoading,
+    error,
+  };
+};
