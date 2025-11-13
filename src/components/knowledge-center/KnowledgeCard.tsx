@@ -161,7 +161,7 @@ export default function KnowledgeCard({
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-200"
               onError={() => setImageError(true)}
-              unoptimized={knowledge.thumbnail.includes('youtube.com')}
+              unoptimized={knowledge.thumbnail.includes('youtube.com') || knowledge.thumbnail.includes('r2.dev')}
             />
           ) : (
             <div className={`w-full h-full bg-gradient-to-br ${getPlaceholderGradient()} flex flex-col items-center justify-center gap-3`}>

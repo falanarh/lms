@@ -1,20 +1,9 @@
+import { API_BASE_URL } from "@/config/api";
 import axios from "axios";
 import { Content } from "./contents";
 
-type Group = {
-    id: string,
-    idCourse: string,
-    idTeacher: string,
-    isOpen: boolean,
-    name: string,
-    description: string,
-    createdAt: Date,
-    updatedAt: Date
-}
-
 export type Section  = {
     id: string,
-    idGroup: string,
     name: string,
     description: string,
     // content_start: Date,
@@ -36,10 +25,14 @@ export const getSections = async (): Promise<Section[]> => {
     return response.data
 }
 
+export const getSectionsByGroupId = async (groupId: string): Promise<Section[]> => {
+  const response = await axios.get(`${API_BASE_URL}/group-courses/${groupId}/section`);
+  return response.data.data;
+};
 
 export const createSection = async (newSection: Omit<Section, "id" | "group" | "createdAt" | "updatedAt">): Promise<Section> => {
   const response = await axios.post<Section>(
-    `${BASE_URL}/sections`,
+    `${API_BASE_URL}/sections`,
     newSection,
     {
       headers: {
@@ -55,7 +48,7 @@ export const updateSection = async (
   updatedData: Partial<Omit<Section, "id" | "group" | "createdAt" | "updatedAt">>
 ): Promise<Section> => {
   const response = await axios.patch<Section>(
-    `${BASE_URL}/sections/${id}`,
+    `${API_BASE_URL}/sections/${id}`,
     updatedData,
     {
       headers: {
@@ -67,5 +60,5 @@ export const updateSection = async (
 };
 
 export const deleteSection = async (id: string): Promise<void> => {
-  await axios.delete(`${BASE_URL}/sections/${id}`)
+  await axios.delete(`${API_BASE_URL}/sections/${id}`)
 }

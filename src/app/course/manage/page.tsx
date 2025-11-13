@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import Tabs, { TabItem } from "@/components/ui/Tabs";
 import { SectionActivities } from "@/features/course/components/SectionActivities";
@@ -10,6 +11,7 @@ import { Content } from "@/api/contents";
 import { queryClient } from "@/lib/queryClient";
 
 export default function ManageCoursePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("section_activities");
   const [selectedSectionId, setSelectedSectionId] = useState<string>("");
 
@@ -33,6 +35,7 @@ export default function ManageCoursePage() {
     Content | undefined
   >(undefined);
 
+  
   // ✅ Handler saat klik "Tambah Activity"
   const handleAddActivity = (sectionId: string) => {
     console.log("🟢 ADD Activity triggered for section:", sectionId);
@@ -55,6 +58,17 @@ export default function ManageCoursePage() {
     setCurrentContentId(activityId);
     setCurrentContentData(activityData);
     setIsDrawerOpen(true);
+  };
+
+  // ✅ Handler saat klik "Kelola Soal" pada quiz activity
+  const handleManageQuizQuestions = (
+    sectionId: string,
+    activityId: string,
+    activityData: Content,
+  ) => {
+    console.log("🟣 MANAGE QUIZ QUESTIONS triggered:", { sectionId, activityId, activityData });
+    // Navigate to dedicated quiz management page
+    router.push(`/course/manage/quiz/${activityId}`);
   };
 
   // ✅ Handler saat drawer ditutup
@@ -83,13 +97,15 @@ export default function ManageCoursePage() {
     section_activities: (
       <SectionActivities
         onAddActivity={handleAddActivity}
-        onEditActivity={handleEditActivity} // ⭐⭐⭐ INI YANG KURANG! ⭐⭐⭐
+        onEditActivity={handleEditActivity}
+        onManageQuizQuestions={handleManageQuizQuestions}
       />
     ),
     peserta: <div>Peserta Content</div>,
     penilaian: <div>Penilaian Content</div>,
   } as const;
 
+  
   return (
     <div className="min-h-screen">
       <div className="px-6 sm:px-8 lg:px-12 xl:px-16">

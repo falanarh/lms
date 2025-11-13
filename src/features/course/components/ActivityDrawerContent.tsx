@@ -23,11 +23,14 @@ import {
   Target,
   XCircle,
   AlertCircle,
+  ClipboardList,
+  Edit3,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 import SessionCard from "./SessionCardJadwalKurikulum";
 import ActivityCard from "./ActivityCard";
+import { QuizQuestionsManager } from "./QuizQuestionsManager";
 import {
   getContentQueryKey,
   useCreateContent,
@@ -37,6 +40,7 @@ import { useSections } from "@/hooks/useSections";
 import {
   useCreateQuizWithContent,
   useUpdateQuizWithContent,
+  useCreateBulkQuestions,
 } from "@/hooks/useQuiz";
 import { useCourseSchedules } from "@/hooks/useCourseSchedules";
 import { Toast } from "@/components/ui/Toast/Toast";
@@ -49,10 +53,12 @@ import {
   createPdfContentSchema,
   createScormContentSchema,
   createVideoContentSchema,
+  createTaskContentSchema,
   updateLinkContentSchema,
   updatePdfContentSchema,
   updateScormContentSchema,
   updateVideoContentSchema,
+  updateTaskContentSchema,
   updateQuizContentSchema,
   createQuizContentSchema,
   createJadwalKurikulumContentSchema,
@@ -70,6 +76,7 @@ type ActivityType =
   | "PDF"
   | "QUIZ"
   | "SCORM"
+  | "TASK"
   | "jadwal_kurikulum"
   | null;
 type ContentSource = "new" | "curriculum" | null;
@@ -127,43 +134,58 @@ interface ActivityDrawerContentProps {
 // Group ID for fetching course schedules
 const GROUP_ID = "b8d1607e-4edf-4f7a-8a0b-0552191bdd71";
 
-const ACTIVITY_OPTIONS = [
-  {
-    type: "VIDEO",
-    label: "Video Upload",
-    description: "Upload file video lokal",
-    icon: Video,
-    color: "blue",
-  },
-  {
-    type: "LINK",
-    label: "Link Eksternal",
-    description: "YouTube atau e-Certificate",
-    icon: Link,
-    color: "orange",
-  },
-  {
-    type: "PDF",
-    label: "PDF / Dokumen",
-    description: "Upload PDF, DOC, PPT",
-    icon: FileText,
-    color: "green",
-  },
-  {
-    type: "QUIZ",
-    label: "Kuis",
-    description: "Buat kuis interaktif",
-    icon: CheckSquare,
-    color: "purple",
-  },
-  {
-    type: "SCORM",
-    label: "SCORM Package",
-    description: "Import konten SCORM 1.2 / 2004",
-    icon: Package,
-    color: "amber",
-    span: 2,
-  },
+const ACTIVITY_ROWS = [
+  // Row 1: Documents and Videos
+  [
+    {
+      type: "PDF",
+      label: "PDF / Dokumen",
+      description: "Upload PDF, DOC, PPT",
+      icon: FileText,
+      color: "green",
+    },
+    {
+      type: "VIDEO",
+      label: "Video Upload",
+      description: "Upload file video lokal",
+      icon: Video,
+      color: "blue",
+    },
+  ],
+  // Row 2: Quiz and Task
+  [
+    {
+      type: "QUIZ",
+      label: "Kuis",
+      description: "Buat kuis interaktif",
+      icon: CheckSquare,
+      color: "purple",
+    },
+    {
+      type: "TASK",
+      label: "Tugas",
+      description: "Upload dokumen tugas untuk mahasiswa",
+      icon: ClipboardList,
+      color: "indigo",
+    },
+  ],
+  // Row 3: SCORM and External Links
+  [
+    {
+      type: "SCORM",
+      label: "SCORM Package",
+      description: "Import konten SCORM 1.2 / 2004",
+      icon: Package,
+      color: "amber",
+    },
+    {
+      type: "LINK",
+      label: "Link Lainnya",
+      description: "Tambahkan link eksternal",
+      icon: Link,
+      color: "orange",
+    },
+  ],
 ];
 
 const CONTENT_SOURCE_OPTIONS = [
@@ -321,6 +343,9 @@ export function ActivityDrawerContent({
       scormFile: undefined as File | undefined,
       contentStart: "",
       contentEnd: "",
+      deadline: "", // ✅ NEW: Add deadline field for TASK type
+      videoSource: "upload" as "upload" | "link", // ✅ NEW: Video source selection
+      videoUrl: "", // ✅ NEW: Video URL for link option
     },
     onSubmit: async ({ value }) => {
       console.log("🚀 Form submission started:", {
@@ -328,6 +353,10 @@ export function ActivityDrawerContent({
         isEditMode,
         selectedActivityType,
         formValue: value,
+        contentStart: value.contentStart,
+        contentEnd: value.contentEnd,
+        restrictionEnabled,
+        timeEnabled: restrictions.timeEnabled,
       });
 
       if (!sectionId && !isEditMode) {
@@ -348,21 +377,24 @@ export function ActivityDrawerContent({
 
       try {
         console.log("✅ Form validation passed, proceeding with submission...");
-        // ✅ UPDATED: Prepare dates - null jika restriction tidak enabled
-        // z.coerce.date() akan otomatis convert string ke Date object
+        // ✅ UPDATED: Prepare dates - z.coerce.date() akan otomatis convert string ke Date object
         let contentStart: Date | null = null;
         let contentEnd: Date | null = null;
 
-        // Hanya set dates jika restrictionEnabled DAN timeEnabled
-        if (restrictionEnabled && restrictions.timeEnabled) {
-          if (value.contentStart) {
-            contentStart = new Date(value.contentStart);
-          }
-          if (value.contentEnd) {
-            contentEnd = new Date(value.contentEnd);
-          }
+        // Set dates if form values exist (from form fields)
+        if (value.contentStart) {
+          contentStart = new Date(value.contentStart);
+          // ✅ Subtract 7 hours to convert from WIB to UTC for backend
+          contentStart.setHours(contentStart.getHours() - 7);
+          console.log("✅ Set contentStart (-7h UTC):", contentStart);
         }
-        // ✅ Jika restriction OFF, contentStart dan contentEnd tetap null
+        if (value.contentEnd) {
+          contentEnd = new Date(value.contentEnd);
+          // ✅ Subtract 7 hours to convert from WIB to UTC for backend
+          contentEnd.setHours(contentEnd.getHours() - 7);
+          console.log("✅ Set contentEnd (-7h UTC):", contentEnd);
+        }
+        console.log("📅 Final dates (UTC for backend):", { contentStart, contentEnd });
 
         if (selectedActivityType === "QUIZ") {
           // ========== QUIZ CREATION/UPDATE ==========
@@ -410,7 +442,7 @@ export function ActivityDrawerContent({
           // ========== OTHER ACTIVITY TYPES ==========
           if (isEditMode && contentId) {
             // ========== MODE UPDATE ==========
-            const updateData = {
+            let updateData = {
               type: selectedActivityType,
               name: value.name,
               description: value.description || "",
@@ -430,6 +462,27 @@ export function ActivityDrawerContent({
                 }),
             };
 
+            // ✅ NEW: Add deadline for TASK type - store in contentEnd for consistency
+            if (selectedActivityType === "TASK" && deadlineEnabled && value.deadline) {
+              const taskDeadline = new Date(value.deadline);
+              // ✅ Subtract 7 hours to convert from WIB to UTC for backend
+              taskDeadline.setHours(taskDeadline.getHours());
+              updateData.contentEnd = taskDeadline;
+              console.log("✅ TASK deadline saved (-7h UTC):", taskDeadline);
+            }
+
+            // ✅ NEW: Handle video source selection for VIDEO type
+            if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
+              // If user selected link option, change type to LINK and use videoUrl
+              updateData.type = "LINK";
+              updateData.contentUrl = value.videoUrl;
+              // Remove videoFile if exists
+              delete (updateData as any).videoFile;
+              console.log("✅ VIDEO link mode UPDATE - converted to LINK type:", updateData);
+            }
+
+            console.log("🚀 Final updateData:", updateData);
+
             const validatedData = updateContentSchema.parse(updateData);
 
             // ✅ Convert Date objects back to ISO strings for API
@@ -446,7 +499,7 @@ export function ActivityDrawerContent({
 
             // Use union schema instead of individual schema selection
 
-            const createData = {
+            let createData = {
               idSection: sectionId!,
               type:
                 selectedActivityType === "jadwal_kurikulum" && selectedSession
@@ -471,7 +524,27 @@ export function ActivityDrawerContent({
                 }),
             };
 
+            // ✅ NEW: Add deadline for TASK type - store in contentEnd for consistency
+            if (selectedActivityType === "TASK" && deadlineEnabled && value.deadline) {
+              const taskDeadline = new Date(value.deadline);
+              // ✅ Subtract 7 hours to convert from WIB to UTC for backend
+              taskDeadline.setHours(taskDeadline.getHours() - 7);
+              createData.contentEnd = taskDeadline;
+              console.log("✅ TASK deadline created (-7h UTC):", taskDeadline);
+            }
+
+            // ✅ NEW: Handle video source selection for VIDEO type
+            if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
+              // If user selected link option, change type to LINK and use videoUrl
+              createData.type = "LINK";
+              createData.contentUrl = value.videoUrl;
+              // Remove videoFile if exists
+              delete (createData as any).videoFile;
+              console.log("✅ VIDEO link mode - converted to LINK type:", createData);
+            }
+
             // Debug: Log complete createData object
+            console.log("🚀 Final createData:", createData);
 
             const validatedData = createContentSchema.parse(createData);
 
@@ -543,14 +616,20 @@ export function ActivityDrawerContent({
   const [mustOpenLink, setMustOpenLink] = useState(false);
   const [deadlineEnabled, setDeadlineEnabled] = useState(false);
   const [deadlineDate, setDeadlineDate] = useState("");
+  const [taskSubmissionRequired, setTaskSubmissionRequired] = useState(true); // Default: true for TASK
   const [quizGradingEnabled, setQuizGradingEnabled] = useState(false);
   const [quizStartDate, setQuizStartDate] = useState("");
   const [quizEndDate, setQuizEndDate] = useState("");
+  const [showQuizQuestionsManager, setShowQuizQuestionsManager] = useState(false);
 
   // Upload states for R2
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
+
+  // Video source selection state
+  const [videoSource, setVideoSource] = useState<"upload" | "link">("upload");
+  const [videoUrl, setVideoUrl] = useState("");
 
   // Quiz specific state variables for database schema
   const [quizOpenDate, setQuizOpenDate] = useState("");
@@ -573,6 +652,15 @@ export function ActivityDrawerContent({
   } = useCourseSchedules({
     idGroup: GROUP_ID,
   });
+
+  // ✅ Set default values for TASK type
+  useEffect(() => {
+    if (selectedActivityType === "TASK") {
+      // Set completion enabled by default for TASK
+      setCompletionEnabled(true);
+      setTaskSubmissionRequired(true);
+    }
+  }, [selectedActivityType]);
 
   // ✅ BARU: useEffect untuk pre-fill form saat edit mode - LENGKAP
   useEffect(() => {
@@ -608,6 +696,19 @@ export function ActivityDrawerContent({
       } else if (initialData.type === "SCORM") {
         form.setFieldValue("contentUrl", initialData.contentUrl || "");
         setUploadedScorm(initialData.contentUrl || "");
+      } else if (initialData.type === "TASK") {
+        if (initialData.contentUrl) {
+          const fileName =
+            initialData.contentUrl.split("/").pop() || initialData.contentUrl;
+          setUploadedMaterials([
+            {
+              id: `existing-${Date.now()}`,
+              title: fileName,
+              size: "Unknown",
+            },
+          ]);
+          form.setFieldValue("contentUrl", initialData.contentUrl);
+        }
       }
 
       // ✅ Set dates if available
@@ -615,6 +716,8 @@ export function ActivityDrawerContent({
 
       if (initialData.contentStart) {
         const startDateObj = new Date(initialData.contentStart);
+        // ✅ Add 7 hours for WIB timezone display (UTC+7)
+        startDateObj.setHours(startDateObj.getHours() + 7);
         const formattedStart = startDateObj.toISOString().slice(0, 16);
         form.setFieldValue("contentStart", formattedStart);
         setStartDate(formattedStart);
@@ -623,6 +726,8 @@ export function ActivityDrawerContent({
 
       if (initialData.contentEnd) {
         const endDateObj = new Date(initialData.contentEnd);
+        // ✅ Add 7 hours for WIB timezone display (UTC+7)
+        endDateObj.setHours(endDateObj.getHours() + 7);
         const formattedEnd = endDateObj.toISOString().slice(0, 16);
         form.setFieldValue("contentEnd", formattedEnd);
         setEndDate(formattedEnd);
@@ -635,13 +740,30 @@ export function ActivityDrawerContent({
         setRestrictions((prev) => ({ ...prev, timeEnabled: true }));
       }
 
-      // ✅ TODO: Set completion settings if you store them in backend
-      // For now, we assume completion is not stored in backend
-      // If you have fields like `mustComplete`, `deadline`, etc in Content type:
-      // setCompletionEnabled(initialData.mustComplete || false);
-      // setDeadlineEnabled(!!initialData.deadline);
-      // setDeadlineDate(initialData.deadline || "");
-      // etc.
+      // ✅ Set task deadline if available
+      // For TASK type, deadline is stored in contentEnd
+      if (initialData.type === "TASK" && initialData.contentEnd) {
+        const deadlineObj = new Date(initialData.contentEnd);
+        // ✅ Add 7 hours for WIB timezone display (UTC+7)
+        deadlineObj.setHours(deadlineObj.getHours() + 7);
+        const formattedDeadline = deadlineObj.toISOString().slice(0, 16);
+        form.setFieldValue("deadline", formattedDeadline);
+        setDeadlineDate(formattedDeadline);
+        setDeadlineEnabled(true);
+        setCompletionEnabled(true);
+        console.log("✅ Set TASK deadline from contentEnd (+7h WIB):", formattedDeadline);
+      } else if (initialData.deadline) {
+        // Fallback if deadline field exists
+        const deadlineObj = new Date(initialData.deadline);
+        // ✅ Add 7 hours for WIB timezone display (UTC+7)
+        deadlineObj.setHours(deadlineObj.getHours() + 7);
+        const formattedDeadline = deadlineObj.toISOString().slice(0, 16);
+        form.setFieldValue("deadline", formattedDeadline);
+        setDeadlineDate(formattedDeadline);
+        setDeadlineEnabled(true);
+        setCompletionEnabled(true);
+        console.log("✅ Set TASK deadline from deadline field (+7h WIB):", formattedDeadline);
+      }
     }
   }, [isEditMode, initialData]);
 
@@ -745,12 +867,14 @@ export function ActivityDrawerContent({
     const allowedTypes = {
       VIDEO: ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
       PDF: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/msword', 'application/vnd.ms-powerpoint'],
+      TASK: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/msword', 'application/vnd.ms-powerpoint'],
       SCORM: ['application/zip', 'application/x-zip-compressed'],
     };
 
     const maxSizes = {
       VIDEO: 50 * 1024 * 1024, // 50MB
       PDF: 5 * 1024 * 1024, // 5MB
+      TASK: 5 * 1024 * 1024, // 5MB
       SCORM: 100 * 1024 * 1024, // 100MB
     };
 
@@ -779,11 +903,49 @@ export function ActivityDrawerContent({
     }
   };
 
-  const handleVideoUploadToR2 = (file: File) => {
-    handleFileUploadToR2(file, (publicUrl, fileName) => {
+  const handleVideoUploadToR2 = async (file: File) => {
+    // Validate file
+    const allowedTypes = [
+      'video/mp4',
+      'video/mpeg',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/webm'
+    ];
+    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    if (!validateFile(file, allowedTypes, maxSize)) {
+      setUploadError("File tidak valid. Pastikan file bertipe MP4/MOV/AVI/WebM dan kurang dari 50MB");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      const { publicUrl, fileName } = await uploadFileToR2(file);
+
+      // Update state
       setUploadedVideo(fileName);
+      setUploadedFileUrl(publicUrl);
+
+      // Update form values
       form.setFieldValue("contentUrl", publicUrl);
-    }, 'VIDEO');
+      form.setFieldValue("videoFile", file);
+
+      // Show success message
+      setShowToast(true);
+      setToastMessage("Video berhasil diupload!");
+      setToastVariant("success");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      setUploadError(errorMessage);
+      setShowToast(true);
+      setToastMessage(errorMessage);
+      setToastVariant("warning");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDocumentUploadToR2 = async (file: File) => {
@@ -837,11 +999,60 @@ export function ActivityDrawerContent({
     }
   };
 
-  const handleScormUploadToR2 = (file: File) => {
-    handleFileUploadToR2(file, (publicUrl, fileName) => {
+  const handleScormUploadToR2 = async (file: File) => {
+    // Validate file
+    const allowedTypes = [
+      'application/zip',
+      'application/x-zip-compressed'
+    ];
+    const maxSize = 100 * 1024 * 1024; // 100MB
+
+    if (!validateFile(file, allowedTypes, maxSize)) {
+      setUploadError("File tidak valid. Pastikan file bertipe ZIP dan kurang dari 100MB");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      const { publicUrl, fileName } = await uploadFileToR2(file);
+
+      // Update state
       setUploadedScorm(fileName);
+      setUploadedFileUrl(publicUrl);
+
+      // Update form values
       form.setFieldValue("contentUrl", publicUrl);
-    }, 'SCORM');
+      form.setFieldValue("scormFile", file);
+
+      // Show success message
+      setShowToast(true);
+      setToastMessage("SCORM package berhasil diupload!");
+      setToastVariant("success");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      setUploadError(errorMessage);
+      setShowToast(true);
+      setToastMessage(errorMessage);
+      setToastVariant("warning");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleTaskUploadToR2 = (file: File) => {
+    handleFileUploadToR2(file, (publicUrl, fileName) => {
+      const newMaterial = {
+        id: `${fileName}-${Date.now()}`,
+        title: fileName,
+        size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+      };
+
+      setUploadedMaterials(prev => [...prev, newMaterial]);
+      form.setFieldValue("contentUrl", publicUrl);
+      form.setFieldValue("documentFile", file);
+    }, 'TASK');
   };
 
   // ✅ UPDATED: handleSave dengan logic untuk CREATE dan UPDATE
@@ -884,6 +1095,8 @@ export function ActivityDrawerContent({
       contentUrl = uploadedMaterials[0]?.title || "";
     } else if (selectedActivityType === "SCORM") {
       contentUrl = uploadedScorm || "";
+    } else if (selectedActivityType === "TASK") {
+      contentUrl = uploadedMaterials[0]?.title || "";
     }
 
     // Prepare dates
@@ -947,7 +1160,10 @@ export function ActivityDrawerContent({
               Pengaturan Penyelesaian
             </h5>
             <p className="text-sm text-green-700">
-              Atur kriteria kapan activity dianggap selesai
+              {selectedActivityType === "TASK"
+                ? "Atur kriteria penyelesaian tugas"
+                : "Atur kriteria kapan activity dianggap selesai"
+              }
             </p>
           </div>
         </div>
@@ -970,33 +1186,91 @@ export function ActivityDrawerContent({
             </div>
           )}
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h6 className="font-medium">Tenggat Waktu</h6>
-                <p className="text-sm text-gray-500">
-                  Tetapkan deadline penyelesaian aktivitas
-                </p>
+          {selectedActivityType === "TASK" && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h6 className="font-medium">Wajib Mengumpulkan</h6>
+                    <p className="text-sm text-gray-500">
+                      Peserta harus mengumpulkan tugas untuk menyelesaikan aktivitas
+                    </p>
+                  </div>
+                  <Switch
+                    checked={taskSubmissionRequired}
+                    onChange={setTaskSubmissionRequired}
+                  />
+                </div>
               </div>
-              <Switch checked={deadlineEnabled} onChange={setDeadlineEnabled} />
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h6 className="font-medium">Tenggat Waktu</h6>
+                    <p className="text-sm text-gray-500">
+                      Tetapkan deadline pengumpulan tugas
+                    </p>
+                  </div>
+                  <Switch checked={deadlineEnabled} onChange={setDeadlineEnabled} />
+                </div>
+                {deadlineEnabled && (
+                  <div>
+                    <Label
+                      htmlFor="taskDeadlineDate"
+                      className="block text-sm font-medium text-gray-700 my-2"
+                    >
+                      Deadline Tugas
+                    </Label>
+                    <form.Field
+                      name="deadline"
+                      children={(field) => (
+                        <Input
+                          id="taskDeadlineDate"
+                          type="datetime-local"
+                          value={field.state.value}
+                          onChange={(e) => {
+                            field.handleChange(e.target.value);
+                            setDeadlineDate(e.target.value); // Keep local state for UI sync
+                          }}
+                          onBlur={field.handleBlur}
+                        />
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-            {deadlineEnabled && (
-              <div>
-                <Label
-                  htmlFor="deadlineDate"
-                  className="block text-sm font-medium text-gray-700 my-2"
-                >
-                  Deadline
-                </Label>
-                <Input
-                  id="deadlineDate"
-                  type="datetime-local"
-                  value={deadlineDate}
-                  onChange={(e) => setDeadlineDate(e.target.value)}
-                />
+          )}
+
+          {selectedActivityType !== "TASK" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h6 className="font-medium">Tenggat Waktu</h6>
+                  <p className="text-sm text-gray-500">
+                    Tetapkan deadline penyelesaian aktivitas
+                  </p>
+                </div>
+                <Switch checked={deadlineEnabled} onChange={setDeadlineEnabled} />
               </div>
-            )}
-          </div>
+              {deadlineEnabled && (
+                <div>
+                  <Label
+                    htmlFor="deadlineDate"
+                    className="block text-sm font-medium text-gray-700 my-2"
+                  >
+                    Deadline
+                  </Label>
+                  <Input
+                    id="deadlineDate"
+                    type="datetime-local"
+                    value={deadlineDate}
+                    onChange={(e) => setDeadlineDate(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {selectedActivityType === "QUIZ" && (
             <div className="space-y-6">
@@ -1099,136 +1373,6 @@ export function ActivityDrawerContent({
       <Button size="sm" variant="ghost" onClick={onRemove}>
         <X className="size-4" />
       </Button>
-    </div>
-  );
-
-  // ✅ UPDATE: RestrictionSection component
-  const RestrictionSection = () => (
-    <div className="my-4 space-y-4 border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-purple-600 flex items-center justify-center">
-            <Lock className="size-5 text-white" />
-          </div>
-          <div>
-            <h5 className="font-medium text-purple-900">Pembatasan Akses</h5>
-            <p className="text-sm text-purple-600">
-              Atur kapan dan bagaimana peserta dapat mengakses activity ini
-            </p>
-          </div>
-        </div>
-        <Switch
-          checked={restrictionEnabled}
-          onChange={(checked) => {
-            setRestrictionEnabled(checked);
-            // ✅ Jika restriction dimatikan, clear semua restriction settings
-            if (!checked) {
-              setRestrictions({
-                prerequisiteEnabled: false,
-                timeEnabled: false,
-              });
-              // ✅ Clear dates
-              setStartDate("");
-              setEndDate("");
-              form.setFieldValue("contentStart", "");
-              form.setFieldValue("contentEnd", "");
-            }
-          }}
-        />
-      </div>
-
-      {restrictionEnabled && (
-        <div className="space-y-6">
-          <p className="text-sm text-gray-500">
-            Pilih satu atau lebih pembatasan akses yang ingin diterapkan.
-          </p>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h6 className="font-medium">Activity Prasyarat</h6>
-                <p className="text-sm text-gray-500">
-                  Peserta harus menyelesaikan activity tertentu sebelum dapat
-                  mengakses ini
-                </p>
-              </div>
-              <Switch
-                checked={restrictions.prerequisiteEnabled}
-                onChange={() => handleRestrictionToggle("prerequisiteEnabled")}
-              />
-            </div>
-
-            {restrictions.prerequisiteEnabled && (
-              <div className="bg-gray-100 p-3 rounded-md text-sm text-gray-600">
-                Pilih activity prasyarat dari daftar course sections.
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h6 className="font-medium">Pembatasan Waktu</h6>
-                <p className="text-sm text-gray-500">
-                  Tentukan rentang waktu kapan activity ini dapat diakses
-                </p>
-              </div>
-              <Switch
-                checked={restrictions.timeEnabled}
-                onChange={(checked) => {
-                  handleRestrictionToggle("timeEnabled");
-                  // ✅ Jika time restriction dimatikan, clear dates
-                  if (!checked) {
-                    setStartDate("");
-                    setEndDate("");
-                    form.setFieldValue("contentStart", "");
-                    form.setFieldValue("contentEnd", "");
-                  }
-                }}
-              />
-            </div>
-
-            {restrictions.timeEnabled && (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label
-                    htmlFor="startDate"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Tersedia Mulai
-                  </Label>
-                  <Input
-                    id="startDate"
-                    type="datetime-local"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      form.setFieldValue("contentStart", e.target.value);
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="endDate"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Tersedia Hingga
-                  </Label>
-                  <Input
-                    id="endDate"
-                    type="datetime-local"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      form.setFieldValue("contentEnd", e.target.value);
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -1387,28 +1531,30 @@ export function ActivityDrawerContent({
         <BackButton onClick={() => setContentSource(null)} />
         <h4 className="mb-4">Pilih jenis konten yang ingin ditambahkan:</h4>
 
-        <div className="grid grid-cols-2 gap-4">
-          {ACTIVITY_OPTIONS.map(
-            ({ type, label, description, icon: Icon, color, span }) => (
-              <Card
-                key={type}
-                className={`p-6 cursor-pointer hover:border-${color}-500 hover:shadow-lg transition-all ${span ? "col-span-2" : ""}`}
-                onClick={() => setSelectedActivityType(type as ActivityType)}
-              >
-                <div className="flex flex-col items-center text-center gap-3">
-                  <div
-                    className={`size-16 rounded-full bg-${color}-100 flex items-center justify-center`}
-                  >
-                    <Icon className={`size-8 text-${color}-600`} />
+        <div className="space-y-6">
+          {ACTIVITY_ROWS.map((row, rowIndex) => (
+            <div key={rowIndex} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {row.map(({ type, label, description, icon: Icon, color }) => (
+                <Card
+                  key={type}
+                  className={`p-6 cursor-pointer hover:border-${color}-500 hover:shadow-lg transition-all`}
+                  onClick={() => setSelectedActivityType(type as ActivityType)}
+                >
+                  <div className="flex flex-col items-center text-center gap-3">
+                    <div
+                      className={`size-16 rounded-full bg-${color}-100 flex items-center justify-center`}
+                    >
+                      <Icon className={`size-8 text-${color}-600`} />
+                    </div>
+                    <div>
+                      <p className="font-medium">{label}</p>
+                      <p className="text-sm text-gray-500 mt-1">{description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{label}</p>
-                    <p className="text-sm text-gray-500 mt-1">{description}</p>
-                  </div>
-                </div>
-              </Card>
-            ),
-          )}
+                </Card>
+              ))}
+            </div>
+          ))}
         </div>
 
         {showToast && (
@@ -1532,8 +1678,11 @@ export function ActivityDrawerContent({
               )}
             />
 
-            <RestrictionSection />
-            <CompletionSection />
+            {/* Only show completion sections for TASK and QUIZ */}
+            {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
+              <CompletionSection />
+            )}
+
 
             {showMaterialsList && (
               <div className="mt-6">
@@ -1568,68 +1717,162 @@ export function ActivityDrawerContent({
         )}
 
         {selectedActivityType === "VIDEO" && (
-          <form.Field
-            name="videoFile"
-            validators={{
-              onChange: ({ value }) => {
-                if (!value && !form.state.values.contentUrl) {
-                  return "Video file atau URL harus diisi";
-                }
-                return undefined;
-              },
-            }}
-            children={(field) => (
-              <>
-                <FileUploadArea
-                  icon={Video}
-                  label="Upload Video"
-                  accept="video/*"
-                  description="Klik untuk upload video (Max 50MB) - Akan diupload ke Cloud Storage"
-                  color="blue"
-                  id="video-upload"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      field.handleChange(file);
-                      // handleVideoUploadToR2(file);
-                    }
+          <>
+            {/* Video Source Selection */}
+            <div className="mb-6">
+              <Label className="text-sm font-medium text-gray-700 mb-3">
+                Pilih sumber video
+              </Label>
+              <div className="flex gap-4">
+                <Card
+                  className={`flex-1 p-4 cursor-pointer transition-all border-2 ${
+                    videoSource === "upload"
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => {
+                    setVideoSource("upload");
+                    form.setFieldValue("videoSource", "upload");
                   }}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {field.state.meta.errors[0]}
-                  </p>
-                )}
-                {uploading && (
-                  <div className="mt-3 flex items-center text-blue-600">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span className="text-sm">Mengupload video...</span>
+                >
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <Video className="size-6 text-blue-600" />
+                    <span className="font-medium">Upload Video</span>
+                    <span className="text-sm text-gray-500">File video lokal</span>
                   </div>
-                )}
-                {uploadedVideo && !uploading && (
-                  <div className="mt-3">
-                    <UploadedFile
+                </Card>
+                <Card
+                  className={`flex-1 p-4 cursor-pointer transition-all border-2 ${
+                    videoSource === "link"
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => {
+                    setVideoSource("link");
+                    form.setFieldValue("videoSource", "link");
+                  }}
+                >
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <Link className="size-6 text-orange-600" />
+                    <span className="font-medium">Link Video</span>
+                    <span className="text-sm text-gray-500">YouTube, platform lain</span>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Upload Video Section */}
+            {videoSource === "upload" && (
+              <form.Field
+                name="videoFile"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) {
+                      return "Video file harus diunggah";
+                    }
+                    return undefined;
+                  },
+                }}
+                children={(field) => (
+                  <>
+                    <FileUploadArea
                       icon={Video}
-                      name={uploadedVideo}
+                      label="Upload Video"
+                      accept="video/*"
+                      description="Klik untuk upload video (Max 50MB) - Akan diupload ke Cloud Storage"
                       color="blue"
-                      onRemove={() => {
-                        setUploadedVideo(null);
-                        setUploadedFileUrl("");
-                        field.handleChange(undefined);
-                        form.setFieldValue("contentUrl", "");
+                      id="video-upload"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          const file = files[0];
+                          field.handleChange(file);
+                          handleVideoUploadToR2(file);
+                        }
                       }}
                     />
-                  </div>
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                    {uploading && (
+                      <div className="mt-3 flex items-center text-blue-600">
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <span className="text-sm">Mengupload video...</span>
+                      </div>
+                    )}
+                    {uploadedVideo && !uploading && (
+                      <div className="mt-3">
+                        <UploadedFile
+                          icon={Video}
+                          name={uploadedVideo}
+                          color="blue"
+                          onRemove={() => {
+                            setUploadedVideo(null);
+                            setUploadedFileUrl("");
+                            field.handleChange(undefined);
+                            form.setFieldValue("contentUrl", "");
+                          }}
+                        />
+                      </div>
+                    )}
+                    {uploadError && (
+                      <div className="mt-3 flex items-center text-red-600">
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        <span className="text-sm">{uploadError}</span>
+                      </div>
+                    )}
+                  </>
                 )}
-                {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm">{uploadError}</span>
-                  </div>
-                )}
-              </>
+              />
             )}
-          />
+
+            {/* Link Video Section */}
+            {videoSource === "link" && (
+              <form.Field
+                name="videoUrl"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim() === "") {
+                      return "URL video harus diisi";
+                    }
+                    try {
+                      new URL(value);
+                      return undefined;
+                    } catch {
+                      return "Format URL tidak valid";
+                    }
+                  },
+                }}
+                children={(field) => (
+                  <div>
+                    <Label>URL Video</Label>
+                    <Input
+                      type="url"
+                      value={field.state.value}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value);
+                        setVideoUrl(e.target.value);
+                        form.setFieldValue("contentUrl", e.target.value);
+                      }}
+                      onBlur={field.handleBlur}
+                      placeholder="https://www.youtube.com/watch?v=example atau platform lain"
+                      className="mt-1"
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-2">
+                      Masukkan link video dari YouTube, Vimeo, atau platform video lainnya
+                    </p>
+                  </div>
+                )}
+              />
+            )}
+          </>
         )}
 
         {selectedActivityType === "LINK" && (
@@ -1656,7 +1899,7 @@ export function ActivityDrawerContent({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  placeholder="https://www.youtube.com/watch?v=example"
+                  placeholder="https://example.com/resource"
                   className="mt-1"
                 />
                 {field.state.meta.errors.length > 0 && (
@@ -1665,7 +1908,7 @@ export function ActivityDrawerContent({
                   </p>
                 )}
                 <p className="text-sm text-gray-500 mt-2">
-                  Masukkan link YouTube atau e-Certificate
+                  Masukkan link eksternal
                 </p>
               </div>
             )}
@@ -1770,10 +2013,11 @@ export function ActivityDrawerContent({
                   color="purple"
                   id="scorm-upload"
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                      const file = files[0];
                       field.handleChange(file);
-                      // handleScormUploadToR2(file);
+                      handleScormUploadToR2(file);
                     }
                   }}
                 />
@@ -1801,6 +2045,83 @@ export function ActivityDrawerContent({
                         form.setFieldValue("contentUrl", "");
                       }}
                     />
+                  </div>
+                )}
+                {uploadError && (
+                  <div className="mt-3 flex items-center text-red-600">
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    <span className="text-sm">{uploadError}</span>
+                  </div>
+                )}
+              </>
+            )}
+          />
+        )}
+
+        {selectedActivityType === "TASK" && (
+          <form.Field
+            name="documentFile"
+            validators={{
+              onChange: ({ value }) => {
+                if (!value && uploadedMaterials.length === 0) {
+                  return "Dokumen tugas harus diupload";
+                }
+                return undefined;
+              },
+            }}
+            children={(field) => (
+              <>
+                <div>
+                  <Label>Dokumen Tugas</Label>
+                  <p className="text-sm text-gray-500 mt-1 mb-2">
+                    Upload dokumen tugas yang akan dikerjakan oleh mahasiswa
+                    (Max 5MB) - Akan diupload ke Cloud Storage
+                  </p>
+                </div>
+                <FileUploadArea
+                  icon={ClipboardList}
+                  label=""
+                  accept=".pdf,.doc,.docx,.ppt,.pptx"
+                  description="Klik untuk upload dokumen tugas"
+                  color="indigo"
+                  id="task-upload"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                      const file = files[0];
+                      field.handleChange(file);
+                      handleTaskUploadToR2(file);
+                    }
+                  }}
+                />
+                {field.state.meta.errors.length > 0 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {field.state.meta.errors[0]}
+                  </p>
+                )}
+                {uploading && (
+                  <div className="mt-3 flex items-center text-indigo-600">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <span className="text-sm">Mengupload dokumen tugas...</span>
+                  </div>
+                )}
+                {uploadedMaterials.length > 0 && !uploading && (
+                  <div className="mt-3 space-y-2">
+                    {uploadedMaterials.map((material) => (
+                      <UploadedFile
+                        key={material.id}
+                        icon={ClipboardList}
+                        name={material.title}
+                        color="indigo"
+                        badge={material.size}
+                        onRemove={() => {
+                          handleRemoveMaterial(material.id);
+                          setUploadedFileUrl("");
+                          form.setFieldValue("contentUrl", "");
+                          field.handleChange(undefined);
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
                 {uploadError && (
@@ -1863,6 +2184,37 @@ export function ActivityDrawerContent({
                 </div>
               )}
             </form.Field>
+
+            {/* ✅ Quiz Questions Management */}
+            <Card className="p-6 border-2 border-blue-100 bg-linear-to-br from-blue-50/30 to-white">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 shadow-md">
+                    <Edit3 className="size-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Manajemen Soal</h3>
+                    <p className="text-sm text-gray-600">
+                      Buat dan kelola soal untuk quiz ini
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setShowQuizQuestionsManager(true)}
+                  variant="outline"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  <Edit3 className="size-4 mr-2" />
+                  Kelola Soal
+                </Button>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Info:</strong> Klik tombol "Kelola Soal" untuk membuat, mengedit, atau menghapus soal quiz. Anda dapat membuat berbagai jenis soal seperti pilihan ganda, essay, atau benar/salah.
+                </p>
+              </div>
+            </Card>
 
             {/* 2. Pengaturan Waktu */}
             <Card className="p-6 border-2 border-green-100 bg-linear-to-br from-green-50/30 to-white">
@@ -2214,6 +2566,51 @@ export function ActivityDrawerContent({
           </div>
         )}
       </div>
+    );
+  }
+
+  // ✅ Quiz Questions Manager View
+  if (showQuizQuestionsManager) {
+    const quizInfo = {
+      id: contentId || '',
+      title: form.state.values.name || 'Kuis Baru',
+      description: form.state.values.description || '',
+      timeLimit: quizTimeLimitEnabled ? parseInt(quizTimeLimit) || 60 : undefined,
+      shuffleQuestions: quizShuffleQuestions,
+      passingScore: passingGradeEnabled ? parseFloat(quizGradeToPass) || 60 : undefined,
+      totalQuestions: 0, // Will be calculated
+      maxPoints: 0 // Will be calculated
+    };
+
+    return (
+      <QuizQuestionsManager
+        quizInfo={quizInfo}
+        onBack={() => setShowQuizQuestionsManager(false)}
+        onSaveQuiz={(savedQuizInfo, questions, questionsToSave) => {
+          // Update form values with quiz info
+          form.setFieldValue("name", savedQuizInfo.title);
+          form.setFieldValue("description", savedQuizInfo.description || "");
+
+          // Update quiz-related state
+          setQuizTimeLimitEnabled(!!savedQuizInfo.timeLimit);
+          setQuizTimeLimit(savedQuizInfo.timeLimit?.toString() || "60");
+          setQuizShuffleQuestions(savedQuizInfo.shuffleQuestions);
+          setPassingGradeEnabled(!!savedQuizInfo.passingScore);
+          setQuizGradeToPass(savedQuizInfo.passingScore?.toString() || "60");
+
+          // Store questions to save when quiz is created (for create mode)
+          if (questionsToSave && !contentId) {
+            // Save questions to state for later use when quiz is created
+            (window as any).tempQuestionsToSave = questionsToSave;
+            console.log("Questions prepared for bulk creation:", questionsToSave);
+          }
+
+          setShowQuizQuestionsManager(false);
+          showToastMessage("Soal kuis berhasil disimpan!", "success");
+        }}
+        initialQuestions={[]} // Will be populated from backend later
+        contentId={contentId} // Pass the contentId for API calls
+      />
     );
   }
 

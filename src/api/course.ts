@@ -1,16 +1,46 @@
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 
-export type Course = {
+export type CourseDescription = {
+  id: string;
+  idCourse: string;
+  curriculum: string;
+  method: string;
+  silabus: string;
+  totalJp: number;
+  quota: number;
+  grade: string;
+  category: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CourseGroup = {
+  id: string;
+  idCourse: string;
+  idTeacher: string;
+  isOpen: boolean;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CourseResponse = {
   id: string;
   title: string;
-  categories: string;
-  rating: number;
-  teacher: string;
-  teacherAvatar?: string;
-  totalStudents: number;
-  image: string;
-  description?: string;
+  idManager: string;
+  thumbnail: string;
+  typeCourse: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+  description: CourseDescription;
+  groups: CourseGroup[];
+  averageRating: number;
+  totalUsers: number;
 };
 
 // export const getCourses = async (): Promise<Course[]> => {
@@ -23,41 +53,15 @@ export type Course = {
 
 const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000"
 
-export const getCourses = async (): Promise<Course[]> => {
+export const getCourses = async (): Promise<CourseResponse[]> => {
   const response = await axios.get(`${BASE_URL}/courses`);
-
-  const list: any[] = response.data?.data ?? [];
-
-  const mappedCourses: Course[] = list.map((item: any) => {
-    const seedNum = item.id ? String(item.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : Math.floor(Math.random() * 1000);  
-    const unsplashImage = `https://picsum.photos/seed/${seedNum}/600/400`;
-
-    return {
-      id: item.id,
-      title: item.title,
-      categories: item.description?.category || "Uncategorized",
-      rating: 4.5,
-      teacher: "Teacher",
-      teacherAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face",
-      totalStudents: item.description?.quota || 0,
-      image: unsplashImage,
-      description: item.description?.description || "",
-    };
-  });
-
-  //console.log("Mapped courses:", mappedCourses);
-  return mappedCourses;
+  const course = response.data.data;
+  return course;
 };
 
-export const createCourse = async (): Promise<Course> => {
-  const response = await axios.post<Course>(
-    "https://jsonplaceholder.typicode.com/posts"
-  );
-  return response.data;
+export const getCourseById = async (id: string): Promise<CourseResponse[]> => {
+  const response = await axios.get(`${BASE_URL}/courses/${id}`);
+  const course = response.data.data;
+  return course;
 };
 
-export const useCreateCourse = () => {
-  return useMutation({
-    mutationFn: createCourse,
-  });
-};

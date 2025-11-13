@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/config/api";
 import axios from "axios";
 
 export type Content = {
@@ -34,7 +35,7 @@ export const createContent = async (
   newContent: Omit<Content, "id" | "createdAt" | "updatedAt">,
 ): Promise<Content> => {
   const response = await axios.post<Content>(
-    `${BASE_URL}/contents`,
+    `${API_BASE_URL}/contents`,
     newContent,
     {
       headers: {

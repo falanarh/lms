@@ -57,6 +57,7 @@ const baseContentSchema = z.object({
     .or(z.literal("")),
   contentStart: z.coerce.date().nullable().optional(),
   contentEnd: z.coerce.date().nullable().optional(),
+  deadline: z.coerce.date().nullable().optional(), // ✅ NEW: Task deadline field
 });
 
 // Video Content Schema
@@ -188,6 +189,22 @@ export const updateQuizContentSchema = baseContentSchema
   .required({ type: true });
   // .partial();
 
+// Task Content Schema
+export const createTaskContentSchema = baseContentSchema.extend({
+  idSection: z.string().uuid("Invalid section ID"),
+  type: z.literal("TASK"),
+  contentUrl: z.string().optional(),
+  sequence: z.number().int().min(0),
+});
+
+export const updateTaskContentSchema = baseContentSchema
+  .extend({
+    type: z.literal("TASK"),
+    contentUrl: z.string().optional(),
+  })
+  .partial()
+  .required({ type: true });
+
 // Jadwal Kurikulum Content Schema
 export const createJadwalKurikulumContentSchema = baseContentSchema.extend({
   idSection: z.string().uuid("Invalid section ID"),
@@ -231,6 +248,7 @@ export const createContentSchema = z.discriminatedUnion("type", [
   createLinkContentSchema,
   createPdfContentSchema,
   createScormContentSchema,
+  createTaskContentSchema,
   createQuizContentSchema,
   createJadwalKurikulumContentSchema,
 ]);
@@ -240,6 +258,7 @@ export const updateContentSchema = z.discriminatedUnion("type", [
   updateLinkContentSchema,
   updatePdfContentSchema,
   updateScormContentSchema,
+  updateTaskContentSchema,
   updateQuizContentSchema,
   updateJadwalKurikulumContentSchema,
 ]);
@@ -253,6 +272,8 @@ export type CreatePdfContent = z.infer<typeof createPdfContentSchema>;
 export type UpdatePdfContent = z.infer<typeof updatePdfContentSchema>;
 export type CreateScormContent = z.infer<typeof createScormContentSchema>;
 export type UpdateScormContent = z.infer<typeof updateScormContentSchema>;
+export type CreateTaskContent = z.infer<typeof createTaskContentSchema>;
+export type UpdateTaskContent = z.infer<typeof updateTaskContentSchema>;
 export type CreateQuizContent = z.infer<typeof createQuizContentSchema>;
 export type UpdateQuizContent = z.infer<typeof updateQuizContentSchema>;
 export type CreateJadwalKurikulumContent = z.infer<

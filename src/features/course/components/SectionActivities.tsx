@@ -77,12 +77,14 @@ interface SectionActivitiesProps {
     activityId: string,
     activityData: Content,
   ) => void; // ✅ BARU
+  onManageQuizQuestions?: (sectionId: string, activityId: string, activityData: Content) => void; // ✅ NEW: For quiz management
   groupId?: string;
 }
 
 export function SectionActivities({
   onAddActivity,
   onEditActivity,
+  onManageQuizQuestions,
   groupId,
 }: SectionActivitiesProps) {
   const {
@@ -364,15 +366,17 @@ export function SectionActivities({
   const sortableInstanceRef = useRef<Sortable | null>(null);
   const activitiesSortableRefs = useRef<Map<string, Sortable>>(new Map());
 
-  function mapContentType(type: string): "PDF" | "VIDEO" | "LINK" | "SCORM" {
+  function mapContentType(type: string): "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK" {
     const typeUpper = type.toUpperCase();
     if (
       typeUpper === "PDF" ||
       typeUpper === "VIDEO" ||
       typeUpper === "LINK" ||
-      typeUpper === "SCORM"
+      typeUpper === "SCORM" || 
+      typeUpper === "QUIZ" ||
+      typeUpper === "TASK"
     ) {
-      return typeUpper as "PDF" | "VIDEO" | "LINK" | "SCORM";
+      return typeUpper as "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK";
     }
     return "PDF";
   }
@@ -999,6 +1003,22 @@ export function SectionActivities({
                         contentUrl={activity.contentUrl}
                         description={activity.description}
                         showAction={true}
+                        questionCount={activity.type === "QUIZ" ? 0 : undefined} // Will be populated from backend
+                        contentId={activity.id}
+                        onManageQuestions={activity.type === "QUIZ" ? () => {
+                          // Navigate to quiz questions manager
+                          if (onManageQuizQuestions) {
+                            onManageQuizQuestions(section.id, activity.id, {
+                              id: activity.id,
+                              name: activity.title,
+                              type: "QUIZ",
+                              description: activity.description,
+                              contentUrl: activity.contentUrl,
+                              idSection: section.id,
+                              sequence: activity.sequence,
+                            } as Content);
+                          }
+                        } : undefined}
                       />
                     </div>
 

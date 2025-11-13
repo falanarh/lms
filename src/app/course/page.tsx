@@ -10,9 +10,9 @@ import {
   CourseHeader,
   CourseLayout,
 } from "@/features/course/components";
-import { useCourses } from "@/hooks/useCourse";
+import { useGroupCourses } from "@/hooks/useGroupCourses";
 
-const COURSES_PER_PAGE = 4;
+const COURSES_PER_PAGE = 8;
 
 export default function CoursePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,49 +21,21 @@ export default function CoursePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewModeValue>("grid-4");
 
-  const { data, isPending, isFetching } = useCourses();
-  const courses = data ?? [];
-
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const filteredAndSortedCourses = useMemo(() => {
-    const filtered = courses.filter((course) => {
-      const matchesSearch = course.title
-        .toLowerCase()
-        .includes(debouncedSearchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "All Categories" ||
-        course.categories === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
+  const { data: courses = [], isLoading: isLoadingCourses } = useGroupCourses({
+    searchQuery: debouncedSearchQuery,
+    selectedCategory,
+    sortBy
+  });
 
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "title-asc":
-          return a.title.localeCompare(b.title);
-        case "title-desc":
-          return b.title.localeCompare(a.title);
-        case "rating-desc":
-          return b.rating - a.rating;
-        case "students-desc":
-          return b.totalStudents - a.totalStudents;
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [courses, debouncedSearchQuery, selectedCategory, sortBy]);
-
-  const totalPages = Math.ceil(
-    filteredAndSortedCourses.length / COURSES_PER_PAGE
-  );
+  const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
 
   const paginatedCourses = useMemo(() => {
     const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
     const endIndex = startIndex + COURSES_PER_PAGE;
-    return filteredAndSortedCourses.slice(startIndex, endIndex);
-  }, [filteredAndSortedCourses, currentPage]);
+    return courses.slice(startIndex, endIndex);
+  }, [courses, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -95,7 +67,7 @@ export default function CoursePage() {
       <CourseGrid
         courses={paginatedCourses}
         viewMode={viewMode}
-        isLoading={isPending || isFetching}
+        isLoading={isLoadingCourses}
       />
 
       {totalPages > 1 && (

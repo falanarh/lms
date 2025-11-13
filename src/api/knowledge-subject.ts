@@ -20,10 +20,10 @@ import type {
   PaginatedApiResponse,
   ApiResponse,
 } from '@/types/api-response';
-import { API_CONFIG } from '@/config/api';
+import { API_BASE_URL, API_CONFIG } from '@/config/api';
 
 // Base URL for Knowledge Subject API
-const KNOWLEDGE_SUBJECT_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+const KNOWLEDGE_SUBJECT_API_BASE = API_BASE_URL|| 'http://localhost:3001/api';
 const KNOWLEDGE_SUBJECT_BASE_URL = `${KNOWLEDGE_SUBJECT_API_BASE}/knowledge-subjects`;
 
 // Default cache settings
