@@ -1,7 +1,5 @@
 "use client";
-
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { Textarea } from "@/components/ui/Textarea";
 
 interface BlockNoteEditorProps {
   content?: string;
@@ -12,24 +10,6 @@ interface BlockNoteEditorProps {
   height?: string;
 }
 
-// Basic rich text formatting functions
-const formatText = (text: string): string => {
-  if (!text) return '';
-
-  // Convert newlines to <br> for HTML rendering
-  return text.replace(/\n/g, '<br>');
-};
-
-const stripHtml = (html: string): string => {
-  if (!html) return '';
-
-  // Basic HTML stripping
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .trim();
-};
-
 export function BlockNoteEditor({
   content = "",
   onChange,
@@ -39,122 +19,136 @@ export function BlockNoteEditor({
   height = "200px"
 }: BlockNoteEditorProps) {
   const [internalContent, setInternalContent] = useState(content);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Update internal content when prop changes
   useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== content) {
+      editorRef.current.innerHTML = content || '';
+    }
     setInternalContent(content);
   }, [content]);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
-    }
-  }, [internalContent]);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setInternalContent(newContent);
-
-    if (onChange) {
-      onChange(newContent);
+  const handleInput = useCallback(() => {
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      setInternalContent(newContent);
+      if (onChange) {
+        onChange(newContent);
+      }
     }
   }, [onChange]);
 
-  // Simple toolbar for basic formatting
+  const execCommand = useCallback((command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+    handleInput();
+  }, [handleInput]);
+
   const insertFormatting = useCallback((format: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea || !editable) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = internalContent.substring(start, end);
-
-    let formattedText = '';
+    if (!editable) return;
 
     switch (format) {
       case 'bold':
-        formattedText = `**${selectedText}**`;
+        execCommand('bold');
         break;
       case 'italic':
-        formattedText = `*${selectedText}*`;
+        execCommand('italic');
+        break;
+      case 'underline':
+        execCommand('underline');
         break;
       case 'code':
-        formattedText = `\`${selectedText}\``;
+        execCommand('formatBlock', '<pre>');
         break;
       case 'h2':
-        formattedText = `## ${selectedText}`;
+        execCommand('formatBlock', '<h2>');
         break;
       case 'h3':
-        formattedText = `### ${selectedText}`;
+        execCommand('formatBlock', '<h3>');
         break;
       case 'ul':
-        formattedText = `- ${selectedText}`;
+        execCommand('insertUnorderedList');
         break;
       case 'ol':
-        formattedText = `1. ${selectedText}`;
+        execCommand('insertOrderedList');
         break;
       case 'link':
-        formattedText = `[${selectedText}](url)`;
+        const url = prompt('Enter URL:', 'https://');
+        if (url) {
+          execCommand('createLink', url);
+        }
         break;
-      default:
-        formattedText = selectedText;
     }
+  }, [editable, execCommand]);
 
-    const newContent =
-      internalContent.substring(0, start) +
-      formattedText +
-      internalContent.substring(end);
+  // Handle keyboard shortcuts
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!editable) return;
 
-    setInternalContent(newContent);
-    onChange?.(newContent);
-
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(
-        start + formattedText.length,
-        start + formattedText.length
-      );
-    }, 0);
-  }, [internalContent, editable, onChange]);
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          execCommand('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          execCommand('italic');
+          break;
+        case 'u':
+          e.preventDefault();
+          execCommand('underline');
+          break;
+      }
+    }
+  }, [editable, execCommand]);
 
   return (
-    <div className={`border rounded-lg overflow-hidden ${className}`}>
-      {/* Simple toolbar */}
+    <div className={`border rounded-lg overflow-hidden bg-white dark:bg-zinc-900 ${className}`}>
+      {/* Toolbar */}
       {editable && (
-        <div className="border-b bg-gray-50 px-3 py-2 flex flex-wrap gap-1">
+        <div className="border-b border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-3 py-2 flex flex-wrap gap-1">
           <button
             type="button"
             onClick={() => insertFormatting('bold')}
-            className="px-2 py-1 text-xs font-medium bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs font-bold bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Bold (Ctrl+B)"
           >
-            <strong>B</strong>
+            B
           </button>
           <button
             type="button"
             onClick={() => insertFormatting('italic')}
-            className="px-2 py-1 text-xs italic bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs italic bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Italic (Ctrl+I)"
           >
-            <em>I</em>
+            I
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting('underline')}
+            className="px-2 py-1 text-xs underline bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
+            title="Underline (Ctrl+U)"
+          >
+            U
           </button>
           <button
             type="button"
             onClick={() => insertFormatting('code')}
-            className="px-2 py-1 text-xs font-mono bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
-            title="Code (Ctrl+`)"
+            className="px-2 py-1 text-xs font-mono bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
+            title="Code"
           >
-            <code>Code</code>
+            &lt;/&gt;
           </button>
+          
+          <div className="w-px bg-gray-300 dark:bg-zinc-600 mx-1"></div>
+          
           <button
             type="button"
             onClick={() => insertFormatting('h2')}
-            className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs font-semibold bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Heading 2"
           >
             H2
@@ -162,15 +156,18 @@ export function BlockNoteEditor({
           <button
             type="button"
             onClick={() => insertFormatting('h3')}
-            className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs font-semibold bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Heading 3"
           >
             H3
           </button>
+          
+          <div className="w-px bg-gray-300 dark:bg-zinc-600 mx-1"></div>
+          
           <button
             type="button"
             onClick={() => insertFormatting('ul')}
-            className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Bullet List"
           >
             • List
@@ -178,7 +175,7 @@ export function BlockNoteEditor({
           <button
             type="button"
             onClick={() => insertFormatting('ol')}
-            className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Numbered List"
           >
             1. List
@@ -186,7 +183,7 @@ export function BlockNoteEditor({
           <button
             type="button"
             onClick={() => insertFormatting('link')}
-            className="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-2 py-1 text-xs bg-white dark:bg-zinc-700 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-300 rounded hover:bg-gray-100 dark:hover:bg-zinc-600 transition-colors"
             title="Link"
           >
             🔗 Link
@@ -194,31 +191,113 @@ export function BlockNoteEditor({
         </div>
       )}
 
-      {/* Textarea */}
+      {/* ContentEditable Editor */}
       <div className="relative">
-        <Textarea
-          ref={textareaRef}
-          value={internalContent}
-          onChange={handleChange}
-          placeholder={placeholder}
-          disabled={!editable}
-          className={`border-0 resize-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${
-            !editable ? 'bg-gray-50 cursor-not-allowed' : ''
+        <div
+          ref={editorRef}
+          contentEditable={editable}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={`editor-content px-4 py-3 text-sm text-gray-900 dark:text-zinc-100 focus:outline-none overflow-auto ${
+            !editable ? 'bg-gray-50 dark:bg-zinc-800 cursor-not-allowed' : ''
           }`}
           style={{
             minHeight: height,
             maxHeight: height,
-            overflow: 'auto'
           }}
+          suppressContentEditableWarning
         />
+        
+        {/* Placeholder */}
+        {editable && !internalContent && !isFocused && (
+          <div className="absolute top-3 left-4 text-sm text-gray-400 dark:text-zinc-500 pointer-events-none">
+            {placeholder}
+          </div>
+        )}
 
         {/* Character count */}
         {editable && (
-          <div className="absolute bottom-2 right-2 text-xs text-gray-400 bg-white px-2 py-1 rounded">
-            {internalContent.length} karakter
+          <div className="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-zinc-500 bg-white dark:bg-zinc-800 px-2 py-1 rounded border border-gray-200 dark:border-zinc-700">
+            {internalContent.replace(/<[^>]*>/g, '').length} karakter
           </div>
         )}
       </div>
+
+      {/* CSS for editor content styling */}
+      <style jsx global>{`
+        .editor-content {
+          word-wrap: break-word;
+          white-space: pre-wrap;
+        }
+        
+        .editor-content h2 {
+          font-size: 1.5em;
+          font-weight: bold;
+          margin: 0.5em 0;
+          color: inherit;
+        }
+        
+        .editor-content h3 {
+          font-size: 1.25em;
+          font-weight: bold;
+          margin: 0.5em 0;
+          color: inherit;
+        }
+        
+        .editor-content ul,
+        .editor-content ol {
+          margin: 0.5em 0;
+          padding-left: 1.5em;
+        }
+        
+        .editor-content li {
+          margin: 0.25em 0;
+        }
+        
+        .editor-content pre {
+          background-color: rgba(0, 0, 0, 0.05);
+          padding: 0.5em;
+          border-radius: 0.25em;
+          font-family: monospace;
+          margin: 0.5em 0;
+        }
+        
+        .dark .editor-content pre {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .editor-content a {
+          color: #3b82f6;
+          text-decoration: underline;
+        }
+        
+        .dark .editor-content a {
+          color: #60a5fa;
+        }
+        
+        .editor-content strong {
+          font-weight: bold;
+        }
+        
+        .editor-content em {
+          font-style: italic;
+        }
+        
+        .editor-content u {
+          text-decoration: underline;
+        }
+
+        .editor-content p {
+          margin: 0.5em 0;
+        }
+
+        .editor-content:empty:before {
+          content: attr(data-placeholder);
+          color: #9ca3af;
+        }
+      `}</style>
     </div>
   );
 }

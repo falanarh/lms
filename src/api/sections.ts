@@ -26,13 +26,13 @@ export const getSections = async (): Promise<Section[]> => {
 }
 
 export const getSectionsByGroupId = async (groupId: string): Promise<Section[]> => {
-  const response = await axios.get(`${API_BASE_URL}/group-courses/${groupId}/section`);
+  const response = await axios.get(`${BASE_URL}/group-courses/${groupId}/section`);
   return response.data.data;
 };
 
 export const createSection = async (newSection: Omit<Section, "id" | "group" | "createdAt" | "updatedAt">): Promise<Section> => {
   const response = await axios.post<Section>(
-    `${API_BASE_URL}/sections`,
+    `${BASE_URL}/sections`,
     newSection,
     {
       headers: {
@@ -48,7 +48,7 @@ export const updateSection = async (
   updatedData: Partial<Omit<Section, "id" | "group" | "createdAt" | "updatedAt">>
 ): Promise<Section> => {
   const response = await axios.patch<Section>(
-    `${API_BASE_URL}/sections/${id}`,
+    `${BASE_URL}/sections/${id}`,
     updatedData,
     {
       headers: {
@@ -60,5 +60,5 @@ export const updateSection = async (
 };
 
 export const deleteSection = async (id: string): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/sections/${id}`)
+  await axios.delete(`${BASE_URL}/sections/${id}`)
 }

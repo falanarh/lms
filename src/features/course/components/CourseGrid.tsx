@@ -17,28 +17,28 @@ export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: 
         {Array.from({ length: 8 }).map((_, index) => (
           <div
             key={index}
-            className="bg-white border border-zinc-200 rounded-lg overflow-hidden animate-pulse"
+            className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden animate-pulse"
           >
-            <div className="aspect-video bg-zinc-200" />
+            <div className="aspect-video bg-zinc-200 dark:bg-zinc-700" />
             <div className="p-6 space-y-3">
-              <div className="h-6 bg-zinc-200 rounded-full w-20" />
-              <div className="h-5 bg-zinc-200 rounded w-full" />
-              <div className="h-4 bg-zinc-200 rounded w-3/4" />
+              <div className="h-6 bg-zinc-200 dark:bg-zinc-700 rounded-full w-20" />
+              <div className="h-5 bg-zinc-200 dark:bg-zinc-700 rounded w-full" />
+              <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4" />
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="w-4 h-4 bg-zinc-200 rounded" />
+                    <div key={i} className="w-4 h-4 bg-zinc-200 dark:bg-zinc-700 rounded" />
                   ))}
                 </div>
-                <div className="h-4 bg-zinc-200 rounded w-16" />
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-16" />
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-zinc-200 rounded" />
-                <div className="h-4 bg-zinc-200 rounded w-24" />
+                <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-700 rounded" />
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-24" />
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-zinc-200 rounded" />
-                <div className="h-4 bg-zinc-200 rounded w-20" />
+                <div className="w-4 h-4 bg-zinc-200 dark:bg-zinc-700 rounded" />
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-20" />
               </div>
             </div>
           </div>
@@ -50,9 +50,9 @@ export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: 
   if (courses.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="w-24 h-24 mx-auto mb-6 bg-zinc-100 rounded-full flex items-center justify-center">
+        <div className="w-24 h-24 mx-auto mb-6 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center">
           <svg
-            className="w-12 h-12 text-zinc-400"
+            className="w-12 h-12 text-zinc-400 dark:text-zinc-600"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -65,10 +65,10 @@ export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: 
             />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
           No courses found
         </h3>
-        <p className="text-zinc-600">
+        <p className="text-zinc-600 dark:text-zinc-400">
           Try adjusting your search or filter criteria
         </p>
       </div>

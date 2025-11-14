@@ -20,24 +20,20 @@ export default function QuizPage({ params }: QuizPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
   
-  // Pagination state - start with page 1 and 5 items per page
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(5); 
   
-  // Fetch quiz data using the hook
   const { 
     data: quizData, 
     isLoading: isLoadingQuiz, 
     error: quizError 
   } = useQuizById(resolvedParams.quizId);
 
-  // Fetch questions for this quiz with pagination
   const {
     data: questionsResponse,
     isLoading: isLoadingQuestions,
   } = useQuestions(resolvedParams.quizId, currentPage, perPage);
 
-  // Mutations
   const updateQuizMutation = useUpdateQuizWithContent();
 
   const isLoading = isLoadingQuiz || isLoadingQuestions;
@@ -49,7 +45,6 @@ export default function QuizPage({ params }: QuizPageProps) {
 
   const handleSaveQuiz = async (quizInfo: QuizInfo, questions: QuizQuestion[]) => {
     try {
-      // Update quiz with content only - questions are handled directly in QuizQuestionsManager
       await updateQuizMutation.mutateAsync({
         id: resolvedParams.quizId,
         data: {
@@ -73,15 +68,15 @@ export default function QuizPage({ params }: QuizPageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
         <div className="flex flex-col items-center gap-6">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 rounded-full"></div>
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0"></div>
+            <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
+            <div className="w-16 h-16 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin absolute top-0"></div>
           </div>
           <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900">Loading quiz...</p>
-            <p className="text-sm text-gray-500 mt-1">Please wait a moment</p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Loading quiz...</p>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Please wait a moment</p>
           </div>
         </div>
       </div>
@@ -90,20 +85,20 @@ export default function QuizPage({ params }: QuizPageProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 dark:from-red-900/20 dark:via-slate-900 dark:to-orange-900/20 p-4">
         <div className="flex flex-col items-center gap-6 text-center max-w-md">
-          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30">
+          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30 dark:shadow-red-900/30">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong</h2>
-            <p className="text-gray-600">{error}</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">Oops! Something went wrong</h2>
+            <p className="text-gray-600 dark:text-zinc-400">{error}</p>
           </div>
           <button
             onClick={handleBack}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 font-medium"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-600 dark:hover:to-blue-700 transition-all shadow-lg shadow-blue-500/30 dark:shadow-blue-900/30 hover:shadow-xl hover:shadow-blue-500/40 dark:hover:shadow-blue-900/40 font-medium"
           >
             Back to Course Management
           </button>
@@ -114,20 +109,20 @@ export default function QuizPage({ params }: QuizPageProps) {
 
   if (!quizData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-amber-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 via-white to-amber-50 dark:from-yellow-900/20 dark:via-slate-900 dark:to-amber-900/20 p-4">
         <div className="flex flex-col items-center gap-6 text-center max-w-md">
-          <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-500/30">
+          <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-amber-600 dark:from-yellow-600 dark:to-amber-700 rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-500/30 dark:shadow-yellow-900/30">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Not Found</h2>
-            <p className="text-gray-600">The quiz you're looking for doesn't exist or has been removed.</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">Quiz Not Found</h2>
+            <p className="text-gray-600 dark:text-zinc-400">The quiz you're looking for doesn't exist or has been removed.</p>
           </div>
           <button
             onClick={handleBack}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 font-medium"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-600 dark:hover:to-blue-700 transition-all shadow-lg shadow-blue-500/30 dark:shadow-blue-900/30 hover:shadow-xl hover:shadow-blue-500/40 dark:hover:shadow-blue-900/40 font-medium"
           >
             Back to Course Management
           </button>
@@ -138,11 +133,9 @@ export default function QuizPage({ params }: QuizPageProps) {
 
   const quiz = quizData;
   
-  // Transform API questions to QuizQuestion format
   const initialQuestions: QuizQuestion[] = questionsResponse?.data?.map((q, index) => {
     const questionType = q.questionType.toLowerCase() as "multiple_choice" | "essay" | "true_false";
     
-    // For multiple choice, create options from optionsText and find correct answer
     let options = undefined;
     let correctAnswer = undefined;
     
@@ -155,7 +148,6 @@ export default function QuizPage({ params }: QuizPageProps) {
         order: idx,
       }));
     } else if (questionType === "true_false") {
-      // For true/false, get the correct answer from the answers array
       const answerValue = q.answers?.[0]?.answer?.toLowerCase();
       correctAnswer = answerValue === "true" ? "true" : "false";
     }
@@ -165,24 +157,21 @@ export default function QuizPage({ params }: QuizPageProps) {
       questionText: q.questionText,
       questionType: questionType,
       points: q.maxScore,
-      order: index, // Use index as order
-      timeLimit: undefined, // Your backend doesn't have per-question time limit
-      explanation: undefined, // Can be added if backend supports it
+      order: index,
+      timeLimit: undefined,
+      explanation: undefined,
       options: options,
       correctAnswer: correctAnswer,
     };
   }) || [];
 
-  // Get pagination metadata from API response
   const totalQuestions = questionsResponse?.pageMeta?.totalResultCount || 0;
-  
-  // Calculate total points from current page questions
   const totalPoints = initialQuestions.reduce((sum, q) => sum + q.points, 0);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header with Breadcrumb */}
-      <div className="bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-200 dark:border-zinc-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-4">
             <Breadcrumb
@@ -214,8 +203,8 @@ export default function QuizPage({ params }: QuizPageProps) {
         quizId={resolvedParams.quizId}
         pageMeta={questionsResponse?.pageMeta}
         onPageChange={setCurrentPage}
-        onPerPageChange={setPerPage} 
+        onPerPageChange={setPerPage}
       />
     </div>
   );
-} 
+}

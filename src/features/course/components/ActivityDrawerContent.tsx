@@ -662,7 +662,7 @@ export function ActivityDrawerContent({
     }
   }, [selectedActivityType]);
 
-  // ✅ BARU: useEffect untuk pre-fill form saat edit mode - LENGKAP
+
   useEffect(() => {
     if (isEditMode && initialData) {
       // Set content source dan activity type
@@ -688,7 +688,6 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
-              size: "Unknown",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -704,7 +703,6 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
-              size: "Unknown",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -1149,17 +1147,17 @@ export function ActivityDrawerContent({
   );
 
   const CompletionSection = () => (
-    <div className="my-4 space-y-4 border rounded-xl p-4">
+    <div className="my-4 space-y-4 border border-gray-200 dark:border-zinc-700 dark:border-zinc-700 rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-green-600 flex items-center justify-center">
             <CheckSquare className="size-5 text-white" />
           </div>
           <div>
-            <h5 className="font-medium text-green-900">
+            <h5 className="font-medium text-green-900 dark:text-green-100 dark:text-green-100">
               Pengaturan Penyelesaian
             </h5>
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-green-700 dark:text-green-300 dark:text-green-300">
               {selectedActivityType === "TASK"
                 ? "Atur kriteria penyelesaian tugas"
                 : "Atur kriteria kapan activity dianggap selesai"
@@ -1177,7 +1175,7 @@ export function ActivityDrawerContent({
               <div className="flex items-center justify-between">
                 <div>
                   <h6 className="font-medium">Harus Membuka Tautan</h6>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400">
                     Peserta harus membuka link ini agar dianggap selesai
                   </p>
                 </div>
@@ -1192,7 +1190,7 @@ export function ActivityDrawerContent({
                 <div className="flex items-center justify-between">
                   <div>
                     <h6 className="font-medium">Wajib Mengumpulkan</h6>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">
                       Peserta harus mengumpulkan tugas untuk menyelesaikan aktivitas
                     </p>
                   </div>
@@ -1207,7 +1205,7 @@ export function ActivityDrawerContent({
                 <div className="flex items-center justify-between">
                   <div>
                     <h6 className="font-medium">Tenggat Waktu</h6>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">
                       Tetapkan deadline pengumpulan tugas
                     </p>
                   </div>
@@ -1217,7 +1215,7 @@ export function ActivityDrawerContent({
                   <div>
                     <Label
                       htmlFor="taskDeadlineDate"
-                      className="block text-sm font-medium text-gray-700 my-2"
+                      className="block text-sm font-medium text-gray-700 dark:text-zinc-300 my-2"
                     >
                       Deadline Tugas
                     </Label>
@@ -1247,7 +1245,7 @@ export function ActivityDrawerContent({
               <div className="flex items-center justify-between">
                 <div>
                   <h6 className="font-medium">Tenggat Waktu</h6>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400">
                     Tetapkan deadline penyelesaian aktivitas
                   </p>
                 </div>
@@ -1257,7 +1255,7 @@ export function ActivityDrawerContent({
                 <div>
                   <Label
                     htmlFor="deadlineDate"
-                    className="block text-sm font-medium text-gray-700 my-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 my-2"
                   >
                     Deadline
                   </Label>
@@ -1278,7 +1276,7 @@ export function ActivityDrawerContent({
                 <div className="flex items-center justify-between">
                   <div>
                     <h6 className="font-medium">Penilaian</h6>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">
                       Aktifkan penilaian untuk kuis ini
                     </p>
                   </div>
@@ -1293,7 +1291,7 @@ export function ActivityDrawerContent({
                 <div>
                   <Label
                     htmlFor="quizStartDate"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
                   >
                     Mulai Kuis
                   </Label>
@@ -1307,7 +1305,7 @@ export function ActivityDrawerContent({
                 <div>
                   <Label
                     htmlFor="quizEndDate"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
                   >
                     Selesai Kuis
                   </Label>
@@ -1351,7 +1349,7 @@ export function ActivityDrawerContent({
         />
         <label htmlFor={id} className="cursor-pointer">
           <Icon className={`size-12 mx-auto mb-3 text-${color}-600`} />
-          <p className="mb-1 text-gray-600">{description}</p>
+          <p className="mb-1 text-gray-600 dark:text-zinc-400">{description}</p>
         </label>
       </div>
     </div>
@@ -1395,7 +1393,7 @@ export function ActivityDrawerContent({
             {[...Array(3)].map((_, index) => (
               <div
                 key={index}
-                className="bg-white border border-gray-200 rounded-xl p-6"
+                className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-6"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
@@ -1423,10 +1421,10 @@ export function ActivityDrawerContent({
         {/* Error State */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
+            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
               Gagal Memuat Jadwal
             </h3>
-            <p className="text-red-600 mb-4">
+            <p className="text-red-600 dark:text-red-400 mb-4">
               Terjadi kesalahan saat memuat jadwal kurikulum. Silakan coba lagi.
             </p>
             <Button
@@ -1494,13 +1492,13 @@ export function ActivityDrawerContent({
 
             {/* Empty State */}
             {courseSchedules.length === 0 && (
-              <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+              <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-12 text-center">
                 <div className="max-w-md mx-auto">
                   <Calendar className="size-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 dark:text-zinc-100 mb-2">
                     Belum Ada Jadwal
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 dark:text-zinc-400">
                     Tidak ada jadwal kurikulum yang tersedia untuk saat ini.
                   </p>
                 </div>
@@ -1548,7 +1546,7 @@ export function ActivityDrawerContent({
                     </div>
                     <div>
                       <p className="font-medium">{label}</p>
-                      <p className="text-sm text-gray-500 mt-1">{description}</p>
+                      <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{description}</p>
                     </div>
                   </div>
                 </Card>
@@ -1602,7 +1600,7 @@ export function ActivityDrawerContent({
 
         {/* ✅ Show edit mode indicator */}
         {/* {isEditMode && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg p-3 mb-4">
             <p className="text-sm text-blue-800 font-medium">
               📝 Mode Edit - Mengubah activity yang sudah ada
             </p>
@@ -1637,7 +1635,7 @@ export function ActivityDrawerContent({
                     className="mt-1"
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                       {field.state.meta.errors[0]}
                     </p>
                   )}
@@ -1670,7 +1668,7 @@ export function ActivityDrawerContent({
                     className="mt-1 bg-transparent"
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                       {field.state.meta.errors[0]}
                     </p>
                   )}
@@ -1720,15 +1718,15 @@ export function ActivityDrawerContent({
           <>
             {/* Video Source Selection */}
             <div className="mb-6">
-              <Label className="text-sm font-medium text-gray-700 mb-3">
+              <Label className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-3">
                 Pilih sumber video
               </Label>
               <div className="flex gap-4">
                 <Card
                   className={`flex-1 p-4 cursor-pointer transition-all border-2 ${
                     videoSource === "upload"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                      : "border-gray-200 dark:border-zinc-700 hover:border-gray-300"
                   }`}
                   onClick={() => {
                     setVideoSource("upload");
@@ -1738,14 +1736,14 @@ export function ActivityDrawerContent({
                   <div className="flex flex-col items-center text-center gap-2">
                     <Video className="size-6 text-blue-600" />
                     <span className="font-medium">Upload Video</span>
-                    <span className="text-sm text-gray-500">File video lokal</span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">File video lokal</span>
                   </div>
                 </Card>
                 <Card
                   className={`flex-1 p-4 cursor-pointer transition-all border-2 ${
                     videoSource === "link"
                       ? "border-orange-500 bg-orange-50"
-                      : "border-gray-200 hover:border-gray-300"
+                      : "border-gray-200 dark:border-zinc-700 hover:border-gray-300"
                   }`}
                   onClick={() => {
                     setVideoSource("link");
@@ -1755,7 +1753,7 @@ export function ActivityDrawerContent({
                   <div className="flex flex-col items-center text-center gap-2">
                     <Link className="size-6 text-orange-600" />
                     <span className="font-medium">Link Video</span>
-                    <span className="text-sm text-gray-500">YouTube, platform lain</span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">YouTube, platform lain</span>
                   </div>
                 </Card>
               </div>
@@ -1792,7 +1790,7 @@ export function ActivityDrawerContent({
                       }}
                     />
                     {field.state.meta.errors.length > 0 && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                         {field.state.meta.errors[0]}
                       </p>
                     )}
@@ -1818,7 +1816,7 @@ export function ActivityDrawerContent({
                       </div>
                     )}
                     {uploadError && (
-                      <div className="mt-3 flex items-center text-red-600">
+                      <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                         <AlertCircle className="w-4 h-4 mr-2" />
                         <span className="text-sm">{uploadError}</span>
                       </div>
@@ -1861,11 +1859,11 @@ export function ActivityDrawerContent({
                       className="mt-1"
                     />
                     {field.state.meta.errors.length > 0 && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                         {field.state.meta.errors[0]}
                       </p>
                     )}
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-2">
                       Masukkan link video dari YouTube, Vimeo, atau platform video lainnya
                     </p>
                   </div>
@@ -1903,11 +1901,11 @@ export function ActivityDrawerContent({
                   className="mt-1"
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 dark:text-zinc-400 mt-2">
                   Masukkan link eksternal
                 </p>
               </div>
@@ -1945,7 +1943,7 @@ export function ActivityDrawerContent({
                   }}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
@@ -1975,7 +1973,7 @@ export function ActivityDrawerContent({
                   </div>
                 )}
                 {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
+                  <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                     <AlertCircle className="w-4 h-4 mr-2" />
                     <span className="text-sm">{uploadError}</span>
                   </div>
@@ -2000,7 +1998,7 @@ export function ActivityDrawerContent({
               <>
                 <div>
                   <Label>SCORM Package</Label>
-                  <p className="text-sm text-gray-500 mt-1 mb-2">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
                     Import konten pembelajaran dalam format SCORM 1.2 atau 2004
                     (Max 100MB) - Akan diupload ke Cloud Storage
                   </p>
@@ -2022,7 +2020,7 @@ export function ActivityDrawerContent({
                   }}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
@@ -2048,7 +2046,7 @@ export function ActivityDrawerContent({
                   </div>
                 )}
                 {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
+                  <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                     <AlertCircle className="w-4 h-4 mr-2" />
                     <span className="text-sm">{uploadError}</span>
                   </div>
@@ -2073,7 +2071,7 @@ export function ActivityDrawerContent({
               <>
                 <div>
                   <Label>Dokumen Tugas</Label>
-                  <p className="text-sm text-gray-500 mt-1 mb-2">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
                     Upload dokumen tugas yang akan dikerjakan oleh mahasiswa
                     (Max 5MB) - Akan diupload ke Cloud Storage
                   </p>
@@ -2095,7 +2093,7 @@ export function ActivityDrawerContent({
                   }}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
@@ -2125,7 +2123,7 @@ export function ActivityDrawerContent({
                   </div>
                 )}
                 {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
+                  <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                     <AlertCircle className="w-4 h-4 mr-2" />
                     <span className="text-sm">{uploadError}</span>
                   </div>
@@ -2156,11 +2154,11 @@ export function ActivityDrawerContent({
                     className={`h-12 ${
                       field.state.meta.errors.length > 0
                         ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200"
+                        : "border-gray-200 dark:border-zinc-700"
                     }`}
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <div className="flex items-center gap-1 text-red-600 text-sm">
+                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm">
                       <span className="text-xs">⚠️</span>
                       <span>{field.state.meta.errors[0]}</span>
                     </div>
@@ -2179,7 +2177,7 @@ export function ActivityDrawerContent({
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="Tambahkan deskripsi untuk quiz ini"
-                    className="min-h-[100px] border-gray-200 resize-none"
+                    className="min-h-[100px] border-gray-200 dark:border-zinc-700 resize-none"
                   />
                 </div>
               )}
@@ -2194,7 +2192,7 @@ export function ActivityDrawerContent({
                   </div>
                   <div>
                     <h3 className="font-semibold">Manajemen Soal</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">
                       Buat dan kelola soal untuk quiz ini
                     </p>
                   </div>
@@ -2202,14 +2200,14 @@ export function ActivityDrawerContent({
                 <Button
                   onClick={() => setShowQuizQuestionsManager(true)}
                   variant="outline"
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:bg-blue-900/30"
                 >
                   <Edit3 className="size-4 mr-2" />
                   Kelola Soal
                 </Button>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
                   <strong>Info:</strong> Klik tombol "Kelola Soal" untuk membuat, mengedit, atau menghapus soal quiz. Anda dapat membuat berbagai jenis soal seperti pilihan ganda, essay, atau benar/salah.
                 </p>
@@ -2225,7 +2223,7 @@ export function ActivityDrawerContent({
                   </div>
                   <div>
                     <h3 className="font-semibold">Pengaturan Waktu</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">
                       Atur jadwal pembukaan dan penutupan quiz
                     </p>
                   </div>
@@ -2247,7 +2245,7 @@ export function ActivityDrawerContent({
                           className={`relative rounded-lg border-2 transition-all ${
                             quizOpenDate
                               ? "border-green-300 bg-green-50/50 hover:border-green-400"
-                              : "border-gray-200 bg-white hover:border-green-300"
+                              : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-green-300"
                           }`}
                         >
                           <Input
@@ -2256,14 +2254,14 @@ export function ActivityDrawerContent({
                             value={quizOpenDate}
                             onChange={(e) => setQuizOpenDate(e.target.value)}
                             className={`border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-11 ${
-                              quizOpenDate ? "text-green-900" : ""
+                              quizOpenDate ? "text-green-900 dark:text-green-100" : ""
                             }`}
                           />
                           {quizOpenDate && (
                             <button
                               type="button"
                               onClick={() => setQuizOpenDate("")}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-green-100 transition-colors opacity-0 group-hover:opacity-100"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-green-100 dark:bg-green-900/30 transition-colors opacity-0 group-hover:opacity-100"
                               aria-label="Clear date"
                             >
                               <XCircle className="size-4 text-green-600" />
@@ -2281,7 +2279,7 @@ export function ActivityDrawerContent({
                           className={`relative rounded-lg border-2 transition-all ${
                             quizCloseDate
                               ? "border-red-300 bg-red-50/50 hover:border-red-400"
-                              : "border-gray-200 bg-white hover:border-red-300"
+                              : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-red-300"
                           }`}
                         >
                           <Input
@@ -2300,7 +2298,7 @@ export function ActivityDrawerContent({
                               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100"
                               aria-label="Clear date"
                             >
-                              <XCircle className="size-4 text-red-600" />
+                              <XCircle className="size-4 text-red-600 dark:text-red-400" />
                             </button>
                           )}
                         </div>
@@ -2320,7 +2318,7 @@ export function ActivityDrawerContent({
                         <div className="font-medium">
                           Batasi Waktu Pengerjaan
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
                           Setiap peserta punya waktu terbatas untuk mengerjakan
                         </p>
                       </Label>
@@ -2331,7 +2329,7 @@ export function ActivityDrawerContent({
                     </div>
 
                     {quizTimeLimitEnabled && (
-                      <div className="space-y-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                      <div className="space-y-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200">
                         <div>
                           <Label
                             htmlFor="quiz-time-limit"
@@ -2347,9 +2345,9 @@ export function ActivityDrawerContent({
                               placeholder="60"
                               value={quizTimeLimit}
                               onChange={(e) => setQuizTimeLimit(e.target.value)}
-                              className="h-11 pr-16 bg-white border-blue-200 focus:border-blue-400"
+                              className="h-11 pr-16 bg-white dark:bg-zinc-800 border-blue-200 focus:border-blue-400"
                             />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-zinc-400">
                               menit
                             </div>
                           </div>
@@ -2369,7 +2367,7 @@ export function ActivityDrawerContent({
                 </div>
                 <div>
                   <h3 className="font-semibold">Upaya & Penilaian</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-zinc-400">
                     Atur jumlah percobaan dan kriteria kelulusan
                   </p>
                 </div>
@@ -2393,7 +2391,7 @@ export function ActivityDrawerContent({
                     onChange={(e) => setQuizAttemptsAllowed(e.target.value)}
                     className="h-11 border-2 hover:border-purple-300 transition-colors"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-2">
                     {quizAttemptsAllowed === "1"
                       ? "Cocok untuk ujian formal"
                       : "Ideal untuk latihan"}
@@ -2431,7 +2429,7 @@ export function ActivityDrawerContent({
                             ? parseInt(quizGradeToPass) >= 80
                               ? "border-amber-300 bg-amber-50/50"
                               : "border-green-300 bg-green-50/50"
-                            : "border-gray-200"
+                            : "border-gray-200 dark:border-zinc-700"
                         }`}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -2440,7 +2438,7 @@ export function ActivityDrawerContent({
                             className={`text-sm font-medium ${
                               parseInt(quizGradeToPass) >= 80
                                 ? "text-amber-700"
-                                : "text-green-700"
+                                : "text-green-700 dark:text-green-300"
                             }`}
                           >
                             {quizGradeToPass}%
@@ -2525,7 +2523,7 @@ export function ActivityDrawerContent({
       <div className="space-y-6">
         <div className="text-center my-8">
           <h4 className="mb-2">Dari mana konten activity ini berasal?</h4>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-zinc-400">
             Pilih salah satu opsi di bawah untuk melanjutkan
           </p>
         </div>
@@ -2546,7 +2544,7 @@ export function ActivityDrawerContent({
                   </div>
                   <div>
                     <p className="font-medium">{label}</p>
-                    <p className="text-sm text-gray-500 mt-1">{description}</p>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{description}</p>
                   </div>
                 </div>
               </Card>

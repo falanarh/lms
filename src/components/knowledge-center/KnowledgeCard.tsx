@@ -147,13 +147,13 @@ export default function KnowledgeCard({
   return (
     <Link href={`/knowledge-center/${knowledge.id}`} className="block group h-full">
       <article
-        className={`bg-white border border-gray-200 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-300 hover:shadow-md flex flex-col h-full ${className}`}
+        className={`bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md dark:hover:shadow-lg flex flex-col h-full ${className}`}
         onClick={() => {
           // View count will be incremented when navigating to detail page
         }}
       >
         {/* Thumbnail */}
-        <div className="relative aspect-video bg-gray-100 overflow-hidden">
+        <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden">
           {!imageError && knowledge.thumbnail ? (
             <Image
               src={getThumbnailUrl(knowledge.thumbnail)}
@@ -193,7 +193,7 @@ export default function KnowledgeCard({
           {/* Subject badge */}
           {knowledge.subject && (
             <div className="absolute top-2 right-2">
-              <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-gray-700 border border-white/50">
+              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 border border-white/50 dark:border-gray-700/50">
                 {knowledge.subject}
               </div>
             </div>
@@ -203,12 +203,12 @@ export default function KnowledgeCard({
         {/* Content - Fixed height structure */}
         <div className="p-4 flex flex-col flex-1">
           {/* Title - Fixed height with line-clamp */}
-          <h3 className="font-semibold text-gray-900 text-base mb-2 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors min-h-[3rem]">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base mb-2 leading-snug line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors min-h-[3rem]">
             {knowledge.title}
           </h3>
 
           {/* Description - Fixed height */}
-          <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-3 min-h-[2.5rem]">
+          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-3 min-h-[2.5rem]">
             {knowledge.description}
           </p>
 
@@ -238,7 +238,7 @@ export default function KnowledgeCard({
           <div className="flex-1"></div>
 
           {/* Footer - Minimal info */}
-          <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100 mt-auto">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-100 dark:border-gray-700 mt-auto">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <Eye className="w-3 h-3" />
@@ -249,7 +249,7 @@ export default function KnowledgeCard({
                 <span>{knowledge.likeCount}</span>
               </div>
             </div>
-            <span className="text-gray-400 truncate max-w-[200px]">{knowledge.penyelenggara}</span>
+            <span className="text-gray-400 dark:text-gray-500 truncate max-w-[200px]">{knowledge.penyelenggara}</span>
           </div>
         </div>
       </article>

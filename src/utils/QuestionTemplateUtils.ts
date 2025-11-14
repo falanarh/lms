@@ -223,17 +223,17 @@ export async function parseQuizExcel(file: File): Promise<{
 /**
  * Convert Excel row to QuizQuestion format
  * Default: 10 points per question, no explanation
- */
+*/
 export function excelRowToQuizQuestion(row: ExcelQuestionRow, order: number) {
   const tipeSoal = row['Tipe Soal'].toLowerCase().trim();
-  let questionType: 'multiple_choice' | 'essay' | 'true_false';
+  let questionType: 'multiple_choice' | 'short_answer' | 'true_false';
   
   if (tipeSoal === 'pilihan ganda') {
     questionType = 'multiple_choice';
   } else if (tipeSoal === 'benar/salah') {
     questionType = 'true_false';
   } else {
-    questionType = 'essay';
+    questionType = 'short_answer';
   }
 
   // Build options for multiple choice
@@ -243,6 +243,11 @@ export function excelRowToQuizQuestion(row: ExcelQuestionRow, order: number) {
     { id: 'C', text: (row['Opsi C'] || '').toString().trim(), isCorrect: row['Jawaban Benar']?.toString().toUpperCase().trim() === 'C', order: 2 },
     { id: 'D', text: (row['Opsi D'] || '').toString().trim(), isCorrect: row['Jawaban Benar']?.toString().toUpperCase().trim() === 'D', order: 3 },
   ].filter(opt => opt.text !== '') : undefined;
+
+  // For essay questions, always provide a non-empty answer
+  const answer = questionType === 'short_answer' 
+    ? { answer: (row['Jawaban Benar']?.toString().trim() || '1') } // Ensure answer is never empty
+    : undefined;
 
   // Get correct answer for true/false
   const correctAnswer = questionType === 'true_false' 
@@ -257,6 +262,7 @@ export function excelRowToQuizQuestion(row: ExcelQuestionRow, order: number) {
     order,
     options,
     correctAnswer,
+    answer, // Include answer object for essay questions
     explanation: undefined, // No explanation in simplified format
   };
 }

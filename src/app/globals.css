@@ -587,6 +587,25 @@ body {
 }
 
 .dark {
+  /* Override default variables for dark mode */
+  --surface: #0f172a; /* slate-900 */
+  --surface-elevated: #1e293b; /* slate-800 */
+
+  /* Brand/primary adjustments for dark mode */
+  --color-primary: #3b82f6; /* blue-500 - slightly brighter for dark mode */
+  --color-primary-hover: #60a5fa; /* blue-400 */
+  --color-primary-50: rgba(59, 130, 246, 0.1); /* More subtle */
+  --color-primary-subtle: color-mix(in_oklab, black 92%, var(--color-primary));
+
+  /* Focus ring adjustments */
+  --color-ring-offset: #0f172a; /* slate-900 */
+
+  /* Status colors - slightly adjusted for dark mode */
+  --success: #22c55e; /* green-500 */
+  --warning: #f59e0b; /* amber-500 */
+  --danger: #ef4444; /* red-500 */
+
+  /* Shadcn/ui dark mode variables */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

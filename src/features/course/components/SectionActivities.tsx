@@ -6,9 +6,11 @@
  * Fitur Baru:
  * - ✅ Edit activity menggunakan drawer
  * - ✅ Pre-fill form saat edit
- * - ✅ futegrasi dengan ActivityDrawerContent
+ * - ✅ Integrasi dengan ActivityDrawerContent
+ * - ✅ View button beside edit/delete (eye icon only)
+ * - ✅ Confirmation dialog for sequence changes
+ * - ✅ Proper rollback on cancel
  */
-
 import {
   Pencil,
   Plus,
@@ -18,6 +20,7 @@ import {
   FolderOpen,
   GripVertical,
   Loader2,
+  Eye,
 } from "lucide-react";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import Sortable from "sortablejs";
@@ -55,7 +58,7 @@ interface Activity {
   id: string;
   title: string;
   contentUrl?: string;
-  type: "PDF" | "VIDEO" | "LINK" | "SCORM";
+  type: "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK";
   size?: string;
   description?: string;
   sequence: number;
@@ -69,15 +72,14 @@ interface Section {
   sequence: number;
 }
 
-// ✅ UPDATE: Tambahkan props untuk drawer dan edit
 interface SectionActivitiesProps {
   onAddActivity?: (sectionId: string) => void;
   onEditActivity?: (
     sectionId: string,
     activityId: string,
     activityData: Content,
-  ) => void; // ✅ BARU
-  onManageQuizQuestions?: (sectionId: string, activityId: string, activityData: Content) => void; // ✅ NEW: For quiz management
+  ) => void;
+  onManageQuizQuestions?: (sectionId: string, activityId: string, activityData: Content) => void;
   groupId?: string;
 }
 
@@ -94,6 +96,7 @@ export function SectionActivities({
     error: sectionsError,
     refetch: refetchSections,
   } = useSections();
+
   const {
     data: contentsData,
     isPending: isContentsPending,
@@ -105,18 +108,15 @@ export function SectionActivities({
   const { mutate: createSection, isPending: isCreating } = useCreateSection({
     onSuccess: async () => {
       setShowToast(true);
-      setToastMessage("Activity berhasil ditambahkan!");
+      setToastMessage("Section berhasil ditambahkan!");
       setToastVariant("success");
-
       if (editingSectionId?.startsWith("local-")) {
         setLocalSections((prev) =>
           prev.filter((s) => s.id !== editingSectionId),
         );
       }
-
       setEditingSectionId(null);
       form.reset();
-
       await Promise.all([
         queryClient.refetchQueries({ queryKey: getSectionQueryKey() }),
       ]);
@@ -193,12 +193,13 @@ export function SectionActivities({
     isPending: isUpdatingContentsSequence,
   } = useUpdateContentsSequence({
     onSuccess: async () => {
-      // setLocalSections([]);
       showToastMessage("success", "Urutan activity berhasil diubah!");
+      await queryClient.refetchQueries({ queryKey: getContentQueryKey() });
     },
     onError: (error: any) => {
       console.error("❌ Update Contents Sequence Error:", error);
       showToastMessage("warning", "Gagal mengubah urutan activity!");
+      queryClient.refetchQueries({ queryKey: getContentQueryKey() });
     },
   });
 
@@ -209,28 +210,21 @@ export function SectionActivities({
     },
     onSubmit: async ({ value }) => {
       if (!editingSectionId) return;
-
       try {
         if (editingSectionId.startsWith("local-")) {
-          // CREATE new section
           const createData: CreateSectionInput = {
             idGroup: "b8d1607e-4edf-4f7a-8a0b-0552191bdd71",
             name: value.name,
             description: value.description || "",
             sequence: displayedSections.length,
           };
-
-          // Validate with Zod
           const validatedData = createSectionSchema.parse(createData);
           createSection(validatedData);
         } else {
-          // UPDATE existing section
           const updateData: UpdateSectionInput = {
             name: value.name,
             description: value.description || "",
           };
-
-          // Validate with Zod
           const validatedData = updateSectionSchema.parse(updateData);
           updateSection({
             id: editingSectionId,
@@ -247,7 +241,7 @@ export function SectionActivities({
 
   const fetchError = sectionsError || contentsError;
   const [localSections, setLocalSections] = useState<Section[]>([]);
-
+  
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     type: "section" | "activity" | null;
@@ -261,7 +255,18 @@ export function SectionActivities({
     title: "",
   });
 
-  // ✅ Handler untuk buka confirm dialog delete section
+  const [sequenceConfirm, setSequenceConfirm] = useState<{
+    isOpen: boolean;
+    type: "section" | "activity" | "move-activity";
+    pendingUpdates: any[];
+    description: string;
+  }>({
+    isOpen: false,
+    type: "activity",
+    pendingUpdates: [],
+    description: "",
+  });
+
   const handleDeleteSectionClick = (section: Section) => {
     setDeleteConfirm({
       isOpen: true,
@@ -271,7 +276,6 @@ export function SectionActivities({
     });
   };
 
-  // ✅ Handler untuk buka confirm dialog delete activity
   const handleDeleteActivityClick = (sectionId: string, activity: Activity) => {
     setDeleteConfirm({
       isOpen: true,
@@ -282,17 +286,13 @@ export function SectionActivities({
     });
   };
 
-  // ✅ Handler untuk confirm delete
   const handleConfirmDelete = () => {
     if (!deleteConfirm.id) return;
-
     if (deleteConfirm.type === "section") {
       deleteSection(deleteConfirm.id);
     } else if (deleteConfirm.type === "activity") {
       deleteContent(deleteConfirm.id);
     }
-
-    // Close dialog
     setDeleteConfirm({
       isOpen: false,
       type: null,
@@ -301,7 +301,6 @@ export function SectionActivities({
     });
   };
 
-  // ✅ Handler untuk cancel delete
   const handleCancelDelete = () => {
     setDeleteConfirm({
       isOpen: false,
@@ -311,9 +310,60 @@ export function SectionActivities({
     });
   };
 
+  const handleConfirmSequence = () => {
+    if (sequenceConfirm.pendingUpdates.length === 0) return;
+    if (sequenceConfirm.type === "section") {
+      updateSectionsSequence(sequenceConfirm.pendingUpdates);
+    } else if (sequenceConfirm.type === "activity" || sequenceConfirm.type === "move-activity") {
+      updateContentsSequence(sequenceConfirm.pendingUpdates);
+    }
+    setSequenceConfirm({
+      isOpen: false,
+      type: "activity",
+      pendingUpdates: [],
+      description: "",
+    });
+  };
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Update handleCancelSequence
+const handleCancelSequence = () => {
+  // Destroy all sortable instances first to reset DOM
+  if (sortableInstanceRef.current) {
+    sortableInstanceRef.current.destroy();
+    sortableInstanceRef.current = null;
+  }
+  
+  activitiesSortableRefs.current.forEach((sortable) => {
+    sortable.destroy();
+  });
+  activitiesSortableRefs.current.clear();
+
+  setSequenceConfirm({
+    isOpen: false,
+    type: "activity",
+    pendingUpdates: [],
+    description: "",
+  });
+  
+  // Clear local sections
+  setLocalSections([]);
+  
+  Promise.all([
+    queryClient.refetchQueries({ queryKey: getSectionQueryKey() }),
+    queryClient.refetchQueries({ queryKey: getContentQueryKey() })
+  ]).then(() => {
+    // Small delay to ensure DOM updates complete before incrementing refresh key
+    setTimeout(() => {
+      // Force re-render by incrementing refresh key
+      setRefreshKey(prev => prev + 1);
+    }, 50);
+  });
+};
+
   const sectionsFromMemo = useMemo<Section[]>(() => {
     if (!sectionsData?.data || !contentsData?.data) return [];
-
     const sectionsArray = sectionsData.data.filter(Boolean);
     const contentsArray = contentsData.data.filter(Boolean);
 
@@ -358,13 +408,19 @@ export function SectionActivities({
   const [editedDescription, setEditedDescription] = useState<string>("");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastVariant, setToastVariant] = useState<
-    "info" | "warning" | "success"
-  >("success");
+  
+  const [toastVariant, setToastVariant] = useState<"info" | "warning" | "success">("success");
+
+  const [loadingActivityId, setLoadingActivityId] = useState<string | null>(null);
 
   const sectionsContainerRef = useRef<HTMLDivElement>(null);
+  const activityCardRefs = useRef<Map<string, any>>(new Map());
   const sortableInstanceRef = useRef<Sortable | null>(null);
   const activitiesSortableRefs = useRef<Map<string, Sortable>>(new Map());
+  
+  // Refs to store original order before drag
+  const originalSectionsOrderRef = useRef<Section[]>([]);
+  const originalActivitiesOrderRef = useRef<Map<string, any[]>>(new Map());
 
   function mapContentType(type: string): "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK" {
     const typeUpper = type.toUpperCase();
@@ -389,204 +445,239 @@ export function SectionActivities({
     return "Unknown";
   }
 
+  // Initialize Sortable for sections
   useEffect(() => {
-    if (
-      sectionsContainerRef.current &&
-      !sortableInstanceRef.current &&
-      displayedSections.length > 0
-    ) {
-      sortableInstanceRef.current = new Sortable(sectionsContainerRef.current, {
-        animation: 150,
-        handle: ".section-drag-handle",
-        ghostClass: "sortable-ghost",
-        dragClass: "sortable-drag",
-        chosenClass: "sortable-chosen",
-        onEnd: (evt) => {
-          const { oldIndex, newIndex } = evt;
-          if (
-            oldIndex === undefined ||
-            newIndex === undefined ||
-            oldIndex === newIndex
-          )
-            return;
-
-          const combined = [...displayedSections];
-          const [movedItem] = combined.splice(oldIndex, 1);
-          combined.splice(newIndex, 0, movedItem);
-
-          const updated = combined.map((section, idx) => ({
-            ...section,
-            sequence: idx + 1,
-          }));
-
-          const serverSections = updated.filter(
-            (s) => !s.id.startsWith("local-"),
-          );
-          const localOnlySections = updated.filter((s) =>
-            s.id.startsWith("local-"),
-          );
-
-          setLocalSections(localOnlySections);
-
-          const sequenceUpdates = serverSections.map((s) => ({
-            id: s.id,
-            sequence: s.sequence + 1,
-          }));
-
-          if (sequenceUpdates.length > 0) {
-            updateSectionsSequence(sequenceUpdates);
-          }
-        },
-      });
-    }
-
-    if (sortableInstanceRef.current && displayedSections.length === 0) {
+    // Always destroy existing instance when refreshKey changes
+    if (sortableInstanceRef.current) {
       sortableInstanceRef.current.destroy();
       sortableInstanceRef.current = null;
     }
-  }, [displayedSections.length, updateSectionsSequence]);
-
-  useEffect(() => {
-    // Cleanup old sortables
-    activitiesSortableRefs.current.forEach((sortable, id) => {
-      if (!displayedSections.find((s) => s.id === id)) {
-        sortable.destroy();
-        activitiesSortableRefs.current.delete(id);
+  
+    // Create new instance if we have sections
+    if (sectionsContainerRef.current && displayedSections.length > 0) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        if (sectionsContainerRef.current && !sortableInstanceRef.current) {
+          sortableInstanceRef.current = new Sortable(sectionsContainerRef.current, {
+            animation: 150,
+            handle: ".section-drag-handle",
+            ghostClass: "sortable-ghost",
+            dragClass: "sortable-drag",
+            chosenClass: "sortable-chosen",
+            onStart: () => {
+              originalSectionsOrderRef.current = [...displayedSections];
+            },
+            onEnd: (evt) => {
+              const { oldIndex, newIndex } = evt;
+              if (
+                oldIndex === undefined ||
+                newIndex === undefined ||
+                oldIndex === newIndex
+              )
+                return;
+  
+              const combined = [...displayedSections];
+              const [movedItem] = combined.splice(oldIndex, 1);
+              combined.splice(newIndex, 0, movedItem);
+  
+              const updated = combined.map((section, idx) => ({
+                ...section,
+                sequence: idx + 1,
+              }));
+  
+              const serverSections = updated.filter(
+                (s) => !s.id.startsWith("local-"),
+              );
+  
+              const sequenceUpdates = serverSections.map((s) => ({
+                id: s.id,
+                sequence: s.sequence,
+              }));
+  
+              if (sequenceUpdates.length > 0) {
+                setSequenceConfirm({
+                  isOpen: true,
+                  type: "section",
+                  pendingUpdates: sequenceUpdates,
+                  description: `Apakah Anda yakin ingin mengubah urutan section? Perubahan akan mempengaruhi ${sequenceUpdates.length} section.`,
+                });
+              }
+            },
+          });
+        }
+      }, 100);
+  
+      return () => {
+        clearTimeout(timer);
+        if (sortableInstanceRef.current) {
+          sortableInstanceRef.current.destroy();
+          sortableInstanceRef.current = null;
+        }
+      };
+    }
+  
+    return () => {
+      if (sortableInstanceRef.current) {
+        sortableInstanceRef.current.destroy();
+        sortableInstanceRef.current = null;
       }
+    };
+  }, [displayedSections.length, refreshKey, displayedSections]);
+
+  // Initialize Sortable for activities
+  useEffect(() => {
+    // Cleanup all existing sortables first
+    activitiesSortableRefs.current.forEach((sortable) => {
+      sortable.destroy();
     });
-
-    // Create new sortables for each section
-    displayedSections.forEach((section) => {
-      const container = document.querySelector(
-        `[data-activities-section="${section.id}"]`,
-      );
-
-      if (container && !activitiesSortableRefs.current.has(section.id)) {
-        const sortable = new Sortable(container as HTMLElement, {
-          animation: 150,
-          handle: ".activity-drag-handle",
-          ghostClass: "sortable-ghost",
-          dragClass: "sortable-drag",
-          group: "activities", // Allow drag between sections
-          onEnd: (evt) => {
-            const { oldIndex, newIndex, from, to } = evt;
-
-            if (oldIndex === undefined || newIndex === undefined) return;
-
-            const fromSectionId =
-              from.getAttribute("data-activities-section") || "";
-            const toSectionId =
-              to.getAttribute("data-activities-section") || "";
-
-            if (!fromSectionId || !toSectionId || !contentsData?.data) return;
-
-            try {
-              if (fromSectionId === toSectionId) {
-                // ✅ REORDER within same section
-                if (oldIndex === newIndex) return; // No change
-
-                const sectionActivities = contentsData.data
+    activitiesSortableRefs.current.clear();
+  
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      displayedSections.forEach((section) => {
+        const container = document.querySelector(
+          `[data-activities-section="${section.id}"]`,
+        );
+        if (container) {
+          const sortable = new Sortable(container as HTMLElement, {
+            animation: 150,
+            handle: ".activity-drag-handle",
+            ghostClass: "sortable-ghost",
+            dragClass: "sortable-drag",
+            group: "activities",
+            onStart: (evt) => {
+              const fromSectionId = evt.from.getAttribute("data-activities-section");
+              if (fromSectionId && contentsData?.data) {
+                const activities = contentsData.data
                   .filter((content) => content.idSection === fromSectionId)
                   .sort((a, b) => a.sequence - b.sequence);
-
-                // Reorder activities
-                const [movedActivity] = sectionActivities.splice(oldIndex, 1);
-                sectionActivities.splice(newIndex, 0, movedActivity);
-
-                // Update sequences - add defensive check for activity.id
-                // Return early if activity has no valid ID to prevent drag errors
-                const hasValidActivities = sectionActivities.every(
-                  (activity) => activity?.id,
-                );
-                if (!hasValidActivities) {
-                  console.warn("⚠️ Cannot reorder activities: missing IDs");
-                  return;
-                }
-
-                const sequenceUpdates = sectionActivities.map(
-                  (activity, idx) => ({
-                    id: activity?.id || `temp-${idx}`, // Add fallback for missing ID
+                originalActivitiesOrderRef.current.set(fromSectionId, [...activities]);
+              }
+            },
+            onEnd: (evt) => {
+              const { oldIndex, newIndex, from, to } = evt;
+              if (oldIndex === undefined || newIndex === undefined) return;
+  
+              const fromSectionId =
+                from.getAttribute("data-activities-section") || "";
+              const toSectionId =
+                to.getAttribute("data-activities-section") || "";
+  
+              if (!fromSectionId || !toSectionId || !contentsData?.data) return;
+  
+              try {
+                if (fromSectionId === toSectionId) {
+                  if (oldIndex === newIndex) return;
+  
+                  const sectionActivities = contentsData.data
+                    .filter((content) => content.idSection === fromSectionId)
+                    .sort((a, b) => a.sequence - b.sequence);
+  
+                  const [movedActivity] = sectionActivities.splice(oldIndex, 1);
+                  sectionActivities.splice(newIndex, 0, movedActivity);
+  
+                  const hasValidActivities = sectionActivities.every(
+                    (activity) => activity?.id,
+                  );
+  
+                  if (!hasValidActivities) {
+                    console.warn("⚠️ Cannot reorder activities: missing IDs");
+                    return;
+                  }
+  
+                  const sequenceUpdates = sectionActivities.map(
+                    (activity, idx) => ({
+                      id: activity?.id || `temp-${idx}`,
+                      sequence: idx + 1,
+                      idSection: fromSectionId,
+                    }),
+                  );
+  
+                  setSequenceConfirm({
+                    isOpen: true,
+                    type: "activity",
+                    pendingUpdates: sequenceUpdates,
+                    description: `Apakah Anda yakin ingin mengubah urutan activity dalam section ini? Perubahan akan mempengaruhi ${sequenceUpdates.length} activity.`,
+                  });
+                } else {
+                  const toSectionId = to.getAttribute("data-activities-section");
+                  if (toSectionId) {
+                    const toActivities = contentsData.data
+                      .filter((content) => content.idSection === toSectionId)
+                      .sort((a, b) => a.sequence - b.sequence);
+                    originalActivitiesOrderRef.current.set(toSectionId, [...toActivities]);
+                  }
+  
+                  const fromActivities = contentsData.data
+                    .filter((content) => content.idSection === fromSectionId)
+                    .sort((a, b) => a.sequence - b.sequence);
+                  const toActivities = contentsData.data
+                    .filter((content) => content.idSection === toSectionId)
+                    .sort((a, b) => a.sequence - b.sequence);
+  
+                  const [movedActivity] = fromActivities.splice(oldIndex, 1);
+                  if (!movedActivity) return;
+  
+                  toActivities.splice(newIndex, 0, {
+                    ...movedActivity,
+                    idSection: toSectionId,
+                  });
+  
+                  const fromUpdates = fromActivities.map((activity, idx) => ({
+                    id: activity?.id || `temp-from-${idx}`,
                     sequence: idx + 1,
                     idSection: fromSectionId,
-                  }),
-                );
-
-                console.log(
-                  "🔄 Reorder in same section:",
-                  sequenceUpdates.length,
-                  "updates",
-                );
-                updateContentsSequence(sequenceUpdates);
-              } else {
-                // ✅ MOVE to different section
-                const fromActivities = contentsData.data
-                  .filter((content) => content.idSection === fromSectionId)
-                  .sort((a, b) => a.sequence - b.sequence);
-
-                const toActivities = contentsData.data
-                  .filter((content) => content.idSection === toSectionId)
-                  .sort((a, b) => a.sequence - b.sequence);
-
-                // Remove from source
-                const [movedActivity] = fromActivities.splice(oldIndex, 1);
-                if (!movedActivity) return;
-
-                // Add to target
-                toActivities.splice(newIndex, 0, {
-                  ...movedActivity,
-                  idSection: toSectionId,
-                });
-
-                // Update sequences for both sections
-                const fromUpdates = fromActivities.map((activity, idx) => ({
-                  id: activity?.id || `temp-from-${idx}`, // Add fallback for missing ID
-                  sequence: idx + 1,
-                  idSection: fromSectionId,
-                }));
-
-                const toUpdates = toActivities.map((activity, idx) => ({
-                  id: activity?.id || `temp-to-${idx}`, // Add fallback for missing ID
-                  sequence: idx + 1,
-                  idSection: toSectionId,
-                }));
-
-                // Check for valid activities before proceeding
-                const hasValidFromActivities = fromActivities.every(
-                  (activity) => activity?.id,
-                );
-                const hasValidToActivities = toActivities.every(
-                  (activity) => activity?.id,
-                );
-
-                if (!hasValidFromActivities || !hasValidToActivities) {
-                  console.warn(
-                    "⚠️ Cannot move activities: some have missing IDs",
+                  }));
+  
+                  const toUpdates = toActivities.map((activity, idx) => ({
+                    id: activity?.id || `temp-to-${idx}`,
+                    sequence: idx + 1,
+                    idSection: toSectionId,
+                  }));
+  
+                  const hasValidFromActivities = fromActivities.every(
+                    (activity) => activity?.id,
                   );
-                  return;
+                  const hasValidToActivities = toActivities.every(
+                    (activity) => activity?.id,
+                  );
+  
+                  if (!hasValidFromActivities || !hasValidToActivities) {
+                    console.warn(
+                      "⚠️ Cannot move activities: some have missing IDs",
+                    );
+                    return;
+                  }
+  
+                  const allUpdates = [...fromUpdates, ...toUpdates].filter(
+                    (update) => update.id && !update.id.startsWith("temp-"),
+                  );
+  
+                  setSequenceConfirm({
+                    isOpen: true,
+                    type: "move-activity",
+                    pendingUpdates: allUpdates,
+                    description: `Apakah Anda yakin ingin memindahkan activity ke section lain? Perubahan akan mempengaruhi ${allUpdates.length} activity di kedua section.`,
+                  });
                 }
-
-                // Combine all updates - filter out any with missing IDs
-                const allUpdates = [...fromUpdates, ...toUpdates].filter(
-                  (update) => update.id && !update.id.startsWith("temp-"),
-                );
-
-                console.log(
-                  "🔀 Move to different section:",
-                  allUpdates.length,
-                  "updates",
-                );
-                updateContentsSequence(allUpdates);
+              } catch (error) {
+                console.error("❌ Error handling drag:", error);
               }
-            } catch (error) {
-              console.error("❌ Error handling drag:", error);
-            }
-          },
-        });
-
-        activitiesSortableRefs.current.set(section.id, sortable);
-      }
-    });
-  }, [displayedSections, contentsData?.data, updateContentsSequence]);
+            },
+          });
+          activitiesSortableRefs.current.set(section.id, sortable);
+        }
+      });
+    }, 100);
+  
+    return () => {
+      clearTimeout(timer);
+      activitiesSortableRefs.current.forEach((sortable) => {
+        sortable.destroy();
+      });
+      activitiesSortableRefs.current.clear();
+    };
+  }, [displayedSections, contentsData?.data, refreshKey]);
 
   const showToastMessage = (
     variant: "info" | "warning" | "success",
@@ -604,38 +695,6 @@ export function SectionActivities({
     form.setFieldValue("description", section.description || "");
   };
 
-  // const handleSaveClick = (sectionId: string) => {
-  //   if (!editedTitle.trim()) {
-  //     showToastMessage("warning", "Judul section tidak boleh kosong!");
-  //     return;
-  //   }
-
-  //   if (sectionId.startsWith("local-")) {
-  //     const newSection = {
-  //       idGroup: "6521be0c-9a85-4e2b-8ebb-60efa942635b",
-  //       name: editedTitle,
-  //       description: editedDescription,
-  //       sequence: displayedSections.length,
-  //     };
-
-  //     createSection(newSection);
-  //     setLocalSections((prev) => prev.filter((s) => s.id !== sectionId));
-  //     // showToastMessage("success", "Section baru berhasil disimpan!");
-  //   } else {
-  //     updateSection({
-  //       id: sectionId,
-  //       data: {
-  //         name: editedTitle,
-  //         description: editedDescription,
-  //       },
-  //     });
-  //     // showToastMessage("success", "Perubahan section berhasil disimpan!");
-  //   }
-
-  //   setEditingSectionId(null);
-  //   setEditedTitle("");
-  //   setEditedDescription("");
-  // };
   const handleSaveClick = () => {
     form.handleSubmit();
   };
@@ -662,10 +721,8 @@ export function SectionActivities({
       activities: [],
       sequence: newSequence,
     };
-
     setLocalSections((prev) => [...prev, newSection]);
     showToastMessage("success", "Section baru berhasil ditambahkan!");
-
     setTimeout(() => {
       if (sectionsContainerRef.current) {
         sectionsContainerRef.current.scrollTo({
@@ -685,16 +742,15 @@ export function SectionActivities({
     }
   };
 
-  // ✅ BARU: Handler untuk edit activity
-  const handleEditActivity = (sectionId: string, activityId: string) => {
-    // console.log("Edit activity:", sectionId, activityId);
-    if (!contentsData?.data) return;
+  // Handler for viewing activity content - store callback functions
+  const viewCallbacks = useRef<Map<string, () => void>>(new Map());
 
-    // Cari data content berdasarkan activityId
+
+  const handleEditActivity = (sectionId: string, activityId: string) => {
+    if (!contentsData?.data) return;
     const activityData = contentsData.data.find(
       (content) => content.id === activityId,
     );
-
     if (activityData && onEditActivity) {
       onEditActivity(sectionId, activityId, activityData);
     }
@@ -707,17 +763,6 @@ export function SectionActivities({
     }
   };
 
-  // if (isSectionsPending || isContentsPending) {
-  //   return (
-  //     <div className="w-full flex items-center justify-center py-12">
-  //       <div className="flex flex-col items-center gap-3">
-  //         <Loader2 className="size-8 animate-spin text-blue-600" />
-  //         <p className="text-sm text-gray-600">Memuat data sections dan activities...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   if (isSectionsPending || isContentsPending) {
     return <SectionSkeleton />;
   }
@@ -725,11 +770,11 @@ export function SectionActivities({
   if (fetchError) {
     return (
       <div className="w-full flex flex-col items-center justify-center py-12 space-y-4">
-        <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
-          <X size={32} className="text-red-600" />
+        <div className="flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full">
+          <X size={32} className="text-red-600 dark:text-red-400" />
         </div>
-        <p className="text-lg font-semibold text-red-600">Gagal memuat data!</p>
-        <p className="text-sm text-gray-500 text-center max-w-md">
+        <p className="text-lg font-semibold text-red-600 dark:text-red-400">Gagal memuat data!</p>
+        <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-md">
           Terjadi kesalahan saat mengambil data sections dan activities. Coba
           lagi.
         </p>
@@ -750,7 +795,7 @@ export function SectionActivities({
     return (
       <div className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-zinc-200">
             Struktur Course – Section & Activity
           </h2>
           <Button
@@ -762,13 +807,12 @@ export function SectionActivities({
             Tambah Section Baru
           </Button>
         </div>
-
-        <div className="border border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-gray-500">
+        <div className="border border-dashed border-gray-300 dark:border-zinc-700 rounded-xl p-12 flex flex-col items-center justify-center text-gray-500 dark:text-zinc-500">
           <div className="size-16 mb-4 flex items-center justify-center">
-            <FolderOpen size={48} className="text-gray-400" />
+            <FolderOpen size={48} className="text-gray-400 dark:text-zinc-600" />
           </div>
-          <p className="text-base mb-2 font-medium">Belum ada Section</p>
-          <p className="text-sm text-gray-400 text-center max-w-md">
+          <p className="text-base mb-2 font-medium text-gray-700 dark:text-zinc-300">Belum ada Section</p>
+          <p className="text-sm text-gray-400 dark:text-zinc-500 text-center max-w-md">
             Mulai dengan menambahkan section baru untuk mengorganisir konten
             course Anda
           </p>
@@ -780,10 +824,9 @@ export function SectionActivities({
   return (
     <div className="w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800">
+        <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-zinc-200">
           Struktur Course – Section & Activity
         </h2>
-
         <Button
           onClick={handleAddSection}
           size="sm"
@@ -793,32 +836,28 @@ export function SectionActivities({
           Tambah Section Baru
         </Button>
       </div>
-
-      <div ref={sectionsContainerRef} className="space-y-4">
+      <div ref={sectionsContainerRef} className="space-y-4" key={refreshKey}>
         {displayedSections.map((section, index) => (
           <div
-            key={index}
+            key={`${section.id}-${index}`}
             data-id={section.id}
-            className={`border rounded-xl p-4 bg-white transition-shadow hover:shadow-sm ${section.id.startsWith("local-") ? "border-blue-300 border-dashed" : "border-gray-300"}`}
+            className={`border rounded-xl p-4 bg-white dark:bg-zinc-800 transition-shadow hover:shadow-sm ${section.id.startsWith("local-") ? "border-blue-300 dark:border-blue-600 border-dashed" : "border-gray-300 dark:border-zinc-700"}`}
           >
             {/* Section Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button
-                  className="section-drag-handle p-1 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                  className="section-drag-handle p-1 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded cursor-grab active:cursor-grabbing text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-400 transition-colors flex-shrink-0"
                   aria-label="Drag to reorder section"
                 >
                   <GripVertical size={20} />
                 </button>
-
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <span className="size-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-600 flex-shrink-0">
+                  <span className="size-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-sm font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
                     {index + 1}
                   </span>
-
                   {editingSectionId === section.id ? (
                     <div className="flex-1 min-w-0 space-y-2">
-                      {/* ✅ TANSTACK FORM FIELD - NAME */}
                       <form.Field
                         name="name"
                         validators={{
@@ -866,8 +905,6 @@ export function SectionActivities({
                           </div>
                         )}
                       />
-
-                      {/* ✅ TANSTACK FORM FIELD - DESCRIPTION */}
                       <form.Field
                         name="description"
                         validators={{
@@ -925,32 +962,30 @@ export function SectionActivities({
                         {section.title}
                       </h3>
                       {section.description && (
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-xs text-gray-500 dark:text-zinc-400 truncate">
                           {section.description}
                         </p>
                       )}
                     </div>
                   )}
-
-                  <span className="text-sm text-gray-500 flex-shrink-0">
+                  <span className="text-sm text-gray-500 dark:text-zinc-400 flex-shrink-0">
                     {section.activities.length} Activity
                   </span>
                 </div>
               </div>
-
               {/* Action Buttons */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 {editingSectionId === section.id ? (
                   <>
                     <button
-                      className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-colors"
+                      className="p-2 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400 transition-colors"
                       aria-label="Save section"
-                      onClick={() => handleSaveClick(section.id)}
+                      onClick={() => handleSaveClick()}
                     >
                       <Check size={18} />
                     </button>
                     <button
-                      className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
+                      className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 transition-colors"
                       aria-label="Cancel editing"
                       onClick={handleCancelClick}
                     >
@@ -959,7 +994,7 @@ export function SectionActivities({
                   </>
                 ) : (
                   <button
-                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg text-gray-600 dark:text-zinc-400 transition-colors"
                     aria-label="Edit section"
                     onClick={() => handleEditClick(section)}
                   >
@@ -967,7 +1002,7 @@ export function SectionActivities({
                   </button>
                 )}
                 <button
-                  className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
+                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 transition-colors"
                   aria-label="Delete section"
                   onClick={() => handleDeleteSectionClick(section)}
                 >
@@ -975,10 +1010,8 @@ export function SectionActivities({
                 </button>
               </div>
             </div>
-
             {/* Activities List */}
             {section.activities.length > 0 ? (
-              
               <div
                 data-activities-section={section.id}
                 className="space-y-2 mb-4"
@@ -989,24 +1022,34 @@ export function SectionActivities({
                     className="flex items-center gap-2 group"
                   >
                     <button
-                      className="activity-drag-handle p-2 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors"
+                      className="activity-drag-handle p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded cursor-grab active:cursor-grabbing text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-400 transition-colors"
                       aria-label="Drag to reorder activity"
                     >
                       <GripVertical size={14} />
                     </button>
-
+                    
                     <div className="flex-1">
-                    <ActivityCard
+                      <ActivityCard
                         key={activity.id}
                         title={activity.title}
                         type={activity.type}
                         contentUrl={activity.contentUrl}
                         description={activity.description}
-                        showAction={true}
-                        questionCount={activity.type === "QUIZ" ? 0 : undefined} // Will be populated from backend
+                        showAction={false}
+                        questionCount={activity.type === "QUIZ" ? 0 : undefined}
                         contentId={activity.id}
+                        timeLimit={activity.timeLimit}
+                        onViewHandlerReady={(handler) => {
+                          viewCallbacks.current.set(activity.id, async () => {
+                            setLoadingActivityId(activity.id);
+                            try {
+                              await handler();
+                            } finally {
+                              setLoadingActivityId(null);
+                            }
+                          });
+                        }}
                         onManageQuestions={activity.type === "QUIZ" ? () => {
-                          // Navigate to quiz questions manager
                           if (onManageQuizQuestions) {
                             onManageQuizQuestions(section.id, activity.id, {
                               id: activity.id,
@@ -1021,43 +1064,72 @@ export function SectionActivities({
                         } : undefined}
                       />
                     </div>
-
-                    {/* ✅ BARU: Tombol Edit Activity */}
-                    <button
-                      className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
-                      aria-label="Edit activity"
-                      onClick={() =>
-                        handleEditActivity(section.id, activity.id)
-                      }
-                      title="Edit Activity"
-                    >
-                      <Pencil size={16} />
-                    </button>
-
-                    <button
-                      className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors"
-                      aria-label="Delete activity"
-                      onClick={() =>
-                        handleDeleteActivityClick(section.id, activity)
-                      }
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    
+                    {/* Action buttons container - FIXED WIDTH */}
+                    <div className="flex items-center gap-1 flex-shrink-0 w-[120px] justify-end">
+                      {/* View button - only show if has contentUrl and not QUIZ type */}
+                      {activity.contentUrl && activity.type !== "QUIZ" ? (
+                        <button
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg text-gray-600 dark:text-zinc-400 transition-colors"
+                          aria-label="View activity"
+                          onClick={() => {
+                            const handler = viewCallbacks.current.get(activity.id);
+                            if (handler) {
+                              handler();
+                            }
+                          }}
+                          disabled={loadingActivityId === activity.id}
+                          title="Lihat"
+                        >
+                          {loadingActivityId === activity.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      ) : (
+                        // Invisible spacer to maintain consistent width
+                        <div className="w-10" />
+                      )}
+                      
+                      {/* Edit button */}
+                      <button
+                        className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
+                        aria-label="Edit activity"
+                        onClick={() =>
+                          handleEditActivity(section.id, activity.id)
+                        }
+                        title="Edit Activity"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      
+                      {/* Delete button */}
+                      <button
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 transition-colors"
+                        aria-label="Delete activity"
+                        onClick={() =>
+                          handleDeleteActivityClick(section.id, activity)
+                        }
+                        title="Hapus Activity"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="border border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-gray-500 mb-4">
+              <div className="border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg p-8 flex flex-col items-center justify-center text-gray-500 dark:text-zinc-500 mb-4">
                 <div className="size-12 mb-2 flex items-center justify-center">
-                  <FolderOpen size={36} className="text-gray-400" />
+                  <FolderOpen size={36} className="text-gray-400 dark:text-zinc-600" />
                 </div>
-                <p className="text-sm mb-1 font-medium">Belum ada Activity</p>
-                <p className="text-xs text-gray-400 text-center">
+                <p className="text-sm mb-1 font-medium text-gray-700 dark:text-zinc-300">Belum ada Activity</p>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 text-center">
                   Klik tombol "Tambah Activity" untuk menambahkan konten
                 </p>
               </div>
             )}
-
             <Button
               className="w-full"
               variant="outline"
@@ -1070,6 +1142,7 @@ export function SectionActivities({
         ))}
       </div>
 
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
         onClose={handleCancelDelete}
@@ -1086,6 +1159,20 @@ export function SectionActivities({
         isLoading={isDeletingSection || isDeleting}
       />
 
+      {/* Sequence Change Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={sequenceConfirm.isOpen}
+        onClose={handleCancelSequence}
+        onConfirm={handleConfirmSequence}
+        title="Konfirmasi Perubahan Urutan"
+        description={sequenceConfirm.description}
+        confirmText="Ya, Simpan Perubahan"
+        cancelText="Batal"
+        variant="info"
+        isLoading={isUpdatingSequence || isUpdatingContentsSequence}
+      />
+
+      {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
           <Toast
@@ -1098,11 +1185,12 @@ export function SectionActivities({
         </div>
       )}
 
+      {/* Loading Overlay */}
       {(isSectionsFetching ||
         isContentsFetching ||
         isUpdatingContentsSequence) && (
         <div className="fixed inset-0 bg-black/10 flex items-center justify-center z-40">
-          <div className="bg-white rounded-lg p-4 shadow-lg flex items-center gap-3">
+          <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow-lg flex items-center gap-3">
             <Loader2 className="size-5 animate-spin text-blue-600" />
             {isUpdatingContentsSequence
               ? "Mengubah urutan activity..."
@@ -1111,26 +1199,23 @@ export function SectionActivities({
         </div>
       )}
 
+      {/* Styles */}
       <style jsx global>{`
         .sortable-ghost {
           opacity: 0.4;
           background: #f3f4f6;
         }
-
         .sortable-drag {
           opacity: 0.8;
           cursor: grabbing !important;
         }
-
         .sortable-chosen {
           cursor: grabbing !important;
         }
-
         .sortable-chosen .section-drag-handle,
         .sortable-chosen .activity-drag-handle {
           cursor: grabbing !important;
         }
-
         @keyframes slide-in-from-bottom-5 {
           from {
             transform: translateY(20px);
@@ -1141,16 +1226,13 @@ export function SectionActivities({
             opacity: 1;
           }
         }
-
         .animate-in {
           animation-duration: 200ms;
           animation-fill-mode: both;
         }
-
         .slide-in-from-bottom-5 {
           animation-name: slide-in-from-bottom-5;
         }
-
         @keyframes slide-in-from-left-5 {
           from {
             transform: translateX(-20px);
@@ -1161,17 +1243,17 @@ export function SectionActivities({
             opacity: 1;
           }
         }
-
         .slide-in-from-left-5 {
           animation-name: slide-in-from-left-5;
         }
       `}</style>
 
+      {/* Fetching Indicator */}
       {(isSectionsFetching || isContentsFetching) && (
         <div className="fixed bottom-4 left-4 z-50 animate-in slide-in-from-left-5">
-          <div className="bg-white rounded-lg p-3 shadow-lg border border-gray-200 flex items-center gap-3">
+          <div className="bg-white dark:bg-zinc-800 rounded-lg p-3 shadow-lg border border-gray-200 dark:border-zinc-700 flex items-center gap-3">
             <Loader2 className="size-4 animate-spin text-blue-600" />
-            <span className="text-sm text-gray-700">Memperbarui data...</span>
+            <span className="text-sm text-gray-700 dark:text-zinc-300">Memperbarui data...</span>
           </div>
         </div>
       )}
@@ -1181,48 +1263,46 @@ export function SectionActivities({
 
 export function SectionSkeleton() {
   return (
-    <div className="border border-gray-200 rounded-xl p-4 bg-white">
+    <div className="border border-gray-200 dark:border-zinc-700 rounded-xl p-4 bg-white dark:bg-zinc-800">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
+          <div className="w-5 h-5 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
           <div className="flex items-center gap-3 flex-1">
-            <div className="size-8 bg-blue-100 rounded-full animate-pulse" />
+            <div className="size-8 bg-blue-100 dark:bg-blue-900/30 rounded-full animate-pulse" />
             <div className="flex-1 space-y-1">
-              <div className="h-5 bg-gray-200 rounded w-48 animate-pulse" />
-              <div className="h-3 bg-gray-100 rounded w-32 animate-pulse" />
+              <div className="h-5 bg-gray-200 dark:bg-zinc-700 rounded w-48 animate-pulse" />
+              <div className="h-3 bg-gray-100 dark:bg-zinc-700 rounded w-32 animate-pulse" />
             </div>
-            <div className="h-4 bg-gray-100 rounded w-20 animate-pulse" />
+            <div className="h-4 bg-gray-100 dark:bg-zinc-700 rounded w-20 animate-pulse" />
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-gray-100 rounded-lg animate-pulse" />
-          <div className="w-9 h-9 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="w-9 h-9 bg-gray-100 dark:bg-zinc-700 rounded-lg animate-pulse" />
+          <div className="w-9 h-9 bg-gray-100 dark:bg-zinc-700 rounded-lg animate-pulse" />
         </div>
       </div>
-
       <div className="space-y-2 mb-4">
         {[1, 2].map((i) => (
           <div
             key={i}
-            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"
+            className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-zinc-900 rounded-lg"
           >
-            <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+            <div className="w-4 h-4 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
             <div className="flex-1 flex items-center gap-3">
-              <div className="size-10 bg-gray-200 rounded-lg animate-pulse" />
+              <div className="size-10 bg-gray-200 dark:bg-zinc-700 rounded-lg animate-pulse" />
               <div className="flex-1 space-y-1">
-                <div className="h-4 bg-gray-200 rounded w-40 animate-pulse" />
-                <div className="h-3 bg-gray-100 rounded w-24 animate-pulse" />
+                <div className="h-4 bg-gray-200 dark:bg-zinc-700 rounded w-40 animate-pulse" />
+                <div className="h-3 bg-gray-100 dark:bg-zinc-700 rounded w-24 animate-pulse" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg animate-pulse" />
-              <div className="w-8 h-8 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="w-8 h-8 bg-gray-100 dark:bg-zinc-700 rounded-lg animate-pulse" />
+              <div className="w-8 h-8 bg-gray-100 dark:bg-zinc-700 rounded-lg animate-pulse" />
             </div>
           </div>
         ))}
       </div>
-
-      <div className="h-10 bg-gray-100 rounded-lg w-full animate-pulse" />
+      <div className="h-10 bg-gray-100 dark:bg-zinc-700 rounded-lg w-full animate-pulse" />
     </div>
   );
 }

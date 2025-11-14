@@ -42,7 +42,7 @@ export default function KnowledgeCenterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-200">
       {/* Hero Section with Full Screen Search */}
       <KnowledgeHero
         searchQuery={searchQuery}
