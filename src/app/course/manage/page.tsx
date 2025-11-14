@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import Tabs, { TabItem } from "@/components/ui/Tabs";
 import { SectionActivities } from "@/features/course/components/SectionActivities";
+import { BankContent } from "@/features/course/components/BankContent";
 import { Drawer } from "@/components/ui/Drawer";
 import { ActivityDrawerContent } from "@/features/course/components/ActivityDrawerContent";
 import { Content } from "@/api/contents";
@@ -103,8 +104,8 @@ export default function ManageCoursePage() {
         onManageQuizQuestions={handleManageQuizQuestions}
       />
     ),
-    bank_content: 
-      <div>Bank Content</div>,
+    bank_content:
+      <BankContent />,
   
     peserta: <div>Peserta Content</div>,
     penilaian: <div>Penilaian Content</div>,

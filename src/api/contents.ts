@@ -35,7 +35,7 @@ export const createContent = async (
   newContent: Omit<Content, "id" | "createdAt" | "updatedAt">,
 ): Promise<Content> => {
   const response = await axios.post<Content>(
-    `${API_BASE_URL}/contents`,
+    `${BASE_URL}/contents`,
     newContent,
     {
       headers: {
