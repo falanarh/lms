@@ -46,7 +46,17 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>;
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
+            <p className="text-gray-600">{error.message}</p>
+          </div>
+        </div>
+      </PageContainer>
+    );
   }
 
   const course = courseDetail;

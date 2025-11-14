@@ -25,10 +25,8 @@ export default function CoursePage() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // Call categories API
   const { data: categoriesData, isLoading: isLoadingCategories, error: categoriesError } = useCategories();
 
-  // Call courses API
   const { data: response, isLoading: isLoadingCourses } = useGroupCourses({
     searchQuery: debouncedSearchQuery,
     selectedCategory,
@@ -37,10 +35,8 @@ export default function CoursePage() {
     perPage: COURSES_PER_PAGE
   });
 
-  // Prepare categories with fallback
   const categories = useMemo(() => {
     if (categoriesError || !categoriesData) {
-      // Fallback ke constant jika API gagal
       return COURSE_CATEGORIES;
     }
     return ['All Categories', ...categoriesData];

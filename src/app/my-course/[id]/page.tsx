@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useMemo } from "react";
+import { use, useState, useEffect, useMemo, useCallback } from "react";
 import {
   CourseBreadcrumb,
   CourseTitle,
@@ -13,15 +13,12 @@ import {
 import { CourseTabType } from "@/features/detail-course/types/tab";
 import { useGroupCourse } from "@/hooks/useGroupCourse";
 import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
+import { useContentNavigation } from "@/hooks/useContentNavigation";
 import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
+import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
+import { useCreateReview } from "@/hooks/useReviews";
 import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton } from "@/features/my-course/components";
-import { Content, getContentsBySectionId } from "@/api/contents";
-
-// Extended Content type for navigation
-type ExtendedContent = Content & {
-  sectionId?: string;
-  sectionName?: string;
-};
+import { Content } from "@/api/contents";
 
 interface MyCoursePageProps {
   params: Promise<{
@@ -33,17 +30,21 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const { id } = use(params);
   const { data: course, isLoading, error } = useGroupCourse(id);
   const { data: sections, isLoading: isSectionsLoading } = useSectionsByGroupId({ groupId: id });
+  const { activeContentId, updateContentInUrl } = useContentUrl(id);
+  const createReviewMutation = useCreateReview(id);
   const [activeTab, setActiveTab] = useState<CourseTabType>('information');
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
-  const [allContents, setAllContents] = useState<ExtendedContent[]>([]);
+  const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [isBootingContent, setIsBootingContent] = useState(false);
 
-  // TODO: Remove activities logic since contents are now fetched per section
-  // Auto-expand first section on mount
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsSidebarOpen(mq.matches);
+  }, []);
+
   useEffect(() => {
     const firstSection = sections?.[0];
     if (firstSection && expandedSections.length === 0) {
@@ -52,18 +53,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   }, [sections]);
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    setIsSidebarOpen(mq.matches);
-  }, []);
-
-  // Auto-switch tab ketika sidebar toggle
-  useEffect(() => {
     if (isSidebarOpen && activeTab === 'course_contents') {
       setActiveTab('information');
     }
   }, [isSidebarOpen]);
 
-  // Prefetch contents for first section and auto-select first content
+  // Prefetch first section and auto-select first content
   const firstSectionId = useMemo(() => sections?.[0]?.id ?? undefined, [sections]);
 
   const { data: firstSectionContents, isLoading: isLoadingFirstContents } = useContentsBySectionId({
@@ -71,22 +66,28 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     enabled: Boolean(firstSectionId) && !selectedContent,
   });
 
+  // Restore content from URL on page load
   useEffect(() => {
-    // Start booting when we intend to prefetch first section contents
-    if (firstSectionId && !selectedContent) {
-      setIsBootingContent(true);
+    if (activeContentId && expandedSectionsData) {
+      // Find content by ID across all sections
+      for (const sectionContents of Object.values(expandedSectionsData)) {
+        const foundContent = sectionContents.find(content => content.id === activeContentId);
+        if (foundContent && foundContent.id !== selectedContent?.id) {
+          setSelectedContent(foundContent);
+          return;
+        }
+      }
     }
-  }, [firstSectionId, selectedContent]);
+  }, [activeContentId, expandedSectionsData, selectedContent?.id]);
 
+  // Auto-select first content if no content is selected and no URL content ID
   useEffect(() => {
-    if (!selectedContent && firstSectionContents && firstSectionContents.length > 0) {
-      setSelectedContent(firstSectionContents[0]);
-      setIsBootingContent(false);
+    if (!selectedContent && !activeContentId && firstSectionContents && firstSectionContents.length > 0) {
+      const contentToSelect = firstSectionContents[0];
+      setSelectedContent(contentToSelect);
+      updateContentInUrl(contentToSelect);
     }
-    if (firstSectionContents && firstSectionContents.length === 0) {
-      setIsBootingContent(false);
-    }
-  }, [firstSectionContents, selectedContent]);
+  }, [firstSectionContents, selectedContent, activeContentId, updateContentInUrl]);
 
   // Handle expand/collapse section
   const handleToggleSection = (sectionId: string) => {
@@ -97,92 +98,61 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     );
   };
 
-  // Build flat list of all contents from all sections for navigation
-  useEffect(() => {
-    if (!sections) return;
-    
-    const fetchAllContents = async () => {
-      const allContentsPromises = sections.map(async (section) => {
-        try {
-          const contents = await getContentsBySectionId(section.id);
-          return contents.map((content: Content) => ({
-            ...content,
-            sectionId: section.id,
-            sectionName: section.name
-          }));
-        } catch (error) {
-          console.error(`Error fetching contents for section ${section.id}:`, error);
-          return [];
-        }
-      });
-      
-      const allContentsArrays = await Promise.all(allContentsPromises);
-      const flatContents = allContentsArrays.flat().sort((a, b) => {
-        // Sort by section sequence first, then by content sequence
-        const sectionA = sections.find(s => s.id === a.sectionId);
-        const sectionB = sections.find(s => s.id === b.sectionId);
-        
-        if (sectionA?.sequence !== sectionB?.sequence) {
-          return (sectionA?.sequence || 0) - (sectionB?.sequence || 0);
-        }
-        
-        return a.sequence - b.sequence;
-      });
-      
-      setAllContents(flatContents);
-    };
-    
-    fetchAllContents();
-  }, [sections]);
+  // Enhanced content selection handler that syncs with URL
+  const handleContentSelect = useCallback((content: Content) => {
+    setSelectedContent(content);
+    updateContentInUrl(content);
+  }, [updateContentInUrl]);
 
-  // Navigation handlers with sequential logic
-  const handlePrevious = () => {
-    if (!selectedContent || !allContents.length) return;
-    
-    const currentIndex = allContents.findIndex(content => content.id === selectedContent.id);
-    if (currentIndex > 0) {
-      setSelectedContent(allContents[currentIndex - 1]);
-    }
-  };
-
-  const handleNext = () => {
-    if (!selectedContent || !allContents.length) return;
-    
-    const currentIndex = allContents.findIndex(content => content.id === selectedContent.id);
-    if (currentIndex < allContents.length - 1) {
-      // Auto-mark current content as completed when moving to next
-      if (!completedContentIds.includes(selectedContent.id)) {
-        setCompletedContentIds(prev => [...prev, selectedContent.id]);
+  // Navigation system
+  const handleSectionDataUpdate = useCallback((sectionId: string, contents: Content[]) => {
+    setExpandedSectionsData(prev => {
+      // Prevent unnecessary updates if data is the same
+      if (prev[sectionId] && prev[sectionId].length === contents.length) {
+        const isSame = prev[sectionId].every((content, index) => content.id === contents[index]?.id);
+        if (isSame) return prev;
       }
-      setSelectedContent(allContents[currentIndex + 1]);
-    }
-  };
+      
+      return {
+        ...prev,
+        [sectionId]: contents,
+      };
+    });
+  }, []);
 
-  // Check navigation availability
-  const currentIndex = selectedContent && allContents.length > 0 
-    ? allContents.findIndex(content => content.id === selectedContent.id)
-    : -1;
-  
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex >= 0 && currentIndex < allContents.length - 1;
+  const { handleNext, handlePrevious, isNavigating, navigationState } = useContentNavigation({
+    sections: sections || [],
+    selectedContent,
+    expandedSectionsData,
+    onContentSelect: handleContentSelect,
+    onSectionDataUpdate: handleSectionDataUpdate,
+  });
 
-  // Handle write review
   const handleWriteReview = () => {
     setIsReviewModalOpen(true);
   };
 
-  const handleSubmitReview = (rating: number, review: string) => {
+  const handleSubmitReview = async (rating: number, review: string) => {
+    try {
+      await createReviewMutation.mutateAsync({
+        rating,
+        comment: review,
+      });
+      setIsReviewModalOpen(false);
+      alert('Ulasan berhasil dikirim!');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Gagal mengirim ulasan. Silakan coba lagi.');
+    }
   };
 
-  // Loading state: tunda render penuh sampai konten awal siap (jika ada section pertama)
-  const isInitialContentRequired = Boolean(firstSectionId);
-  const isInitialContentPending = isInitialContentRequired && !selectedContent && (isLoadingFirstContents || isBootingContent);
+  const isPageLoading = isLoading || isSectionsLoading || !course;
+  const isWaitingForInitialContent = !selectedContent && (sections?.length ?? 0) > 0 && isLoadingFirstContents;
 
-  if (isLoading || isSectionsLoading || !course || isInitialContentPending) {
+  if (isPageLoading || isWaitingForInitialContent) {
     return <MyCoursePageSkeleton />;
   }
 
-  // Error state
   if (error) {
     return (
       <PageContainer>
@@ -228,8 +198,9 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
             <ContentNavigation
               onPrevious={handlePrevious}
               onNext={handleNext}
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
+              hasPrevious={navigationState.hasPrevious}
+              hasNext={navigationState.hasNext}
+              isNavigating={isNavigating}
             />
           )}
 
@@ -259,9 +230,10 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               expandedSections={expandedSections}
               onToggleSection={handleToggleSection}
               selectedContentId={selectedContent?.id}
-              onSelectContent={setSelectedContent}
+              onSelectContent={handleContentSelect}
               completedContentIds={completedContentIds}
-              disableFetchFirstForIndexZero={isBootingContent || Boolean(selectedContent)}
+              disableFetchFirstForIndexZero={Boolean(selectedContent)}
+              onSectionDataUpdate={handleSectionDataUpdate}
             />
           )}
 
@@ -286,10 +258,11 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           expandedSections={expandedSections}
           onToggleSection={handleToggleSection}
           selectedContentId={selectedContent?.id}
-          onSelectContent={setSelectedContent}
+          onSelectContent={handleContentSelect}
           onClose={handleCloseSidebar}
           completedContentIds={completedContentIds}
-          disableFetchFirstForIndexZero={isBootingContent || Boolean(selectedContent)}
+          disableFetchFirstForIndexZero={Boolean(selectedContent)}
+          onSectionDataUpdate={handleSectionDataUpdate}
         />
       )}
 
@@ -304,6 +277,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         onClose={() => setIsReviewModalOpen(false)}
         onSubmit={handleSubmitReview}
         courseName={course.course.title}
+        isLoading={createReviewMutation.isPending}
       />
     </>
   );
