@@ -16,7 +16,8 @@ const BASE_URL =
 export const getMasterContents = async (
   page: number = 1,
   perPage: number = 10,
-  searchQuery?: string
+  searchQuery?: string,
+  type?: string
 ): Promise<{
   data: MasterContent[];
   pageMeta: {
@@ -40,6 +41,11 @@ export const getMasterContents = async (
   if (searchQuery && searchQuery.trim()) {
     params.append('name[contains]', searchQuery.trim());
     params.append('name[mode]', 'insensitive');
+  }
+
+  // Add type filter if provided
+  if (type && type.trim()) {
+    params.append('type', type.trim());
   }
 
   const response = await axios.get<{

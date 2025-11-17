@@ -3,14 +3,14 @@ import { createMasterContent, getMasterContents, updateMasterContent, deleteMast
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
-export const getMasterContentQueryKey = (page: number = 1, perPage: number = 10, searchQuery?: string) => ["master-contents", page, perPage, searchQuery || ""]
+export const getMasterContentQueryKey = (page: number = 1, perPage: number = 10, searchQuery?: string, type?: string) => ["master-contents", page, perPage, searchQuery || "", type || ""]
 
 export const getContentQueryKey = () => ["contents"]
 
-export const getMasterContentQueryOptions = (page: number = 1, perPage: number = 10, searchQuery?: string) => {
+export const getMasterContentQueryOptions = (page: number = 1, perPage: number = 10, searchQuery?: string, type?: string) => {
     return queryOptions({
-        queryKey: getMasterContentQueryKey(page, perPage, searchQuery),
-        queryFn: () => getMasterContents(page, perPage, searchQuery)
+        queryKey: getMasterContentQueryKey(page, perPage, searchQuery, type),
+        queryFn: () => getMasterContents(page, perPage, searchQuery, type)
     })
 }
 
@@ -18,14 +18,15 @@ type UseMasterContentParams = {
     page?: number;
     perPage?: number;
     searchQuery?: string;
+    type?: string;
     queryConfig?: QueryConfig<ReturnType<typeof getMasterContentQueryOptions>>
 }
 
 export const useMasterContents = (params: UseMasterContentParams = {}) => {
-    const { page = 1, perPage = 10, searchQuery, queryConfig = {} } = params;
+    const { page = 1, perPage = 10, searchQuery, type, queryConfig = {} } = params;
 
     return useQuery({
-        ...getMasterContentQueryOptions(page, perPage, searchQuery),
+        ...getMasterContentQueryOptions(page, perPage, searchQuery, type),
         ...queryConfig,
     })
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useMasterContents, useCreateMasterContent, useUpdateMasterContent, useDeleteMasterContent } from "@/hooks/useMasterContent";
 import { MasterContent } from "@/api/masterContent";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Drawer } from "@/components/ui/Drawer/Drawer";
 import { Select } from "@/components/ui/Select/Select";
 import { Pagination } from "@/components/shared/Pagination/Pagination";
-import { ExternalLink, FileText, Video, HelpCircle, Link2, Package, Loader2, AlertCircle, X, CheckSquare, Edit3, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, Video, HelpCircle, Link2, Package, Loader2, AlertCircle, X, CheckSquare, Edit3, Trash2, Search } from "lucide-react";
 import Dropdown from "@/components/ui/Dropdown/Dropdown";
 import { uploadFileToR2, validateFile } from "@/lib/uploadToR2";
 import { Badge } from "@/components/ui/Badge";
@@ -84,10 +84,16 @@ export function BankContent() {
   // Get page and perPage from URL params, default to page 1 and 10 per page
   const currentPage = parseInt(searchParams.get('page') || '1');
   const perPage = parseInt(searchParams.get('perPage') || '10');
+  const searchTitle = searchParams.get('search') || '';
+  const filterType = searchParams.get('type') || '';
 
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [editingContent, setEditingContent] = useState<MasterContent | null>(null);
+  const [searchInput, setSearchInput] = useState(searchTitle);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchTitle);
+  const [typeFilter, setTypeFilter] = useState(filterType);
+  const isClearingFilters = useRef(false);
   const [formData, setFormData] = useState({
     type: "",
     name: "",
@@ -120,6 +126,35 @@ export function BankContent() {
     title: "",
   });
 
+  // Sync local state with URL params (only if we're not in the middle of clearing filters)
+  useEffect(() => {
+    if (!isClearingFilters.current) {
+      setSearchInput(searchTitle);
+      setDebouncedSearchQuery(searchTitle);
+      setTypeFilter(filterType);
+    }
+    // Reset the flag after sync
+    isClearingFilters.current = false;
+  }, [searchTitle, filterType]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchInput);
+      // Update URL when debounced query changes
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchInput.trim()) {
+        params.set('search', searchInput.trim());
+      } else {
+        params.delete('search');
+      }
+      params.set('page', '1'); // Reset to first page when searching
+      router.push(`${pathname}?${params.toString()}`);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // Toast helper function
   const showToastMessage = (
     variant: "info" | "warning" | "success",
@@ -134,6 +169,8 @@ export function BankContent() {
   const { data: response, isLoading, error, refetch } = useMasterContents({
     page: currentPage,
     perPage: perPage,
+    searchQuery: debouncedSearchQuery,
+    type: filterType,
   });
 
   const masterContents = response?.data || [];
@@ -185,7 +222,26 @@ export function BankContent() {
     params.set('page', '1'); // Reset to first page when changing per page
     router.push(`${pathname}?${params.toString()}`);
   };
-  const createMasterContentMutation = useCreateMasterContent({
+
+  // Handle search input change
+  const handleSearch = (value: string) => {
+    setSearchInput(value);
+  };
+
+  // Handle type filter
+  const handleTypeFilter = (value: string) => {
+    setTypeFilter(value);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value && value !== 'all') {
+      params.set('type', value);
+    } else {
+      params.delete('type');
+    }
+    params.set('page', '1'); // Reset to first page when filtering
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+    const createMasterContentMutation = useCreateMasterContent({
     onSuccess: () => {
       showToastMessage("success", "✅ Bank content berhasil ditambahkan!");
       setIsCreateDrawerOpen(false);
@@ -404,6 +460,16 @@ export function BankContent() {
     { value: "SCORM", label: "SCORM" },
   ];
 
+  const typeFilterOptions = [
+    { value: "all", label: "All Types" },
+    { value: "VIDEO", label: "Video" },
+    { value: "PDF", label: "PDF Document" },
+    { value: "QUIZ", label: "Quiz" },
+    { value: "TASK", label: "Task/Assignment" },
+    { value: "LINK", label: "Link" },
+    { value: "SCORM", label: "SCORM" },
+  ];
+
   const perPageOptions = [
     { value: '5', label: '5' },
     { value: '10', label: '10' },
@@ -432,24 +498,102 @@ export function BankContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Bank Content
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {pageMeta
-              ? `Manage ${pageMeta.totalResultCount} reusable content items for your courses`
-              : 'Manage reusable content for your courses'
-            }
-          </p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Bank Content
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {pageMeta
+                ? `Manage ${pageMeta.totalResultCount} reusable content items for your courses`
+                : 'Manage reusable content for your courses'
+              }
+            </p>
+          </div>
+          <Button
+            onClick={() => setIsCreateDrawerOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Add New Content
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsCreateDrawerOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          Add New Content
-        </Button>
+
+        {/* Search and Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          {/* Search Input */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Search by title..."
+                value={searchInput}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+          </div>
+
+          {/* Type Filter Dropdown */}
+          <div className="w-full sm:w-48">
+            <Dropdown
+              items={typeFilterOptions}
+              value={typeFilter || 'all'}
+              onChange={handleTypeFilter}
+              size="sm"
+              variant="outline"
+              searchable={false}
+              placeholder="Filter by type"
+              className="w-full"
+            />
+          </div>
+        </div>
+
+        {/* Active Filters Display */}
+        {(searchTitle || filterType) && (
+          <div className="flex flex-wrap gap-2">
+            {searchTitle && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Search: "{searchTitle}"
+                <button
+                  onClick={() => {
+                    // Set flag to prevent URL sync from overwriting our cleared state
+                    isClearingFilters.current = true;
+                    setSearchInput('');
+                    setDebouncedSearchQuery('');
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('search');
+                    params.set('page', '1');
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
+                  className="ml-1 text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            {filterType && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Type: {filterType}
+                <button
+                  onClick={() => {
+                    // Set flag to prevent URL sync from overwriting our cleared state
+                    isClearingFilters.current = true;
+                    setTypeFilter('');
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('type');
+                    params.set('page', '1');
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
+                  className="ml-1 text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content Grid */}
@@ -533,7 +677,10 @@ export function BankContent() {
       ) : (
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 mb-4">
-            No bank contents available
+            {searchTitle || filterType
+              ? 'Tidak ada konten bank yang sesuai dengan kriteria pencarian Anda'
+              : 'Tidak ada konten bank yang tersedia'
+            }
           </div>
           <Button
             onClick={() => setIsCreateDrawerOpen(true)}
