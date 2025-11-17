@@ -25,10 +25,10 @@ export default function GeneralContentForm({
 
   const handleContentTypeSelect = (type: ContentType) => {
     console.log('🎯 Selecting content type:', type);
-    // Always set the entire knowledgeContent object to ensure reactivity
+    // Set ulang knowledgeContent, dan reset mediaUrl jika tipe konten benar-benar berubah
     form.setFieldValue('knowledgeContent' as any, {
       contentType: type,
-      mediaUrl: formValues.knowledgeContent?.mediaUrl,
+      mediaUrl: undefined,
       document: formValues.knowledgeContent?.document,
     } as any);
   };
@@ -45,9 +45,10 @@ export default function GeneralContentForm({
   // Use Subscribe for reactive content type
   return (
     <form.Subscribe
-      selector={(state: any) => state.values.knowledgeContent?.contentType}
+      selector={(state: any) => state.values.knowledgeContent}
     >
-      {(selectedContentType: any) => {
+      {(knowledgeContent: any) => {
+        const selectedContentType = knowledgeContent?.contentType;
         const isArticle = selectedContentType === CONTENT_TYPES.ARTICLE;
         const isVideo = selectedContentType === CONTENT_TYPES.VIDEO;
         const isPodcast = selectedContentType === CONTENT_TYPES.PODCAST;
@@ -73,46 +74,50 @@ export default function GeneralContentForm({
           <div className="space-y-6">
             <ContentTypeHeader contentType={selectedContentType as ContentType} onBack={handleBack} />
 
-      {/* Media Resource (only for video, podcast, pdf) */}
-      {!isArticle && (
-        <form.Field
-          name="knowledgeContent.mediaUrl"
-          validators={{
-            onChange: ({ value }: any) => {
-              // Allow File objects (for preview before upload)
-              if (value instanceof File) {
-                return undefined;
-              }
-              // Allow string URLs (after upload)
-              if (typeof value === 'string' && value.length > 0) {
-                return undefined;
-              }
-              // Empty or invalid
-              return 'Please upload a media file (video, audio, or PDF)';
-            },
-            onBlur: ({ value }: any) => {
-              // Allow File objects (for preview before upload)
-              if (value instanceof File) {
-                return undefined;
-              }
-              // Allow string URLs (after upload)
-              if (typeof value === 'string' && value.length > 0) {
-                return undefined;
-              }
-              // Empty or invalid
-              return 'Please upload a media file (video, audio, or PDF)';
-            },
-          }}
-        >
-          {(field: any) => (
-            <MediaUploadField
-              field={field}
-              mediaUrl={typeof formValues.knowledgeContent?.mediaUrl === 'string' ? formValues.knowledgeContent?.mediaUrl : undefined}
-              mediaType={uploadType}
-            />
-          )}
-        </form.Field>
-      )}
+            {/* Media Resource (only for video, podcast, pdf) */}
+            {!isArticle && (
+              <form.Field
+                name="knowledgeContent.mediaUrl"
+                validators={{
+                  onChange: ({ value }: any) => {
+                    // Allow File objects (for preview before upload)
+                    if (value instanceof File) {
+                      return undefined;
+                    }
+                    // Allow string URLs (after upload)
+                    if (typeof value === 'string' && value.length > 0) {
+                      return undefined;
+                    }
+                    // Empty or invalid
+                    return 'Please upload a media file (video, audio, or PDF)';
+                  },
+                  onBlur: ({ value }: any) => {
+                    // Allow File objects (for preview before upload)
+                    if (value instanceof File) {
+                      return undefined;
+                    }
+                    // Allow string URLs (after upload)
+                    if (typeof value === 'string' && value.length > 0) {
+                      return undefined;
+                    }
+                    // Empty or invalid
+                    return 'Please upload a media file (video, audio, or PDF)';
+                  },
+                }}
+              >
+                {(field: any) => (
+                  <MediaUploadField
+                    field={field}
+                    mediaUrl={
+                      typeof knowledgeContent?.mediaUrl === 'string'
+                        ? knowledgeContent.mediaUrl
+                        : undefined
+                    }
+                    mediaType={uploadType}
+                  />
+                )}
+              </form.Field>
+            )}
 
             {/* Content (Rich Text Editor) */}
             <form.Field

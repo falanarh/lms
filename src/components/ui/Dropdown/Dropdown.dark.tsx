@@ -224,7 +224,7 @@ export function Dropdown({
   const listboxId = React.useId();
 
   return (
-    <div className={["inline-flex items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
+    <div className={["w-full items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
       {label && (
         <span className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)] font-[var(--font-body)]">
           {label}
@@ -238,7 +238,7 @@ export function Dropdown({
           ref={buttonRef}
           type="button"
           className={[
-            "inline-flex items-center justify-between min-w-48",
+            "inline-flex w-full items-center justify-between min-w-48",
             sz.button,
             sz.text,
             variantClasses(variant, error),

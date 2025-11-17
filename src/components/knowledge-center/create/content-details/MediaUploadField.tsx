@@ -30,19 +30,19 @@ export default function MediaUploadField({
   // Initialize preview from field value on mount (for step navigation)
   useEffect(() => {
     const currentValue = field.state.value;
-    
+
     // Only initialize if we don't have a preview yet
     if (!previewUrl && !selectedFile) {
       if (currentValue instanceof File) {
         const url = URL.createObjectURL(currentValue);
         setPreviewUrl(url);
         setSelectedFile(currentValue);
-      } else if (typeof currentValue === 'string' && currentValue) {
-        // If it's already a URL string (after upload)
-        setPreviewUrl(currentValue);
+      } else if (!currentValue && mediaUrl) {
+        // For existing media in edit mode, use controlled mediaUrl prop
+        setPreviewUrl(mediaUrl);
       }
     }
-  }, [field.state.value, previewUrl, selectedFile]);
+  }, [field.state.value, previewUrl, selectedFile, mediaUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

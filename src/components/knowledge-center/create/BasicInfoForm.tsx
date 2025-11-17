@@ -25,7 +25,7 @@ import {
 import SubjectManager from "./SubjectManagerTanStack";
 import {
   basicInfoSchema,
-  imageFileValidator,
+  thumbnailValidator,
 } from "@/lib/validation/knowledge-schemas";
 
 // ============================================================================
@@ -231,8 +231,9 @@ export default function BasicInfoForm({
       <form.Field
         name="thumbnail"
         validators={{
-          onChange: imageFileValidator,
-          onBlur: imageFileValidator,
+          // Gunakan thumbnailValidator supaya mendukung File (create) maupun string URL (edit)
+          onChange: thumbnailValidator,
+          onBlur: thumbnailValidator,
         }}
       >
         {(field: any) => (

@@ -10,7 +10,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Filter, Grid3X3, List } from 'lucide-react';
+import { Search, Plus, Filter, Grid3X3, List, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input/Input';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Button } from '@/components/ui/Button/Button';
@@ -23,11 +23,55 @@ import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { KnowledgeCenter, KnowledgeQueryParams, SORT_OPTIONS, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 import Link from 'next/link';
 
+// Helper function to determine knowledge center status
+const getKnowledgeStatus = (knowledge: KnowledgeCenter): 'draft' | 'scheduled' | 'published' => {
+  if (!knowledge.isFinal) {
+    return 'draft';
+  }
+  
+  const publishDate = new Date(knowledge.publishedAt);
+  const now = new Date();
+  
+  if (publishDate > now) {
+    return 'scheduled';
+  }
+  
+  return 'published';
+};
+
+// Helper function to get status display info
+const getStatusInfo = (status: 'draft' | 'scheduled' | 'published') => {
+  switch (status) {
+    case 'draft':
+      return {
+        label: 'Draft',
+        color: 'bg-yellow-500',
+        textColor: 'text-yellow-700',
+        bgColor: 'bg-yellow-50'
+      };
+    case 'scheduled':
+      return {
+        label: 'Scheduled',
+        color: 'bg-blue-500',
+        textColor: 'text-blue-700',
+        bgColor: 'bg-blue-50'
+      };
+    case 'published':
+      return {
+        label: 'Published',
+        color: 'bg-green-500',
+        textColor: 'text-green-700',
+        bgColor: 'bg-green-50'
+      };
+  }
+};
+
 interface KnowledgeManagementListProps {
   onEdit: (knowledge: KnowledgeCenter) => void;
   onDelete: (id: string) => void;
+  onBulkDelete: (ids: string[]) => void;
   onDuplicate: (knowledge: KnowledgeCenter) => void;
-  onToggleStatus: (id: string, isFinal: boolean) => void;
+  onToggleStatus: (id: string, isFinal: boolean, title: string) => void;
   isDeleting: boolean;
   isUpdating: boolean;
 }
@@ -88,20 +132,40 @@ const KnowledgeManagementListSkeleton = () => (
 // List view item component
 const KnowledgeManagementListItem = ({ 
   knowledge, 
-  onEdit, 
+  onEdit,
+  onDelete,
   onToggleStatus, 
-  isUpdating 
+  isUpdating,
+  isDeleting,
+  isSelected = false,
+  onSelectionChange
 }: {
   knowledge: KnowledgeCenter;
   onEdit: () => void;
+  onDelete: () => void;
   onToggleStatus: () => void;
   isUpdating: boolean;
+  isDeleting: boolean;
+  isSelected?: boolean;
+  onSelectionChange?: (selected: boolean) => void;
 }) => {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+    <div className={`bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow ${isSelected ? 'ring-2 ring-blue-500 border-blue-300' : ''}`}>
       <div className="flex items-center gap-4">
+        {/* Selection Checkbox */}
+        {onSelectionChange && (
+          <div className="shrink-0">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => onSelectionChange(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+          </div>
+        )}
+        
         {/* Thumbnail */}
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <div className="w-20 h-14 bg-gray-100 rounded overflow-hidden">
             {knowledge.thumbnail && (
               <img 
@@ -125,12 +189,16 @@ const KnowledgeManagementListItem = ({
               </p>
               
               <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
-                  <span className={`inline-block w-2 h-2 rounded-full ${
-                    knowledge.isFinal ? 'bg-green-500' : 'bg-yellow-500'
-                  }`} />
-                  {knowledge.isFinal ? 'Published' : 'Draft'}
-                </span>
+                {(() => {
+                  const status = getKnowledgeStatus(knowledge);
+                  const statusInfo = getStatusInfo(status);
+                  return (
+                    <span className="flex items-center gap-1">
+                      <span className={`inline-block w-2 h-2 rounded-full ${statusInfo.color}`} />
+                      {statusInfo.label}
+                    </span>
+                  );
+                })()}
                 <span>{knowledge.type}</span>
                 <span>{new Date(knowledge.createdAt).toLocaleDateString()}</span>
               </div>
@@ -139,22 +207,46 @@ const KnowledgeManagementListItem = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={onEdit}
-            disabled={isUpdating}
+            disabled={isUpdating || isDeleting}
           >
             Edit
           </Button>
           <Button
-            variant={knowledge.isFinal ? 'outline' : 'solid'}
+            variant={(() => {
+              const status = getKnowledgeStatus(knowledge);
+              return status === 'draft' ? 'solid' : 'outline';
+            })()}
             size="sm"
             onClick={onToggleStatus}
-            disabled={isUpdating}
+            disabled={isUpdating || isDeleting}
           >
-            {knowledge.isFinal ? 'Unpublish' : 'Publish'}
+            {(() => {
+              const status = getKnowledgeStatus(knowledge);
+              switch (status) {
+                case 'draft':
+                  return 'Publish';
+                case 'scheduled':
+                  return 'Unschedule';
+                case 'published':
+                  return 'Unpublish';
+                default:
+                  return 'Publish';
+              }
+            })()}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            disabled={isUpdating || isDeleting}
+            className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -164,7 +256,8 @@ const KnowledgeManagementListItem = ({
 
 export default function KnowledgeManagementList({
   onEdit,
-  // onDelete,
+  onDelete,
+  onBulkDelete,
   // onDuplicate,
   onToggleStatus,
   isDeleting,
@@ -177,12 +270,14 @@ export default function KnowledgeManagementList({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT | 'all'>('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'published' | 'draft'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'published' | 'scheduled' | 'draft'>('all');
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.NEWEST);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
 
   // ============================================================================
   // Data Fetching
@@ -199,17 +294,51 @@ export default function KnowledgeManagementList({
   }, [selectedSubject, subjects]);
 
   // Build query params for API
-  const queryParams: KnowledgeQueryParams = useMemo(() => ({
-    search: searchQuery || undefined,
-    knowledgeType: selectedType !== 'all' ? selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT : undefined,
-    subject: subjectId ? [subjectId] : undefined,
-    sort: sortBy,
-    page: currentPage,
-    limit: itemsPerPage,
-    // Add status filter for management view
-    ...(selectedStatus === 'published' && { 'isFinal': true }),
-    ...(selectedStatus === 'draft' && { 'isFinal': false }),
-  }), [searchQuery, selectedType, subjectId, sortBy, currentPage, itemsPerPage, selectedStatus]);
+  const queryParams: KnowledgeQueryParams = useMemo(() => {
+    const base: KnowledgeQueryParams = {
+      search: searchQuery || undefined,
+      knowledgeType:
+        selectedType !== 'all'
+          ? (selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT)
+          : undefined,
+      subject: subjectId ? [subjectId] : undefined,
+      sort: sortBy,
+      page: currentPage,
+      limit: itemsPerPage,
+    };
+
+    // Server-side status filters
+    const now = new Date().toISOString();
+
+    if (selectedStatus === 'published') {
+      // Published: final and publishedAt up to now
+      return {
+        ...base,
+        isFinal: true,
+        'publishedAt[lte]': now,
+      };
+    }
+
+    if (selectedStatus === 'scheduled') {
+      // Scheduled: final and publish date in the future
+      return {
+        ...base,
+        isFinal: true,
+        'publishedAt[gte]': now,
+      };
+    }
+
+    if (selectedStatus === 'draft') {
+      // Draft: not final
+      return {
+        ...base,
+        isFinal: false,
+      };
+    }
+
+    // All status: no additional status filters
+    return base;
+  }, [searchQuery, selectedType, subjectId, sortBy, currentPage, itemsPerPage, selectedStatus]);
 
   const {
     data: knowledgeItems,
@@ -247,6 +376,42 @@ export default function KnowledgeManagementList({
   };
 
   // ============================================================================
+  // Bulk Selection Handlers
+  // ============================================================================
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedItems(new Set());
+      setSelectAll(false);
+    } else {
+      const allIds = new Set(knowledgeItems?.map(item => item.id) || []);
+      setSelectedItems(allIds);
+      setSelectAll(true);
+    }
+  };
+
+  const handleItemSelection = (id: string, selected: boolean) => {
+    const newSelectedItems = new Set(selectedItems);
+    if (selected) {
+      newSelectedItems.add(id);
+    } else {
+      newSelectedItems.delete(id);
+      setSelectAll(false);
+    }
+    setSelectedItems(newSelectedItems);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedItems.size > 0) {
+      onBulkDelete(Array.from(selectedItems));
+      setSelectedItems(new Set());
+      setSelectAll(false);
+    }
+  };
+
+  const selectedCount = selectedItems.size;
+
+  // ============================================================================
   // Sort and Filter Options
   // ============================================================================
 
@@ -260,6 +425,7 @@ export default function KnowledgeManagementList({
   const statusOptions = [
     { value: 'all', label: 'All Status' },
     { value: 'published', label: 'Published' },
+    { value: 'scheduled', label: 'Scheduled' },
     { value: 'draft', label: 'Draft' },
   ];
 
@@ -277,13 +443,14 @@ export default function KnowledgeManagementList({
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Knowledge Centers Management
+            Knowledge Centers
           </h2>
           <p className="text-gray-600 mt-1">
             {total || 0} items found
             {selectedType !== 'all' && ` • ${selectedType === 'webinar' ? 'Webinars' : 'Content'}`}
             {selectedSubject !== 'all' && ` • ${selectedSubject}`}
             {selectedStatus !== 'all' && ` • ${selectedStatus}`}
+            {selectedCount > 0 && ` • ${selectedCount} selected`}
           </p>
         </div>
 
@@ -305,6 +472,52 @@ export default function KnowledgeManagementList({
           </Link>
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedCount > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-sm font-medium text-gray-900">
+                  {selectedCount} item{selectedCount > 1 ? 's' : ''} selected
+                </span>
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedItems(new Set());
+                  setSelectAll(false);
+                }}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                Clear selection
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected ({selectedCount})
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter Bar */}
       <div className="space-y-4">
@@ -342,7 +555,7 @@ export default function KnowledgeManagementList({
                 <Dropdown
                   items={statusOptions}
                   value={selectedStatus}
-                  onChange={(value) => setSelectedStatus(value as 'all' | 'published' | 'draft')}
+                  onChange={(value) => setSelectedStatus(value as 'all' | 'published' | 'scheduled' | 'draft')}
                   placeholder="All Status"
                   searchable={false}
                   size="md"
@@ -363,28 +576,8 @@ export default function KnowledgeManagementList({
               </div>
             </div>
 
-            {/* View Toggle and Advanced Filter Toggle */}
+            {/* Advanced Filter Toggle and View Toggle */}
             <div className="flex items-center gap-2">
-              {/* View Mode Toggle */}
-              <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
-                <Button
-                  variant={viewMode === 'grid' ? 'solid' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-none border-0 px-3"
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'solid' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-none border-0 px-3"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
-
               {/* Advanced Filter Toggle */}
               <Button
                 variant="outline"
@@ -405,6 +598,26 @@ export default function KnowledgeManagementList({
                   </span>
                 )}
               </Button>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
+                <Button
+                  variant={viewMode === 'grid' ? 'solid' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-none border-0 px-3"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'solid' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-none border-0 px-3"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -521,17 +734,24 @@ export default function KnowledgeManagementList({
                 key={knowledge.id}
                 knowledge={knowledge}
                 onEdit={() => onEdit(knowledge)}
-                onToggleStatus={() => onToggleStatus(knowledge.id, !knowledge.isFinal)}
+                onDelete={() => onDelete(knowledge.id)}
+                onToggleStatus={() => onToggleStatus(knowledge.id, knowledge.isFinal, knowledge.title)}
                 isDeleting={isDeleting}
                 isUpdating={isUpdating}
+                isSelected={selectedItems.has(knowledge.id)}
+                onSelectionChange={(selected) => handleItemSelection(knowledge.id, selected)}
               />
             ) : (
               <KnowledgeManagementListItem
                 key={knowledge.id}
                 knowledge={knowledge}
                 onEdit={() => onEdit(knowledge)}
-                onToggleStatus={() => onToggleStatus(knowledge.id, !knowledge.isFinal)}
+                onDelete={() => onDelete(knowledge.id)}
+                onToggleStatus={() => onToggleStatus(knowledge.id, knowledge.isFinal, knowledge.title)}
                 isUpdating={isUpdating}
+                isDeleting={isDeleting}
+                isSelected={selectedItems.has(knowledge.id)}
+                onSelectionChange={(selected) => handleItemSelection(knowledge.id, selected)}
               />
             )
           ))}

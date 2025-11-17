@@ -23,6 +23,7 @@ import {
   ExternalLink,
   CheckCircle,
   XCircle,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button/Button';
 import { KnowledgeCenter, ContentType, CONTENT_TYPES, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
@@ -30,9 +31,12 @@ import { KnowledgeCenter, ContentType, CONTENT_TYPES, KNOWLEDGE_TYPES } from '@/
 interface KnowledgeManagementCardProps {
   knowledge: KnowledgeCenter;
   onEdit: () => void;
+  onDelete: () => void;
   onToggleStatus: () => void;
   isDeleting: boolean;
   isUpdating: boolean;
+  isSelected?: boolean;
+  onSelectionChange?: (selected: boolean) => void;
   className?: string;
 }
 
@@ -65,9 +69,12 @@ const extractYouTubeVideoId = (url: string): string | null => {
 export default function KnowledgeManagementCard({
   knowledge,
   onEdit,
+  onDelete,
   onToggleStatus,
   isDeleting,
   isUpdating,
+  isSelected = false,
+  onSelectionChange,
   className = ''
 }: KnowledgeManagementCardProps) {
   const [imageError, setImageError] = useState(false);
@@ -153,7 +160,19 @@ export default function KnowledgeManagementCard({
   // Actions are handled by the bottom buttons instead of dropdown
 
   return (
-    <article className={`bg-white border border-gray-200 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-300 hover:shadow-md flex flex-col h-full ${className}`}>
+    <article className={`bg-white border border-gray-200 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-300 hover:shadow-md flex flex-col h-full ${isSelected ? 'ring-2 ring-blue-500 border-blue-300' : ''} ${className}`}>
+      {/* Selection Checkbox */}
+      {onSelectionChange && (
+        <div className="absolute top-2 left-2 z-10">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelectionChange(e.target.checked)}
+            className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2 shadow-sm"
+          />
+        </div>
+      )}
+      
       {/* Thumbnail */}
       <div className="relative aspect-video bg-gray-100 overflow-hidden">
         {!imageError && knowledge.thumbnail ? (
@@ -272,7 +291,7 @@ export default function KnowledgeManagementCard({
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-gray-400 truncate max-w-[100px]">{knowledge.penyelenggara}</span>
+            <span className="text-gray-400 truncate max-w-[200px]">{knowledge.penyelenggara}</span>
             <Link 
               href={`/knowledge-center/${knowledge.id}`}
               className="text-blue-600 hover:text-blue-700 transition-colors"
@@ -318,6 +337,16 @@ export default function KnowledgeManagementCard({
                 Publish
               </>
             )}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            disabled={isDeleting || isUpdating}
+            className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50"
+          >
+            <Trash2 className="w-3 h-3" />
           </Button>
         </div>
       </div>

@@ -222,23 +222,15 @@ export function FormFileUpload({
 }) {
   const [warnings, setWarnings] = useState<string[]>([]);
 
-
-
-
   const displayValue = field.state.value;
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('🐛 FormFileUpload Debug:', {
-      displayValue: displayValue instanceof File ? `File: ${displayValue.name}` : displayValue,
-      previewUrl: previewUrl ? previewUrl.substring(0, 50) + '...' : null,
-      isImageFile: displayValue instanceof File && displayValue.type.startsWith('image/')
-    });
-  }, [displayValue, previewUrl]);
-
-  // Simple logic: Use previewUrl if available, otherwise create object URL
-  const imageSource = previewUrl || (displayValue instanceof File && displayValue.type.startsWith('image/') ? URL.createObjectURL(displayValue) : null);
+  // Simple logic: Use previewUrl if available, otherwise create object URL dari File image
+  const imageSource = previewUrl ||
+    (displayValue instanceof File && displayValue.type.startsWith('image/')
+      ? URL.createObjectURL(displayValue)
+      : null);
   const isImageFile = displayValue instanceof File && displayValue.type.startsWith('image/');
+  const shouldShowImage = !!imageSource;
 
   return (
     <div className="space-y-2">
@@ -256,10 +248,10 @@ export function FormFileUpload({
             console.log('🎯 Render Logic Debug:', {
               imageSource: imageSource ? 'EXISTS' : 'NULL',
               isImageFile,
-              shouldShowImage: imageSource && isImageFile
+              shouldShowImage,
             });
 
-            if (imageSource && isImageFile) {
+            if (shouldShowImage) {
               console.log('✅ Rendering image with source:', imageSource.substring(0, 50) + '...');
               return (
                 <img

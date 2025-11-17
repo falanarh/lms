@@ -73,7 +73,6 @@ const StatsCard = ({
           <span className={`text-sm font-medium ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
             {trendValue}
           </span>
-          <span className="text-sm text-gray-500 ml-1">vs last month</span>
         </div>
       )}
     </div>
@@ -87,7 +86,7 @@ export default function KnowledgeManagementStats() {
     knowledgeType: KNOWLEDGE_TYPES.WEBINAR,
     limit: 1000 
   });
-  const { data: content = [], isLoading: contentLoading } = useKnowledge({ 
+  const { isLoading: contentLoading } = useKnowledge({ 
     knowledgeType: KNOWLEDGE_TYPES.CONTENT,
     limit: 1000 
   });
@@ -95,8 +94,9 @@ export default function KnowledgeManagementStats() {
   // Calculate stats
   const totalKnowledge = allKnowledge.length;
   const totalWebinars = webinars.length;
-  const totalContent = content.length;
-  const publishedCount = allKnowledge.filter(item => item.isFinal).length;
+  const now = new Date();
+  const publishedCount = allKnowledge.filter(item => item.isFinal && new Date(item.publishedAt) <= now).length;
+  const scheduledCount = allKnowledge.filter(item => item.isFinal && new Date(item.publishedAt) > now).length;
   const draftCount = allKnowledge.filter(item => !item.isFinal).length;
   
   const totalViews = allKnowledge.reduce((sum, item) => sum + (item.viewCount || 0), 0);
@@ -123,13 +123,11 @@ export default function KnowledgeManagementStats() {
       {/* Overview Stats */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
           <StatsCard
             title="Total Knowledge Centers"
             value={totalKnowledge}
             icon={BarChart3}
-            trend="up"
-            trendValue="+12%"
             color="blue"
             isLoading={statsLoading}
           />
@@ -137,9 +135,14 @@ export default function KnowledgeManagementStats() {
             title="Published"
             value={publishedCount}
             icon={FileText}
-            trend="up"
-            trendValue="+8%"
             color="green"
+            isLoading={statsLoading}
+          />
+          <StatsCard
+            title="Scheduled"
+            value={scheduledCount}
+            icon={Calendar}
+            color="purple"
             isLoading={statsLoading}
           />
           <StatsCard
@@ -149,22 +152,20 @@ export default function KnowledgeManagementStats() {
             color="orange"
             isLoading={statsLoading}
           />
-          <StatsCard
+          {/* <StatsCard
             title="Total Views"
             value={totalViews.toLocaleString()}
             icon={Eye}
-            trend="up"
-            trendValue="+24%"
             color="purple"
             isLoading={statsLoading}
-          />
+          /> */}
         </div>
       </div>
 
       {/* Content Type Stats */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Types</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
           <StatsCard
             title="Webinars"
             value={totalWebinars}

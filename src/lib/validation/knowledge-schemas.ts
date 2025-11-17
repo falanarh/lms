@@ -85,7 +85,7 @@ export const webinarDetailsSchema = z.object({
     required_error: 'Please enter the Zoom meeting link',
     invalid_type_error: 'Invalid URL format',
   }).url('Please enter a valid Zoom meeting URL').min(1, 'Zoom link is required for participants to join the webinar'),
-  recordLink: z.string().url('Please enter a valid recording URL').min(1, 'Recording link is required'),
+  recordLink: optionalUrl,
   youtubeLink: optionalUrl,
   vbLink: optionalUrl,
   contentText: z.union([z.instanceof(File), z.string()]).optional(),

@@ -8,8 +8,8 @@
  * - Optimized performance with proper memoization
  */
 
-import { useState, useCallback, useMemo } from 'react';
-import { useForm } from '@tanstack/react-form';
+import { useState, useCallback } from 'react';
+import { useForm, useStore } from '@tanstack/react-form';
 import type { CreateKnowledgeFormData } from '@/types/knowledge-center';
 import { KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 import {
@@ -34,12 +34,12 @@ const getInitialFormValues = (): CreateKnowledgeFormData => ({
   isFinal: false,
   publishedAt: new Date().toISOString().slice(0, 16), // Default to current datetime
   webinar: {
-    jpCount: undefined, 
-    zoomDate: undefined,
-    zoomLink: undefined,
-    recordLink: undefined,
-    youtubeLink: undefined,
-    vbLink: undefined,
+    jpCount: 0, 
+    zoomDate: '',
+    zoomLink: '',
+    recordLink: '',
+    youtubeLink: '',
+    vbLink: '',
     noteFile: undefined,
     contentText: undefined,
   },
@@ -88,13 +88,10 @@ export const useKnowledgeWizardForm = () => {
   }) as any;
 
   // ============================================================================
-  // Form Values Access - Memoized for Performance
+  // Form Values Access - Reactive via TanStack useStore
   // ============================================================================
 
-  const formValues = useMemo(
-    () => form.state.values,
-    [form.state.values]
-  );
+  const formValues = useStore(form.store, (state: any) => state.values as CreateKnowledgeFormData);
 
   const currentType = formValues.type;
 

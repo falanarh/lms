@@ -612,12 +612,7 @@ export const useKnowledgeManagementPage = ({
 
   // Delete knowledge center mutation
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      // Note: Implement delete API call when available
-      // For now, this is a placeholder
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      throw new Error('Delete API not implemented yet');
-    },
+    mutationFn: (id: string) => knowledgeCenterApi.deleteKnowledgeCenter(id),
     onMutate: () => {
       setIsDeleting(true);
     },
@@ -695,11 +690,55 @@ export const useKnowledgeManagementPage = ({
     }
   }, [updateMutation]);
 
+  // Handle bulk delete action
+  const handleBulkDelete = useCallback(async (ids: string[]) => {
+    const count = ids.length;
+    const confirmMessage = `Are you sure you want to delete ${count} knowledge center${count > 1 ? 's' : ''}? This action cannot be undone.`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        setIsDeleting(true);
+        await Promise.all(ids.map(id => knowledgeCenterApi.deleteKnowledgeCenter(id)));
+        queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+        onSuccess(`${count} knowledge center${count > 1 ? 's' : ''} deleted successfully`);
+      } catch (error: any) {
+        onError(error.message || 'Failed to delete knowledge centers');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  }, [queryClient, onSuccess, onError]);
+
+  // Delete helpers without browser confirm (UI should handle confirmation)
+  const deleteKnowledge = useCallback(async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync(id);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }, [deleteMutation]);
+
+  const bulkDeleteKnowledge = useCallback(async (ids: string[]) => {
+    try {
+      setIsDeleting(true);
+      await Promise.all(ids.map(id => knowledgeCenterApi.deleteKnowledgeCenter(id)));
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      onSuccess(`${ids.length} knowledge center${ids.length > 1 ? 's' : ''} deleted successfully`);
+    } catch (error: any) {
+      onError(error.message || 'Failed to delete knowledge centers');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [queryClient, onSuccess, onError]);
+
   return {
     handleEdit,
     handleDelete,
+    handleBulkDelete,
     handleDuplicate,
     handleToggleStatus,
+    deleteKnowledge,
+    bulkDeleteKnowledge,
     isDeleting,
     isUpdating,
   };
@@ -739,6 +778,12 @@ export const useEditKnowledgePage = ({
     if (knowledgeData && wizard.form) {
       console.log('🔍 Edit mode - Raw knowledge data:', knowledgeData);
       
+      // Normalisasi publishedAt agar cocok dengan input datetime-local (YYYY-MM-DDTHH:MM)
+      const rawPublishedAt = knowledgeData.publishedAt;
+      const normalizedPublishedAt = rawPublishedAt && rawPublishedAt.includes('T')
+        ? rawPublishedAt.slice(0, 16)
+        : new Date().toISOString().slice(0, 16);
+
       const formData = {
         title: knowledgeData.title || '',
         description: knowledgeData.description || '',
@@ -746,7 +791,7 @@ export const useEditKnowledgePage = ({
         penyelenggara: knowledgeData.penyelenggara || '',
         createdBy: knowledgeData.createdBy || '',
         type: knowledgeData.type || undefined,
-        publishedAt: knowledgeData.publishedAt || new Date().toISOString(),
+        publishedAt: normalizedPublishedAt,
         tags: knowledgeData.tags || [],
         thumbnail: knowledgeData.thumbnail || '',
         webinar: knowledgeData.webinar || null,
@@ -780,9 +825,14 @@ export const useEditKnowledgePage = ({
         if (wizard.form.validateAllFields) {
           wizard.form.validateAllFields('change');
         }
+
+        // Di mode edit, langsung lompat ke Step 2 (Basic Info) dan kunci Step 1
+        if (wizard.currentStep === 1) {
+          wizard.goToStep(2);
+        }
       }, 100);
     }
-  }, [knowledgeData, wizard]);
+  }, [knowledgeData]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -835,40 +885,116 @@ export const useEditKnowledgePage = ({
 
   // Handle step navigation
   const handleStepNavigation = useCallback((stepNumber: number) => {
+    if (stepNumber <= 1) {
+      return;
+    }
     wizard.goToStep(stepNumber);
   }, [wizard]);
 
   // Handle form submission
-  const handleSubmit = useCallback(async (submitAs: 'draft' | 'published') => {
-    try {
-      // Get current form values
-      const formData = wizard.formValues;
-      
-      // Basic validation - can be enhanced later
-      if (!formData.title || !formData.description || !formData.type) {
-        onError('Please fill in all required fields');
-        return;
+  const handleSubmit = useCallback(
+    async (submitAs: 'draft' | 'published') => {
+      try {
+        // Get current form values
+        const formData = wizard.formValues as any;
+
+        // Shared validation helper (same dengan create)
+        const validationError = validateFormDataForSubmission(formData);
+        if (validationError) {
+          onError(validationError);
+          return;
+        }
+
+        // Clone form values supaya aman dimodifikasi
+        const updatedFormValues = { ...formData };
+
+        // 1. Handle thumbnail upload jika user memilih thumbnail baru (File)
+        let thumbnailUrl =
+          typeof formData.thumbnail === 'string' && formData.thumbnail
+            ? formData.thumbnail
+            : getDefaultThumbnailUrl();
+
+        if (formData.thumbnail instanceof File) {
+          try {
+            const uploadedUrl = await knowledgeApi.uploadImage(formData.thumbnail);
+            thumbnailUrl = encodeMediaUrl(uploadedUrl);
+          } catch (uploadError: any) {
+            console.error('Failed to upload thumbnail during update:', uploadError);
+            parseApiErrors(uploadError, wizard.form, onError);
+            return;
+          }
+        }
+
+        // 2. Handle media upload untuk Content (video / podcast / file) bila user pilih file baru
+        if (updatedFormValues.knowledgeContent?.mediaUrl instanceof File) {
+          try {
+            const file = updatedFormValues.knowledgeContent.mediaUrl;
+            const contentType = updatedFormValues.knowledgeContent.contentType;
+
+            let uploadedUrl: string;
+            if (contentType === 'video') {
+              uploadedUrl = await knowledgeApi.uploadVideo(file);
+            } else if (contentType === 'podcast') {
+              uploadedUrl = await knowledgeApi.uploadAudio(file);
+            } else if (contentType === 'file') {
+              uploadedUrl = await knowledgeApi.uploadPDF(file);
+            } else {
+              throw new Error('Invalid content type for media upload');
+            }
+
+            updatedFormValues.knowledgeContent.mediaUrl = encodeMediaUrl(uploadedUrl);
+          } catch (uploadError: any) {
+            console.error('Failed to upload media during update:', uploadError);
+            parseApiErrors(uploadError, wizard.form, onError);
+            wizard.form.setFieldMeta('knowledgeContent.mediaUrl' as any, (prev: any) => ({
+              ...prev,
+              errors: ['Failed to upload media file. Please try again.'],
+            }));
+            return;
+          }
+        }
+
+        // 3. Handle PDF notes upload untuk Webinar bila user upload file baru
+        if (updatedFormValues.webinar?.noteFile instanceof File) {
+          try {
+            const uploadedUrl = await knowledgeApi.uploadPDF(updatedFormValues.webinar.noteFile);
+            updatedFormValues.webinar.contentText = encodeMediaUrl(uploadedUrl);
+            // Hapus noteFile setelah di-upload karena API pakai contentText
+            delete updatedFormValues.webinar.noteFile;
+          } catch (uploadError: any) {
+            console.error('Failed to upload PDF notes during update:', uploadError);
+            parseApiErrors(uploadError, wizard.form, onError);
+            wizard.form.setFieldMeta('webinar.noteFile' as any, (prev: any) => ({
+              ...prev,
+              errors: ['Failed to upload PDF notes. Please try again.'],
+            }));
+            return;
+          }
+        }
+
+        // 4. Transform form data ke payload API (reuse util yang sama dengan create)
+        const apiData = transformFormDataToAPI(
+          updatedFormValues,
+          submitAs,
+          thumbnailUrl,
+        );
+
+        // 5. Submit update ke API
+        await updateMutation.mutateAsync({
+          id: knowledgeId,
+          data: apiData,
+        });
+      } catch (error: any) {
+        onError(
+          error.message ||
+            `Failed to ${
+              submitAs === 'published' ? 'publish' : 'save'
+            } knowledge center`,
+        );
       }
-
-      // Use form data directly (transformation logic can be added later)
-      const apiData = formData;
-      
-      // Set final status based on submit type
-      const updateData = {
-        ...apiData,
-        isFinal: submitAs === 'published',
-      };
-
-      // Submit update
-      await updateMutation.mutateAsync({ 
-        id: knowledgeId, 
-        data: updateData 
-      });
-
-    } catch (error: any) {
-      onError(error.message || `Failed to ${submitAs === 'published' ? 'publish' : 'save'} knowledge center`);
-    }
-  }, [wizard, knowledgeId, updateMutation, onError]);
+    },
+    [wizard, knowledgeId, updateMutation, onError],
+  );
 
   return {
     // Navigation handlers
@@ -884,4 +1010,69 @@ export const useEditKnowledgePage = ({
     isLoading,
     error,
   };
+};
+
+// Hook for deleting knowledge center
+export const useDeleteKnowledgeCenter = (
+  onSuccess?: (message: string) => void,
+  onError?: (message: string) => void,
+) => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationKey: ['knowledge-centers', 'delete'],
+    mutationFn: (id: string) => knowledgeCenterApi.deleteKnowledgeCenter(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      onSuccess?.('Knowledge center deleted successfully');
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Failed to delete knowledge center';
+      onError?.(message);
+    },
+  });
+
+  return {
+    ...mutation,
+    deleteKnowledgeCenter: mutation.mutateAsync,
+  };
+};
+
+// Hook for bulk deleting knowledge centers
+export const useBulkDeleteKnowledgeCenter = (
+  onSuccess?: (message: string) => void,
+  onError?: (message: string) => void,
+) => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationKey: ['knowledge-centers', 'bulk-delete'],
+    mutationFn: (ids: string[]) => Promise.all(ids.map(id => knowledgeCenterApi.deleteKnowledgeCenter(id))),
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      const count = ids.length;
+      onSuccess?.(`${count} knowledge center${count > 1 ? 's' : ''} deleted successfully`);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Failed to delete knowledge centers';
+      onError?.(message);
+    },
+  });
+
+  return {
+    ...mutation,
+    bulkDeleteKnowledgeCenter: mutation.mutateAsync,
+  };
+};
+
+// Hook for live search functionality
+export const useKnowledgeCenterSearch = (query: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['knowledge-centers', 'search', query],
+    queryFn: () => knowledgeCenterApi.searchKnowledgeCenters(query),
+    enabled: enabled && query.length >= 2, // Only search when query is at least 2 characters
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
+    refetchOnWindowFocus: false,
+  });
 };

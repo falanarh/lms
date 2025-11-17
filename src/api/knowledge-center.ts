@@ -480,6 +480,44 @@ export const knowledgeCenterApi = {
       throw error;
     }
   },
+
+  async deleteKnowledgeCenter(id: string): Promise<void> {
+    try {
+      const response = await axios.delete(
+        API_ENDPOINTS.KNOWLEDGE_CENTER_BY_ID(id),
+        API_CONFIG
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to delete knowledge center');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting knowledge center:', error);
+      throw error;
+    }
+  },
+
+  async searchKnowledgeCenters(query: string): Promise<any> {
+    try {
+      const response = await fetch(`https://api-lms-kappa.vercel.app/api/v1/knowledge-centers/search?title=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Search failed with status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error searching knowledge centers:', error);
+      throw error;
+    }
+  },
 };
 
 // View count increment API function

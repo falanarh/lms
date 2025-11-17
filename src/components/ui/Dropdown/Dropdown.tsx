@@ -175,7 +175,7 @@ export function Dropdown({
   const listboxId = React.useId();
 
   return (
-    <div className={["inline-flex items-center gap-2", className].filter(Boolean).join(" ")}> 
+    <div className={["flex items-center gap-2", className].filter(Boolean).join(" ")}> 
       {label && (
         <span className="text-sm text-gray-700 font-medium">
           {label}

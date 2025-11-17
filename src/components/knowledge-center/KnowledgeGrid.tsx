@@ -164,16 +164,19 @@ export default function KnowledgeGrid({
               containerClassName="flex-1 max-w-xl"
             />
 
-            <Dropdown
-              items={sortDropdownItems}
-              value={sortBy}
-              onChange={(value) => onSortChange(value as SortOption)}
-              placeholder="Sort by"
-              label="Sort by:"
-              searchable={false}
-              size="md"
-              variant="outline"
-            />
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-sm text-gray-600">Sort by:</span>
+              <Dropdown
+                items={sortDropdownItems}
+                value={sortBy}
+                onChange={(value) => onSortChange(value as SortOption)}
+                placeholder="Sort by"
+                searchable={false}
+                size="md"
+                variant="outline"
+                className="min-w-[140px]"
+              />
+            </div>
           </div>
         </div>
 

@@ -415,6 +415,7 @@ export default function EditKnowledgePage() {
                   onNext={handleNextStep}
                   onSaveDraft={() => handleSubmit('draft')}
                   onPublish={() => handleSubmit('published')}
+                  minBackStep={2}
                 />
               </div>
             </div>
