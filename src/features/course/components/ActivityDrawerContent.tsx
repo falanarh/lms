@@ -25,6 +25,8 @@ import {
   AlertCircle,
   ClipboardList,
   Edit3,
+  Database,
+  Link2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -47,6 +49,7 @@ import { Toast } from "@/components/ui/Toast/Toast";
 import { queryClient } from "@/lib/queryClient";
 import { getSectionQueryKey } from "@/hooks/useSections";
 import { Content } from "@/api/contents";
+import { Pagination } from "@/components/shared/Pagination/Pagination";
 import { useForm } from "@tanstack/react-form";
 import {
   createLinkContentSchema,
@@ -66,6 +69,8 @@ import {
   createContentSchema,
   updateContentSchema,
 } from "@/schemas/content.schema";
+import { useMasterContents } from "@/hooks/useMasterContent";
+import { MasterContent } from "@/api/masterContent";
 import { create } from "sortablejs";
 import { ZodError } from "zod";
 import { uploadFileToR2, validateFile } from "@/lib/uploadToR2";
@@ -79,7 +84,7 @@ type ActivityType =
   | "TASK"
   | "jadwal_kurikulum"
   | null;
-type ContentSource = "new" | "curriculum" | null;
+type ContentSource = "new" | "curriculum" | "bank" | null;
 
 // Material type for session
 interface SessionMaterial {
@@ -202,6 +207,13 @@ const CONTENT_SOURCE_OPTIONS = [
     description: "Buat konten activity baru",
     icon: Plus,
     color: "green",
+  },
+  {
+    value: "bank",
+    label: "Bank Konten",
+    description: "Pilih dari konten yang tersimpan di bank",
+    icon: Database,
+    color: "purple",
   },
 ];
 
@@ -644,6 +656,14 @@ export function ActivityDrawerContent({
   const [quizTimingEnabled, setQuizTimingEnabled] = useState(false);
   const [passingGradeEnabled, setPassingGradeEnabled] = useState(false);
 
+  // Bank content states
+  const [bankContentPage, setBankContentPage] = useState(1);
+  const [selectedBankContent, setSelectedBankContent] = useState<MasterContent | null>(null);
+  const [bankContentSearch, setBankContentSearch] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [isUsingBankContent, setIsUsingBankContent] = useState(false);
+  const bankContentPerPage = 5;
+
   // Fetch course schedules data - moved to top level to follow Rules of Hooks
   const {
     data: courseSchedules = [],
@@ -651,6 +671,17 @@ export function ActivityDrawerContent({
     error,
   } = useCourseSchedules({
     idGroup: GROUP_ID,
+  });
+
+  // Fetch bank content data
+  const {
+    data: bankContentResponse,
+    isLoading: isBankContentLoading,
+    error: bankContentError,
+  } = useMasterContents({
+    page: bankContentPage,
+    perPage: bankContentPerPage,
+    searchQuery: debouncedSearchQuery,
   });
 
   // ✅ Set default values for TASK type
@@ -662,6 +693,16 @@ export function ActivityDrawerContent({
     }
   }, [selectedActivityType]);
 
+  // Debounce search query for bank content
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(bankContentSearch);
+      // Reset to first page when search query changes
+      setBankContentPage(1);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [bankContentSearch]);
 
   useEffect(() => {
     if (isEditMode && initialData) {
@@ -827,12 +868,80 @@ export function ActivityDrawerContent({
     }
   };
 
+  // Bank content handlers
+  const handleBankContentSelect = (bankContent: MasterContent) => {
+    setSelectedBankContent(bankContent);
+    setIsUsingBankContent(true); // Mark that we're using bank content
+    console.log("🎯 Bank content selected:", bankContent);
+
+    // Pre-fill form with bank content data
+    form.setFieldValue("name", bankContent.name);
+    form.setFieldValue("description", bankContent.description || "");
+    form.setFieldValue("contentUrl", bankContent.contentUrl || "");
+
+    // Set activity type based on bank content type
+    const activityType = bankContent.type as ActivityType;
+    setSelectedActivityType(activityType);
+
+    // Update the relevant state based on content type
+    if (bankContent.contentUrl) {
+      const contentType = bankContent.type.toLowerCase();
+
+      if (contentType === "video") {
+        if (bankContent.contentUrl.includes('youtube.com') || bankContent.contentUrl.includes('vimeo.com')) {
+          setVideoSource("link");
+          setVideoUrl(bankContent.contentUrl);
+        } else {
+          setVideoSource("upload");
+          setUploadedVideo(bankContent.contentUrl);
+        }
+      } else if (contentType === "pdf" || contentType === "task") {
+        setUploadedMaterials([
+          {
+            id: `bank-${Date.now()}`,
+            title: bankContent.name,
+            size: "Unknown",
+          },
+        ]);
+      } else if (contentType === "link") {
+        setLinkUrl(bankContent.contentUrl);
+      }
+    }
+
+    // Switch to form view
+    setContentSource("new");
+  };
+
+  const handleBankContentPageChange = (page: number) => {
+    setBankContentPage(page);
+  };
+
+  const handleBankContentSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBankContentSearch(e.target.value);
+  };
+
+  const handleBankContentBack = () => {
+    // Reset search and bank content state when going back
+    setBankContentSearch("");
+    setDebouncedSearchQuery("");
+    setBankContentPage(1);
+    setIsUsingBankContent(false);
+    setSelectedBankContent(null);
+    setContentSource(null);
+  };
+
   const handleFileUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
     setter: (value: string) => void,
   ) => {
     const file = event.target.files?.[0];
     if (file) setter(file.name);
+  };
+
+  // Helper to reset bank content state when switching to manual content creation
+  const resetBankContentState = () => {
+    setIsUsingBankContent(false);
+    setSelectedBankContent(null);
   };
 
   const handleMaterialUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1522,11 +1631,216 @@ export function ActivityDrawerContent({
     );
   }
 
+  // Bank Content Selection View
+  if (contentSource === "bank" && !selectedActivityType) {
+    const bankContents = bankContentResponse?.data || [];
+    const pageMeta = bankContentResponse?.pageMeta;
+
+    // Helper to get content type icon and color
+    const getContentTypeInfo = (type: string) => {
+      switch (type.toUpperCase()) {
+        case "VIDEO":
+          return { icon: Video, color: "blue", label: "Video" };
+        case "PDF":
+          return { icon: FileText, color: "green", label: "PDF" };
+        case "LINK":
+          return { icon: Link2, color: "orange", label: "Link" };
+        case "SCORM":
+          return { icon: Package, color: "purple", label: "SCORM" };
+        case "TASK":
+          return { icon: CheckSquare, color: "indigo", label: "Task" };
+        default:
+          return { icon: FileText, color: "gray", label: type };
+      }
+    };
+
+    return (
+      <div>
+        <BackButton onClick={handleBankContentBack} />
+        <h4 className="mb-4">Pilih dari Bank Konten:</h4>
+
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Cari berdasarkan judul konten..."
+              value={bankContentSearch}
+              onChange={handleBankContentSearch}
+              className="w-full pr-10"
+            />
+            {bankContentSearch && (
+              <button
+                type="button"
+                onClick={() => setBankContentSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
+          {bankContentSearch && (
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+              Mencari: "{bankContentSearch}"
+            </p>
+          )}
+        </div>
+
+        {/* Loading State */}
+        {isBankContentLoading && (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, index) => (
+              <div
+                key={index}
+                className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-lg bg-gray-200 animate-pulse"></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {bankContentError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+              Gagal Memuat Bank Konten
+            </h3>
+            <p className="text-red-600 dark:text-red-400 mb-4">
+              Terjadi kesalahan saat memuat bank konten. Silakan coba lagi.
+            </p>
+            <Button
+              onClick={() => setBankContentPage(1)}
+              variant="outline"
+              size="sm"
+            >
+              Muat Ulang
+            </Button>
+          </div>
+        )}
+
+        {/* Success State - Compact Bank Content Cards */}
+        {!isBankContentLoading && !bankContentError && (
+          <>
+            <div className="space-y-2 mb-4">
+              {bankContents.map((content) => {
+                const typeInfo = getContentTypeInfo(content.type);
+                const Icon = typeInfo.icon;
+
+                return (
+                  <div
+                    key={content.id}
+                    onClick={() => handleBankContentSelect(content)}
+                    className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-4 cursor-pointer hover:shadow-md hover:border-gray-300 dark:hover:border-zinc-600 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Content Type Icon */}
+                      <div className={`size-10 rounded-lg bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`size-5 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400`} />
+                      </div>
+
+                      {/* Content Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h5 className="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                            {content.name}
+                          </h5>
+                          <Badge variant="outline" className={`text-xs border-${typeInfo.color}-300 dark:border-${typeInfo.color}-700 text-${typeInfo.color}-700 dark:text-${typeInfo.color}-300`}>
+                            {typeInfo.label}
+                          </Badge>
+                        </div>
+                        {content.description && (
+                          <p className="text-sm text-gray-600 dark:text-zinc-400 line-clamp-1">
+                            {content.description}
+                          </p>
+                        )}
+                        {content.contentUrl && (
+                          <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">
+                            📎 {content.contentUrl.split('/').pop() || 'File tersedia'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Selection Indicator */}
+                      <div className="flex-shrink-0">
+                        <div className="size-6 rounded-full border-2 border-gray-300 dark:border-zinc-600"></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Empty State */}
+            {bankContents.length === 0 && (
+              <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-12 text-center">
+                <div className="max-w-md mx-auto">
+                  <Database className="size-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 dark:text-zinc-100 mb-2">
+                    {bankContentSearch ? "Tidak Ada Hasil Pencarian" : "Bank Konten Kosong"}
+                  </h3>
+                  <p className="text-gray-600 dark:text-zinc-400">
+                    {bankContentSearch
+                      ? `Tidak ada konten dengan judul "${bankContentSearch}". Coba kata kunci lain.`
+                      : "Tidak ada konten yang tersedia di bank. Tambahkan konten terlebih dahulu."
+                    }
+                  </p>
+                  {bankContentSearch && (
+                    <button
+                      onClick={() => setBankContentSearch("")}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Hapus pencarian
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {pageMeta && pageMeta.totalPageCount > 1 && (
+              <div className="flex justify-center mt-6">
+                <Pagination
+                  currentPage={bankContentPage}
+                  totalPages={pageMeta.totalPageCount}
+                  onPageChange={handleBankContentPageChange}
+                  showPerPageSelector={false}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {showToast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
+            <Toast
+              variant={toastVariant}
+              message={toastMessage}
+              onClose={() => setShowToast(false)}
+              autoDismiss={true}
+              duration={toastVariant === "success" ? 2000 : 3000}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Activity Type Selection View (skip if edit mode)
   if (contentSource === "new" && !selectedActivityType && !isEditMode) {
     return (
       <div className="space-y-4">
-        <BackButton onClick={() => setContentSource(null)} />
+        <BackButton onClick={() => {
+          setContentSource(null);
+          resetBankContentState();
+        }} />
         <h4 className="mb-4">Pilih jenis konten yang ingin ditambahkan:</h4>
 
         <div className="space-y-6">
@@ -1536,7 +1850,10 @@ export function ActivityDrawerContent({
                 <Card
                   key={type}
                   className={`p-6 cursor-pointer hover:border-${color}-500 hover:shadow-lg transition-all`}
-                  onClick={() => setSelectedActivityType(type as ActivityType)}
+                  onClick={() => {
+                  setSelectedActivityType(type as ActivityType);
+                  resetBankContentState();
+                }}
                 >
                   <div className="flex flex-col items-center text-center gap-3">
                     <div
@@ -1765,7 +2082,8 @@ export function ActivityDrawerContent({
                 name="videoFile"
                 validators={{
                   onChange: ({ value }) => {
-                    if (!value) {
+                    // Don't require video file if we're using bank content with existing video
+                    if (!value && !isUsingBankContent) {
                       return "Video file harus diunggah";
                     }
                     return undefined;
@@ -1918,7 +2236,7 @@ export function ActivityDrawerContent({
             name="documentFile"
             validators={{
               onChange: ({ value }) => {
-                if (!value && uploadedMaterials.length === 0) {
+                if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
                   return "Dokumen harus diupload";
                 }
                 return undefined;
@@ -2061,7 +2379,7 @@ export function ActivityDrawerContent({
             name="documentFile"
             validators={{
               onChange: ({ value }) => {
-                if (!value && uploadedMaterials.length === 0) {
+                if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
                   return "Dokumen tugas harus diupload";
                 }
                 return undefined;
