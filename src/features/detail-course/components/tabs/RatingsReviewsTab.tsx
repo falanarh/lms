@@ -6,11 +6,11 @@ import { Review } from "@/api/review";
 import React from "react";
 
 interface RatingsReviewsTabProps {
-  groupCourseId: string;
+  courseId: string;
 }
 
 export const RatingsReviewsTab = ({
-  groupCourseId,
+  courseId,
 }: RatingsReviewsTabProps) => {
   const perPage = 3;
   
@@ -19,7 +19,7 @@ export const RatingsReviewsTab = ({
     data: ratingSummaryData, 
     isLoading: isLoadingRating,
     error: ratingError 
-  } = useRatingSummary(groupCourseId);
+  } = useRatingSummary(courseId);
   
   // Infinite reviews (3 per page)
   const {
@@ -29,7 +29,7 @@ export const RatingsReviewsTab = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteReviews(groupCourseId, perPage);
+  } = useInfiniteReviews(courseId, perPage);
 
   const reviews = React.useMemo((): Review[] => {
     const pages = (reviewsPages?.pages as Array<{ data: Review[] }> | undefined);

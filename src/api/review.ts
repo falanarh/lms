@@ -40,13 +40,13 @@ export type CreateReviewResponse = {
   message: string;
 };
 
-export const getReviewsByGroupCourse = async (
-  groupCourseId: string,
+export const getReviewsByCourseId = async (
+  courseId: string,
   page: number = 1,
   perPage: number = 20
 ): Promise<ReviewResponse> => {
   const response = await axios.get(
-    `${API_COURSE_BASE_URL}/activities/group-course/${groupCourseId}/rating-reviews`,
+    `${API_COURSE_BASE_URL}/activities/course/${courseId}/rating-reviews`,
     {
       params: {
         page,
@@ -63,7 +63,7 @@ export const getReviewById = async (id: string): Promise<Review> => {
 };
 
 export const createReview = async (
-  groupCourseId: string,
+  courseId: string,
   reviewData: CreateReviewRequest
 ): Promise<CreateReviewResponse> => {
   const dummyActivityId = "dummy-activity-id";

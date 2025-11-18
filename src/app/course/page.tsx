@@ -10,7 +10,7 @@ import {
   CourseHeader,
   CourseLayout,
 } from "@/features/course/components";
-import { useGroupCourses } from "@/hooks/useGroupCourses";
+import { useCourses } from "@/hooks/useCourses";
 import { useCategories } from "@/hooks/useCategories";
 import { COURSE_CATEGORIES } from "@/features/course/constant/course";
 
@@ -27,7 +27,7 @@ export default function CoursePage() {
 
   const { data: categoriesData, isLoading: isLoadingCategories, error: categoriesError } = useCategories();
 
-  const { data: response, isLoading: isLoadingCourses } = useGroupCourses({
+  const { data: response, isLoading: isLoadingCourses } = useCourses({
     searchQuery: debouncedSearchQuery,
     selectedCategory,
     sortBy,

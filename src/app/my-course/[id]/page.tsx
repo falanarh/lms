@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { use, useState, useEffect, useMemo, useCallback } from "react";
 import {
   CourseBreadcrumb,
   CourseTitle,
@@ -14,19 +14,18 @@ import { CourseTabType } from "@/features/detail-course/types/tab";
 import { useContentNavigation } from "@/hooks/useContentNavigation";
 import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
 import { useCreateReview } from "@/hooks/useReviews";
-import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton } from "@/features/my-course/components";
+import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton, SummaryTab } from "@/features/my-course/components";
+import { Sparkles } from "lucide-react";
 import { Content } from "@/api/contents";
 import { mockGroupCourseDetailResponse, mockGroupCourseSectionsResponse } from "@/features/my-course/constant/mockLearningApi";
 import { Section } from "@/api/sections";
 
 interface MyCoursePageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 export default function MyCoursePage({ params }: MyCoursePageProps) {
-  const { id } = params;
+  const { id } = use(params);
   const course = mockGroupCourseDetailResponse.data;
   const sections: Section[] = useMemo(() => {
     return mockGroupCourseSectionsResponse.listSection.map((s) => ({
@@ -54,8 +53,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     const mq = window.matchMedia('(min-width: 1024px)');
     setIsSidebarOpen(mq.matches);
   }, []);
-
-  // Menggunakan mock stabil, tidak perlu validasi try/catch
 
   useEffect(() => {
     const firstSection = sections?.[0];
@@ -256,7 +253,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           <CourseTitle title={course.course.title} />
 
           {/* Tabs & Content */}
-          <div className="space-y-6 pb-8 mt-8">
+          <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
           <CourseTabNavigation 
             activeTab={activeTab} 
             onTabChange={setActiveTab}
@@ -270,6 +267,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               totalJP={course.course.description.totalJp}
               quota={course.course.description.quota}
               description={course.course.description.description}
+              zoomUrl={course.zoomUrl || undefined}
+              isEnrolled={true}
             />
           )}
 
@@ -287,17 +286,22 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
             />
           )}
 
+          {activeTab === "summary" && (
+              <SummaryTab text={course.course.description.description} />
+          )}
+
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
 
-            {activeTab === "ratings_reviews" && (
+          {activeTab === "ratings_reviews" && (
               <>
                 <RatingsReviewsHeader onWriteReview={handleWriteReview} />
                 
                 <RatingsReviewsTab
-                  groupCourseId={id}
+                  courseId={id}
                 />
               </>
-            )}
+          )}
+            
           </div>
         </PageContainer>
       </div>
@@ -330,6 +334,25 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         courseName={course.course.title}
         isLoading={createReviewMutation.isPending}
       />
+
+      <button
+        type="button"
+        aria-label="Lihat Summary"
+        title="Lihat Summary"
+        onClick={() => {
+          setActiveTab('summary');
+          setTimeout(() => {
+            const el = document.getElementById('course-tabs-top');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 0);
+        }}
+        className="fixed right-6 bottom-24 md:right-8 md:bottom-24 z-50 group"
+      >
+        <div className="inline-flex items-center rounded-full bg-blue-600 text-white shadow-lg overflow-hidden transition-all duration-300 w-12 group-hover:w-40 h-12 px-3 hover:bg-blue-700">
+          <Sparkles className="w-6 h-6 flex-shrink-0" />
+          <span className="ml-2 text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Lihat Summary</span>
+        </div>
+      </button>
     </>
   );
 }

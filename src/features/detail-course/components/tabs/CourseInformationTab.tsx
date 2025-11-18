@@ -7,6 +7,8 @@ interface CourseInformationTabProps {
   totalJP: number;
   quota: number;
   description: string;
+  zoomUrl?: string;
+  isEnrolled?: boolean;
 }
 
 export const CourseInformationTab = ({
@@ -15,6 +17,8 @@ export const CourseInformationTab = ({
   totalJP,
   quota,
   description,
+  zoomUrl,
+  isEnrolled = false,
 }: CourseInformationTabProps) => {
   return (
     <div className="space-y-6">
@@ -23,6 +27,8 @@ export const CourseInformationTab = ({
         syllabusFile={syllabusFile}
         totalJP={totalJP}
         quota={quota}
+        zoomUrl={zoomUrl}
+        isEnrolled={isEnrolled}
       />
       <CourseDescription description={description} />
     </div>

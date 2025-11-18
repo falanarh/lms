@@ -19,10 +19,10 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="aspect-video relative overflow-hidden">
             <img
               src={
-                course.course.thumbnail ||
+                course.groupCourse.thumbnail ||
                 "https://dummyimage.com/600x400/000/fff&text=Course"
               }
-              alt={course.course.title}
+              alt={course.groupCourse.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -36,11 +36,11 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {course.course.description?.category}
+                {course.groupCourse.description?.category}
               </Badge>
               <div className="min-h-[56px] md:min-h-[64px]">
                 <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
-                  {course.course.title}
+                  {course.groupCourse.title}
                 </h3>
               </div>
             </div>
@@ -83,10 +83,10 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
             <img
               src={
-                course.course.thumbnail ||
+                course.groupCourse.thumbnail ||
                 "https://dummyimage.com/600x400/000/fff&text=Course"
               }
-              alt={course.course.title}
+              alt={course.groupCourse.title}
               className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -100,11 +100,11 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="flex-1 p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {course.course.description?.category}
+                {course.groupCourse.description?.category}
               </Badge>
               <div className="min-h-[56px] md:min-h-[64px]">
                 <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
-                  {course.course.title}
+                  {course.groupCourse.title}
                 </h3>
               </div>
             </div>
@@ -147,10 +147,10 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
             <img
               src={
-                course.course.thumbnail ||
+                course.groupCourse.thumbnail ||
                 "https://dummyimage.com/600x400/000/fff&text=Course"
               }
-              alt={course.course.title}
+              alt={course.groupCourse.title}
               className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -164,14 +164,14 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="flex-1 p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {course.course.description?.category}
+                {course.groupCourse.description?.category}
               </Badge>
               <h3 className="font-bold text-lg text-zinc-900 line-clamp-1 transition-colors duration-200">
-                {course.course.title}
+                {course.groupCourse.title}
               </h3>
-              {course.course.description?.description && (
+              {course.groupCourse.description?.description && (
                 <p className="text-zinc-600 text-sm line-clamp-2">
-                  {course.course.description.description}
+                  {course.groupCourse.description.description}
                 </p>
               )}
             </div>

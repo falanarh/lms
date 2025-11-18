@@ -6,6 +6,6 @@ export type CategoriesResponse = {
 };
 
 export const getCategories = async (): Promise<string[]> => {
-  const response = await axios.get(`${API_COURSE_BASE_URL}/courses/categories/list`);
+  const response = await axios.get(`${API_COURSE_BASE_URL}/group-courses/categories/list`);
   return response.data.data;
 };

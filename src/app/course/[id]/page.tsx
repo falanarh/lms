@@ -14,7 +14,7 @@ import {
   PageContainer,
   DetailCourseSkeleton,
 } from "@/features/detail-course/components";
-import { useGroupCourse } from "@/hooks/useGroupCourse";
+import { useCourse } from "@/hooks/useCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
 import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
 import { mockReviews } from "@/features/detail-course/constants/reviews";
@@ -27,14 +27,14 @@ interface DetailCoursePageProps {
 
 export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const { id } = use(params);
-  const { data: courseDetail, isLoading, error } = useGroupCourse(id);
+  const { data: courseDetail, isLoading, error } = useCourse(id);
   const { activeTab, setActiveTab } = useCourseTab(id);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
   const { data: sections, isLoading: isSectionsLoading } = useSectionsByGroupId({
-    groupId: id,
-    enabled: activeTab === "course_contents",
+    groupId: courseDetail?.groupCourse?.id ?? "",
+    enabled: activeTab === "course_contents" && Boolean(courseDetail?.groupCourse?.id),
   });
 
   if (isLoading || !courseDetail) {
@@ -76,7 +76,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "All Courses", href: "/course" },
-    { label: course.course.title, isActive: true },
+    { label: course.groupCourse.title, isActive: true },
   ];
 
   return (
@@ -86,36 +86,38 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 space-y-4">
           <CourseThumbnail 
-            thumbnail={course.course.thumbnail || undefined}
-            title={course.course.title}
+            thumbnail={course.groupCourse.thumbnail || undefined}
+            title={course.groupCourse.title}
           />
-          <CourseTitle title={course.course.title} />
+          <CourseTitle title={course.groupCourse.title} />
         </div>
 
         <div className="space-y-4">
             <CourseInfoCard
-              category={course.course.description.category}
+              category={course.groupCourse.description.category}
               rating={course.rating}
               totalRatings={course.totalUserRating}
-              type={course.course.typeCourse}
+              type={course.groupCourse.typeCourse}
               isEnrolled={isEnrolled}
               onToggle={handleEnrollToggle}
-              courseId={id}
+              courseId={course.groupCourse.id}
             />
           </div>
         </div>
 
         {/* Tabs & Content */}
         <div className="space-y-6 pb-8">
-          <CourseTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+          <CourseTabNavigation activeTab={activeTab} onTabChange={setActiveTab} hiddenTabs={["summary"]} />
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.course.description.method}
-              syllabusFile={course.course.description.silabus}
-              totalJP={course.course.description.totalJp}
-              quota={course.course.description.quota}
-              description={course.course.description.description}
+              method={course.groupCourse.description.method}
+              syllabusFile={course.groupCourse.description.silabus}
+              totalJP={course.groupCourse.description.totalJp}
+              quota={course.groupCourse.description.quota}
+              description={course.groupCourse.description.description}
+              zoomUrl={course.zoomUrl || undefined}
+              isEnrolled={false}
             />
           )}
 
@@ -137,7 +139,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
           {activeTab === "ratings_reviews" && (
             <RatingsReviewsTab
-              groupCourseId={id}
+              courseId={id}
             />
           )}
         </div>
