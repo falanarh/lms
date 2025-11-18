@@ -14,6 +14,8 @@ interface CourseContentsSidebarProps {
   onClose: () => void;
   completedContentIds?: string[];
   disableFetchFirstForIndexZero?: boolean;
+  onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
+  disableFetchAll?: boolean;
 }
 
 export const CourseContentsSidebar = ({
@@ -25,6 +27,8 @@ export const CourseContentsSidebar = ({
   onClose,
   completedContentIds = [],
   disableFetchFirstForIndexZero = false,
+  onSectionDataUpdate,
+  disableFetchAll = false,
 }: CourseContentsSidebarProps) => {
 
   return (
@@ -79,7 +83,8 @@ export const CourseContentsSidebar = ({
                 onSelectContent={onSelectContent}
                 variant="sidebar"
                 completedContentIds={completedContentIds}
-                disableFetch={disableFetchFirstForIndexZero && index === 0}
+                disableFetch={disableFetchAll || (disableFetchFirstForIndexZero && index === 0)}
+                onSectionDataUpdate={onSectionDataUpdate}
               />
             ))}
           </div>

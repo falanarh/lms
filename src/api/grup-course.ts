@@ -22,6 +22,7 @@ export type GroupCoursesResponse = {
 export type GroupCourse = {
   id: string;
   idTeacher: string;
+  zoomUrl?: string | null;
   rating: number;
   totalUserRating: number;
   _count: {
@@ -42,6 +43,7 @@ export type GroupCourse = {
 export type GroupCourseDetail = {
   id: string;
   idTeacher: string;
+  zoomUrl?: string | null;
   rating: number;
   totalUserRating: number;
   _count: {

@@ -11,7 +11,9 @@ interface CourseContentsTabProps {
   onSelectContent?: (content: Content) => void;
   completedContentIds?: string[];
   mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
+  onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
   disableFetchFirstForIndexZero?: boolean;
+  disableFetchAll?: boolean;
 }
 
 export const CourseContentsTab = ({
@@ -22,7 +24,9 @@ export const CourseContentsTab = ({
   onSelectContent,
   completedContentIds = [],
   mode = 'learning',
+  onSectionDataUpdate,
   disableFetchFirstForIndexZero = false,
+  disableFetchAll = false,
 }: CourseContentsTabProps) => {
 
   return (
@@ -56,7 +60,8 @@ export const CourseContentsTab = ({
             variant="tab"
             completedContentIds={completedContentIds}
             mode={mode}
-            disableFetch={disableFetchFirstForIndexZero && index === 0}
+            disableFetch={disableFetchAll || (disableFetchFirstForIndexZero && index === 0)}
+            onSectionDataUpdate={onSectionDataUpdate}
           />
         ))}
       </div>

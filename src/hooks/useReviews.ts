@@ -1,6 +1,6 @@
-import { getReviewById, getReviewsByGroupCourse } from "@/api/review";
+import { getReviewById, getReviewsByGroupCourse, createReview, CreateReviewRequest } from "@/api/review";
 import { QueryConfig } from "@/lib/queryClient";
-import { queryOptions, useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Query key generators
 export const getReviewsQueryKey = (groupCourseId: string, page: number, perPage: number) => 
@@ -76,5 +76,25 @@ export const useInfiniteReviews = (
     getNextPageParam: (lastPage: { pageMeta?: { hasNext: boolean; page: number } }) =>
       lastPage.pageMeta?.hasNext ? lastPage.pageMeta.page + 1 : undefined,
     enabled: !!groupCourseId,
+  });
+};
+
+// Create review mutation
+export const useCreateReview = (groupCourseId: string) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (reviewData: CreateReviewRequest) => 
+      createReview(groupCourseId, reviewData),
+    onSuccess: () => {
+      // Invalidate and refetch reviews after successful creation
+      queryClient.invalidateQueries({
+        queryKey: ["reviews", groupCourseId]
+      });
+      // Also invalidate rating summary
+      queryClient.invalidateQueries({
+        queryKey: ["rating-summary", groupCourseId]
+      });
+    },
   });
 };

@@ -6,6 +6,7 @@ interface WriteReviewModalProps {
   onClose: () => void;
   onSubmit: (rating: number, review: string) => void;
   courseName?: string;
+  isLoading?: boolean;
 }
 
 const ratingLabels: Record<number, string> = {
@@ -21,6 +22,7 @@ export const WriteReviewModal = ({
   onClose,
   onSubmit,
   courseName = "kursus ini",
+  isLoading = false,
 }: WriteReviewModalProps) => {
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   CourseBreadcrumb,
   CourseTitle,
@@ -11,25 +11,34 @@ import {
   PageContainer,
 } from "@/features/detail-course/components";
 import { CourseTabType } from "@/features/detail-course/types/tab";
-import { useGroupCourse } from "@/hooks/useGroupCourse";
-import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
 import { useContentNavigation } from "@/hooks/useContentNavigation";
-import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
 import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
 import { useCreateReview } from "@/hooks/useReviews";
 import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton } from "@/features/my-course/components";
 import { Content } from "@/api/contents";
+import { mockGroupCourseDetailResponse, mockGroupCourseSectionsResponse } from "@/features/my-course/constant/mockLearningApi";
+import { Section } from "@/api/sections";
 
 interface MyCoursePageProps {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 }
 
 export default function MyCoursePage({ params }: MyCoursePageProps) {
-  const { id } = use(params);
-  const { data: course, isLoading, error } = useGroupCourse(id);
-  const { data: sections, isLoading: isSectionsLoading } = useSectionsByGroupId({ groupId: id });
+  const { id } = params;
+  const course = mockGroupCourseDetailResponse.data;
+  const sections: Section[] = useMemo(() => {
+    return mockGroupCourseSectionsResponse.listSection.map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      sequence: s.sequence,
+      createdAt: new Date("2024-02-01T00:00:00.000Z"),
+      updatedAt: new Date("2024-07-01T00:00:00.000Z"),
+      listContents: s.listContent,
+    }));
+  }, []);
   const { activeContentId, updateContentInUrl } = useContentUrl(id);
   const createReviewMutation = useCreateReview(id);
   const [activeTab, setActiveTab] = useState<CourseTabType>('information');
@@ -39,16 +48,36 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
   const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
     setIsSidebarOpen(mq.matches);
   }, []);
 
+  // Menggunakan mock stabil, tidak perlu validasi try/catch
+
   useEffect(() => {
     const firstSection = sections?.[0];
     if (firstSection && expandedSections.length === 0) {
       setExpandedSections([firstSection.id]);
+      const contents = firstSection.listContents || [];
+      if (contents.length > 0) {
+        setExpandedSectionsData((prev) => ({ ...prev, [firstSection.id]: contents }));
+      }
+    }
+  }, [sections]);
+
+  useEffect(() => {
+    if (sections && sections.length > 0) {
+      const ids: string[] = [];
+      sections.forEach((sec: Section & { listContents?: any[] }) => {
+        (sec.listContents || []).forEach((c: any) => {
+          const hasFinished = Array.isArray(c.activityContents) && c.activityContents.some((a: any) => a?.isFinished);
+          if (hasFinished) ids.push(c.id);
+        });
+      });
+      setCompletedContentIds(ids);
     }
   }, [sections]);
 
@@ -58,13 +87,20 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [isSidebarOpen]);
 
-  // Prefetch first section and auto-select first content
-  const firstSectionId = useMemo(() => sections?.[0]?.id ?? undefined, [sections]);
+  const firstSectionContents = useMemo(() => sections?.[0]?.listContents || [], [sections]);
 
-  const { data: firstSectionContents, isLoading: isLoadingFirstContents } = useContentsBySectionId({
-    sectionId: firstSectionId || "",
-    enabled: Boolean(firstSectionId) && !selectedContent,
-  });
+  useEffect(() => {
+    const allData: Record<string, Content[]> = {};
+    sections.forEach((sec) => {
+      const contents = (sec as any).listContents || [];
+      if (contents.length > 0) {
+        allData[sec.id] = contents;
+      }
+    });
+    if (Object.keys(allData).length > 0) {
+      setExpandedSectionsData(allData);
+    }
+  }, [sections]);
 
   // Restore content from URL on page load
   useEffect(() => {
@@ -91,11 +127,19 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
   // Handle expand/collapse section
   const handleToggleSection = (sectionId: string) => {
-    setExpandedSections(prev =>
-      prev.includes(sectionId)
+    setExpandedSections(prev => {
+      const next = prev.includes(sectionId)
         ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
+        : [...prev, sectionId];
+      if (!prev.includes(sectionId)) {
+        const section = sections.find(s => s.id === sectionId);
+        const contents = section?.listContents || [];
+        if (contents.length > 0) {
+          setExpandedSectionsData(prevData => ({ ...prevData, [sectionId]: contents }));
+        }
+      }
+      return next;
+    });
   };
 
   // Enhanced content selection handler that syncs with URL
@@ -128,6 +172,16 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     onSectionDataUpdate: handleSectionDataUpdate,
   });
 
+  const handleMarkContentDone = () => {
+    if (!selectedContent) return;
+    setCompletedContentIds((prev) => {
+      if (prev.includes(selectedContent.id)) {
+        return prev.filter((id) => id !== selectedContent.id);
+      }
+      return [...prev, selectedContent.id];
+    });
+  };
+
   const handleWriteReview = () => {
     setIsReviewModalOpen(true);
   };
@@ -146,17 +200,10 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   };
 
-  const isPageLoading = isLoading || isSectionsLoading || !course;
-  const isWaitingForInitialContent = !selectedContent && (sections?.length ?? 0) > 0 && isLoadingFirstContents;
-
-  if (isPageLoading || isWaitingForInitialContent) {
-    return <MyCoursePageSkeleton />;
-  }
-
   if (error) {
     return (
       <PageContainer>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
@@ -201,6 +248,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               hasPrevious={navigationState.hasPrevious}
               hasNext={navigationState.hasNext}
               isNavigating={isNavigating}
+              onMarkAsDone={handleMarkContentDone}
+              isCompleted={completedContentIds.includes(selectedContent.id)}
             />
           )}
 
@@ -232,7 +281,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               selectedContentId={selectedContent?.id}
               onSelectContent={handleContentSelect}
               completedContentIds={completedContentIds}
-              disableFetchFirstForIndexZero={Boolean(selectedContent)}
+              disableFetchFirstForIndexZero={true}
+              disableFetchAll={true}
               onSectionDataUpdate={handleSectionDataUpdate}
             />
           )}
@@ -261,7 +311,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           onSelectContent={handleContentSelect}
           onClose={handleCloseSidebar}
           completedContentIds={completedContentIds}
-          disableFetchFirstForIndexZero={Boolean(selectedContent)}
+          disableFetchFirstForIndexZero={true}
+          disableFetchAll={true}
           onSectionDataUpdate={handleSectionDataUpdate}
         />
       )}

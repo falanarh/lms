@@ -1,5 +1,5 @@
+import { useEffect, useState } from "react";
 import { ChevronDown, FileText, Video, Link as LinkIcon, Package, ClipboardList, FileCheck, File, Check, Lock } from "lucide-react";
-import { useEffect } from "react";
 import { Content } from "@/api/contents";
 import { Section } from "@/api/sections";
 import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
@@ -14,6 +14,7 @@ interface CourseSectionItemProps {
   variant?: 'sidebar' | 'tab';
   completedContentIds?: string[];
   mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
+  onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
   disableFetch?: boolean;
 }
 
@@ -78,16 +79,26 @@ export const CourseSectionItem = ({
   completedContentIds = [],
   mode = 'learning',
   disableFetch = false,
+  onSectionDataUpdate,
 }: CourseSectionItemProps) => {
   const isTabVariant = variant === 'tab';
   const isPreviewMode = mode === 'preview';
   const isLearningMode = mode === 'learning';
   
   // Fetch contents when section is expanded
-  const { data: contents, isLoading: isLoadingContents } = useContentsBySectionId({
+  const { data: fetchedContents, isLoading: isLoadingContents } = useContentsBySectionId({
     sectionId: section.id,
     enabled: isExpanded && !disableFetch,
   });
+  const providedContents = (section as any).listContents || (section as any).listContent || [];
+  const contents: Content[] | undefined = disableFetch ? providedContents : fetchedContents;
+
+  // Update parent component's expandedSectionsData when contents are fetched
+  useEffect(() => {
+    if (contents && isExpanded && onSectionDataUpdate) {
+      onSectionDataUpdate(section.id, contents);
+    }
+  }, [contents, isExpanded, section.id, onSectionDataUpdate]);
 
   useEffect(() => {
     if (
