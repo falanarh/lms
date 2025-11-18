@@ -87,8 +87,8 @@ const sizeMap: Record<DropdownSize, { button: string; text: string; menu: string
 function variantClasses(variant: DropdownVariant, error?: boolean) {
   if (error) {
     return [
-      "bg-[var(--danger,#dc2626)] text-[var(--on-danger,#ffffff)] border border-transparent",
-      "hover:bg-[color-mix(in_oklab,var(--danger,#dc2626)_92%,black)]",
+      "bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]",
+      "border-2 border-[var(--danger,#dc2626)]",
     ].join(" ");
   }
   switch (variant) {

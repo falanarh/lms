@@ -8,7 +8,7 @@
  * - Optimized performance with proper memoization
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { CreateKnowledgeFormData } from '@/types/knowledge-center';
 import { KNOWLEDGE_TYPES } from '@/types/knowledge-center';
@@ -68,8 +68,10 @@ export const useKnowledgeWizardForm = () => {
   // TanStack Form with Native Zod Integration
   // ============================================================================
 
+  const initialValues = useMemo(() => getInitialFormValues(), []);
+
   const form = useForm({
-    defaultValues: getInitialFormValues(),
+    defaultValues: initialValues,
     validators: {
       // Form-level validation on submit using complete schema
       onSubmit: ({ value }) => {

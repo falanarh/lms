@@ -48,7 +48,7 @@ const sizeMap: Record<DropdownSize, { button: string; text: string; menu: string
 
 function variantClasses(variant: DropdownVariant, error?: boolean) {
   if (error) {
-    return "bg-red-600 text-white border border-red-600 hover:bg-red-700";
+    return "bg-white text-gray-900 border-2 border-red-500 hover:border-red-600";
   }
   switch (variant) {
     case "outline":
