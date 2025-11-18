@@ -18,6 +18,8 @@ import {
   KnowledgeCenterResponse,
   ApiResponse,
   KnowledgeCenterStatsData,
+  KnowledgeOverviewStatsData,
+  KnowledgeLastActivitiesResponse,
 } from '@/types/knowledge-center';
 import { API_ENDPOINTS, API_CONFIG } from '@/config/api';
 
@@ -284,6 +286,28 @@ export const getKnowledgeQueryOptions = (params: KnowledgeQueryParams = {}) =>
     gcTime: DEFAULT_GC_TIME,
   });
 
+const deleteKnowledgeCentersApi = async (ids: string[]): Promise<void> => {
+  if (!ids || ids.length === 0) {
+    return;
+  }
+  try {
+    const response = await axios.delete<ApiResponse<null>>(API_ENDPOINTS.KNOWLEDGE_CENTERS, {
+      ...API_CONFIG,
+      data: { ids },
+    });
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message || 'Failed to delete knowledge center(s)');
+    }
+  } catch (error) {
+    console.error('Error deleting knowledge center(s):', error);
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to delete knowledge center(s)');
+    }
+    throw error;
+  }
+};
+
 export const getKnowledgeDetailQueryOptions = (id: string) =>
   queryOptions({
     queryKey: getKnowledgeDetailQueryKey(id),
@@ -323,6 +347,42 @@ export const knowledgeCenterApi = {
     }
   },
 
+  async fetchKnowledgeOverviewStats() {
+    try {
+      const response = await axios.get<ApiResponse<KnowledgeOverviewStatsData>>(
+        API_ENDPOINTS.KNOWLEDGE_CENTERS_OVERVIEW,
+        API_CONFIG,
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to fetch knowledge center overview stats');
+      }
+
+      return response.data.data.stats;
+    } catch (error) {
+      console.error('Error fetching knowledge center overview stats:', error);
+      throw error;
+    }
+  },
+
+  async fetchKnowledgeLastActivities() {
+    try {
+      const response = await axios.get<ApiResponse<KnowledgeLastActivitiesResponse>>(
+        API_ENDPOINTS.KNOWLEDGE_CENTERS_LAST_ACTIVITIES,
+        API_CONFIG,
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to fetch knowledge center last activities');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching knowledge center last activities:', error);
+      throw error;
+    }
+  },
+
   /**
    * External Knowledge Center API (legacy endpoints)
    */
@@ -356,6 +416,25 @@ export const knowledgeCenterApi = {
       return response.data.data;
     } catch (error) {
       console.error('Error updating knowledge center:', error);
+      throw error;
+    }
+  },
+
+  async updateKnowledgeCenterStatus(id: string, isFinal: boolean): Promise<KnowledgeCenter> {
+    try {
+      const response = await axios.patch<KnowledgeCenterResponse>(
+        API_ENDPOINTS.KNOWLEDGE_CENTER_STATUS(id),
+        { isFinal },
+        API_CONFIG,
+      );
+
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to update knowledge center status');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating knowledge center status:', error);
       throw error;
     }
   },
@@ -481,27 +560,18 @@ export const knowledgeCenterApi = {
     }
   },
 
+  async deleteKnowledgeCenters(ids: string[]): Promise<void> {
+    return deleteKnowledgeCentersApi(ids);
+  },
+
   async deleteKnowledgeCenter(id: string): Promise<void> {
-    try {
-      const response = await axios.delete(
-        API_ENDPOINTS.KNOWLEDGE_CENTER_BY_ID(id),
-        API_CONFIG
-      );
-
-      if (response.data.status !== 200) {
-        throw new Error(response.data.message || 'Failed to delete knowledge center');
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error('Error deleting knowledge center:', error);
-      throw error;
-    }
+    return deleteKnowledgeCentersApi([id]);
   },
 
   async searchKnowledgeCenters(query: string): Promise<any> {
     try {
-      const response = await fetch(`https://api-lms-kappa.vercel.app/api/v1/knowledge-centers/search?title=${encodeURIComponent(query)}`, {
+      const url = `${API_ENDPOINTS.KNOWLEDGE_CENTERS_SEARCH}?keyword=${encodeURIComponent(query)}`;
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

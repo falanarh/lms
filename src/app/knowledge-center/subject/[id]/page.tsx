@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input/Input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledge } from '@/hooks/useKnowledgeCenter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
+import { useDebounce } from '@/hooks/useDebounce';
 import { SortOption, SORT_OPTIONS, KnowledgeQueryParams } from '@/types/knowledge-center';
 
 // Skeleton component for knowledge cards
@@ -46,18 +47,21 @@ export default function KnowledgeSubjectDetailPage() {
   const [itemsPerPage, setItemsPerPage] = useState(12);
   
   const { data: subjects } = useKnowledgeSubjects();
+
+  // Debounce search within a subject so API calls are not made on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   
   // Find the current subject
   const currentSubject = subjects?.find(subject => subject.id === subjectId);
 
   // Build query params for API
   const queryparams: KnowledgeQueryParams = useMemo(() => ({
-    search: searchQuery || undefined,
+    search: debouncedSearchQuery || undefined,
     subject: subjectId ? [subjectId] : undefined,
     sort: sortBy,
     page: currentPage,
     limit: itemsPerPage,
-  }), [searchQuery, subjectId, sortBy, currentPage, itemsPerPage]);
+  }), [debouncedSearchQuery, subjectId, sortBy, currentPage, itemsPerPage]);
 
   const {
     data: knowledgeItems,

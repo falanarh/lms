@@ -19,14 +19,19 @@ import {
 
 export default function KnowledgeCenterPage() {
   // UI State Management
-  const [searchQuery, setSearchQuery] = useState('');
+  const [heroSearchQuery, setHeroSearchQuery] = useState('');
+  const [gridSearchQuery, setGridSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT | 'all'>('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST);
 
   // UI Handlers
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query);
+  const handleHeroSearchChange = (query: string) => {
+    setHeroSearchQuery(query);
+  };
+
+  const handleGridSearchChange = (query: string) => {
+    setGridSearchQuery(query);
   };
 
   const handleTypeChange = (type: KnowledgeType | 'all') => {
@@ -45,8 +50,8 @@ export default function KnowledgeCenterPage() {
     <div className="min-h-screen bg-white">
       {/* Hero Section with Full Screen Search */}
       <KnowledgeHero
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
+        searchQuery={heroSearchQuery}
+        onSearchChange={handleHeroSearchChange}
         selectedType={selectedType}
         onTypeChange={handleTypeChange}
       />
@@ -56,8 +61,8 @@ export default function KnowledgeCenterPage() {
 
       {/* Main Content Area */}
       <KnowledgeGrid
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
+        searchQuery={gridSearchQuery}
+        onSearchChange={handleGridSearchChange}
         selectedType={selectedType}
         selectedSubject={selectedSubject}
         onSubjectChange={handleSubjectChange}

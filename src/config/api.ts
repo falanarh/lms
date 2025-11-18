@@ -33,7 +33,11 @@ export const API_ENDPOINTS = {
   // Knowledge Centers endpoints
   KNOWLEDGE_CENTERS: `${API_BASE_URL}/knowledge-centers`,
   KNOWLEDGE_CENTER_BY_ID: (id: string) => `${API_BASE_URL}/knowledge-centers/${id}`,
+  KNOWLEDGE_CENTER_STATUS: (id: string) => `${API_BASE_URL}/knowledge-centers/${id}/status`,
   KNOWLEDGE_CENTERS_STATS: `${API_BASE_URL}/knowledge-centers/stats`,
+  KNOWLEDGE_CENTERS_OVERVIEW: `${API_BASE_URL}/knowledge-centers/overview`,
+  KNOWLEDGE_CENTERS_LAST_ACTIVITIES: `${API_BASE_URL}/knowledge-centers/last-activities`,
+  KNOWLEDGE_CENTERS_SEARCH: `${API_BASE_URL}/knowledge-centers/search`,
 } as const;
 
 // API Configuration

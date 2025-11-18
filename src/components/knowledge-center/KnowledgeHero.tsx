@@ -3,14 +3,15 @@
  * Focused on UI logic and presentation only
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Search, LayoutGrid, Calendar, BookOpen } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { KnowledgeType } from '@/types/knowledge-center';
 import KnowledgeSearchResults from './KnowledgeSearchResults';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface KnowledgeHeroProps {
   searchQuery: string;
@@ -29,14 +30,17 @@ export default function KnowledgeHero({
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchInputFocused, setSearchInputFocused] = useState(false);
 
-  // Show search results when user types and input is focused
+  // Debounce hero search so global search suggestions are not fetched on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // Show search results when user types and input is focused (with debounce)
   useEffect(() => {
-    if (searchQuery.length >= 2 && searchInputFocused) {
+    if (debouncedSearchQuery.length >= 2 && searchInputFocused) {
       setShowSearchResults(true);
-    } else if (searchQuery.length < 2) {
+    } else if (debouncedSearchQuery.length < 2) {
       setShowSearchResults(false);
     }
-  }, [searchQuery, searchInputFocused]);
+  }, [debouncedSearchQuery, searchInputFocused]);
 
   const typeButtons = [
     {
@@ -154,7 +158,7 @@ export default function KnowledgeHero({
 
             {/* Live Search Results Panel - Right below search bar */}
             <KnowledgeSearchResults
-              searchQuery={searchQuery}
+              searchQuery={debouncedSearchQuery}
               isVisible={showSearchResults}
               onClose={() => setShowSearchResults(false)}
             />

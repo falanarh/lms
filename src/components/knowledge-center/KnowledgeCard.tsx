@@ -201,20 +201,20 @@ export default function KnowledgeCard({
         </div>
 
         {/* Content - Fixed height structure */}
-        <div className="p-4 flex flex-col flex-1">
+        <div className="p-3 flex flex-col flex-1">
           {/* Title - Fixed height with line-clamp */}
-          <h3 className="font-semibold text-gray-900 text-base mb-2 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors min-h-[3rem]">
+          <h3 className="font-semibold text-gray-900 text-sm mb-1.5 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors min-h-[2.5rem]">
             {knowledge.title}
           </h3>
 
           {/* Description - Fixed height */}
-          <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-3 min-h-[2.5rem]">
+          <p className="text-gray-600 text-xs leading-relaxed line-clamp-2 mb-2.5 min-h-[2rem]">
             {knowledge.description}
           </p>
 
           {/* Webinar Status - Only for webinars with date */}
           {knowledge.type === KNOWLEDGE_TYPES.WEBINAR && knowledge.webinar?.zoomDate && (
-            <div className="mb-3">
+            <div className="mb-2.5">
               {isUpcomingWebinar ? (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 border border-green-200 rounded-md">
                   <Clock className="w-3.5 h-3.5 text-green-600" />
@@ -230,7 +230,7 @@ export default function KnowledgeCard({
           )}
 
           {/* Tags - Fixed height - Removed since KnowledgeCenter doesn't have tags field */}
-          <div className="mb-3 min-h-[1.5rem]">
+          <div className="mb-2.5 min-h-[1.25rem]">
             {/* Tags will be available when backend adds support for them */}
           </div>
 
@@ -238,7 +238,7 @@ export default function KnowledgeCard({
           <div className="flex-1"></div>
 
           {/* Footer - Minimal info */}
-          <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100 mt-auto">
+          <div className="flex items-center justify-between text-[11px] text-gray-500 pt-2.5 border-t border-gray-100 mt-auto">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <Eye className="w-3 h-3" />

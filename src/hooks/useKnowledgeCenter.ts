@@ -628,10 +628,10 @@ export const useKnowledgeManagementPage = ({
     },
   });
 
-  // Update knowledge center mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateKnowledgeCenterRequest> }) =>
-      knowledgeCenterApi.updateKnowledgeCenter(id, data),
+  // Update knowledge center status mutation (publish/unpublish)
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, isFinal }: { id: string; isFinal: boolean }) =>
+      knowledgeCenterApi.updateKnowledgeCenterStatus(id, isFinal),
     onMutate: () => {
       setIsUpdating(true);
     },
@@ -684,11 +684,11 @@ export const useKnowledgeManagementPage = ({
   // Handle toggle status (publish/unpublish)
   const handleToggleStatus = useCallback(async (id: string, isFinal: boolean) => {
     try {
-      await updateMutation.mutateAsync({ id, data: { isFinal } });
+      await updateStatusMutation.mutateAsync({ id, isFinal });
     } catch (error) {
       // Error handled by mutation
     }
-  }, [updateMutation]);
+  }, [updateStatusMutation]);
 
   // Handle bulk delete action
   const handleBulkDelete = useCallback(async (ids: string[]) => {
@@ -698,7 +698,7 @@ export const useKnowledgeManagementPage = ({
     if (window.confirm(confirmMessage)) {
       try {
         setIsDeleting(true);
-        await Promise.all(ids.map(id => knowledgeCenterApi.deleteKnowledgeCenter(id)));
+        await knowledgeCenterApi.deleteKnowledgeCenters(ids);
         queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
         onSuccess(`${count} knowledge center${count > 1 ? 's' : ''} deleted successfully`);
       } catch (error: any) {
@@ -721,7 +721,7 @@ export const useKnowledgeManagementPage = ({
   const bulkDeleteKnowledge = useCallback(async (ids: string[]) => {
     try {
       setIsDeleting(true);
-      await Promise.all(ids.map(id => knowledgeCenterApi.deleteKnowledgeCenter(id)));
+      await knowledgeCenterApi.deleteKnowledgeCenters(ids);
       queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
       onSuccess(`${ids.length} knowledge center${ids.length > 1 ? 's' : ''} deleted successfully`);
     } catch (error: any) {
@@ -1047,7 +1047,7 @@ export const useBulkDeleteKnowledgeCenter = (
 
   const mutation = useMutation({
     mutationKey: ['knowledge-centers', 'bulk-delete'],
-    mutationFn: (ids: string[]) => Promise.all(ids.map(id => knowledgeCenterApi.deleteKnowledgeCenter(id))),
+    mutationFn: (ids: string[]) => knowledgeCenterApi.deleteKnowledgeCenters(ids),
     onSuccess: (_, ids) => {
       queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
       const count = ids.length;

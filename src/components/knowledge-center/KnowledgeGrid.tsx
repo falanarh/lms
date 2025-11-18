@@ -3,9 +3,9 @@
  * Focused on UI logic and presentation only
  */
 
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import { Search, BookOpen } from 'lucide-react';
 import { KnowledgeCard, Subject } from '@/components/knowledge-center';
 import { Pagination } from '@/components/shared/Pagination/Pagination';
@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledge } from '@/hooks/useKnowledgeCenter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { SortOption, KnowledgeQueryParams, SORT_OPTIONS, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface KnowledgeGridProps {
   searchQuery: string;
@@ -71,6 +72,9 @@ export default function KnowledgeGrid({
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const { data: subjects } = useKnowledgeSubjects();
 
+  // Debounce grid search to prevent API calls on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   // Map subject name to ID for API filtering
   const subjectId = useMemo(() => {
     if (selectedSubject === 'all') return undefined;
@@ -81,13 +85,13 @@ export default function KnowledgeGrid({
 
   // Build query params for API
   const queryparams: KnowledgeQueryParams = useMemo(() => ({
-    search: searchQuery || undefined,
+    search: debouncedSearchQuery || undefined,
     knowledgeType: selectedType !== 'all' ? selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT : undefined,
     subject: subjectId ? [subjectId] : undefined,
     sort: sortBy,
     page: currentPage,
     limit: itemsPerPage,
-  }), [searchQuery, selectedType, subjectId, sortBy, currentPage, itemsPerPage]);
+  }), [debouncedSearchQuery, selectedType, subjectId, sortBy, currentPage, itemsPerPage]);
 
   const {
     data: knowledgeItems,

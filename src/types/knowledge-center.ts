@@ -363,6 +363,36 @@ export interface KnowledgeCenterStatsData {
   stats: KnowledgeCenterStats;
 }
 
+// Knowledge Center Overview Stats types - aligned with /knowledge-centers/overview endpoint
+export interface KnowledgeOverviewStats {
+  totalPosts: number;
+  totalPublished: number;
+  totalScheduled: number;
+  totalDrafts: number;
+  totalWebinars: number;
+  totalVideos: number;
+  totalPdfs: number;
+  totalPodcasts: number;
+  totalArticles: number;
+}
+
+export interface KnowledgeOverviewStatsData {
+  stats: KnowledgeOverviewStats;
+}
+
+// Knowledge Center Last Activities types - aligned with /knowledge-centers/last-activities endpoint
+export interface KnowledgeLastActivity {
+  title: string;
+  isFinal: boolean;
+  publishedAt: string;
+  activity: 'CREATED' | 'UPDATED' | 'DELETED' | string;
+  likeCount: number;
+  viewCount: number;
+  updatedAt: string;
+}
+
+export type KnowledgeLastActivitiesResponse = KnowledgeLastActivity[];
+
 // Re-export generic API response types for backward compatibility
 export type {
   ApiResponse,

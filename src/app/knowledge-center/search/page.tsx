@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledge } from '@/hooks/useKnowledgeCenter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { useKnowledgeCenterSearch } from '@/hooks/useKnowledgeCenter';
+import { useDebounce } from '@/hooks/useDebounce';
 import { SortOption, SORT_OPTIONS, KnowledgeQueryParams } from '@/types/knowledge-center';
 import Link from 'next/link';
 
@@ -49,16 +50,22 @@ export default function KnowledgeSearchPage() {
   
   const { data: subjects } = useKnowledgeSubjects();
 
+  // Debounce search query so that global search does not hit APIs on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
   // Use the search API for live search results
-  const { data: searchResults, isLoading: isSearchLoading, error: searchError } = useKnowledgeCenterSearch(searchQuery, searchQuery.length >= 2);
+  const { data: searchResults, isLoading: isSearchLoading, error: searchError } = useKnowledgeCenterSearch(
+    debouncedSearchQuery,
+    debouncedSearchQuery.length >= 2,
+  );
 
   // Also get regular knowledge items for comprehensive results
   const queryparams: KnowledgeQueryParams = useMemo(() => ({
-    search: searchQuery || undefined,
+    search: debouncedSearchQuery || undefined,
     sort: sortBy,
     page: currentPage,
     limit: itemsPerPage,
-  }), [searchQuery, sortBy, currentPage, itemsPerPage]);
+  }), [debouncedSearchQuery, sortBy, currentPage, itemsPerPage]);
 
   const {
     data: knowledgeItems,
@@ -96,11 +103,11 @@ export default function KnowledgeSearchPage() {
 
   // Filter subjects based on search query
   const filteredSubjects = useMemo(() => {
-    if (!subjects || searchQuery.length < 2) return [];
+    if (!subjects || debouncedSearchQuery.length < 2) return [];
     return subjects.filter(subject =>
-      subject.name.toLowerCase().includes(searchQuery.toLowerCase())
+      subject.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
-  }, [subjects, searchQuery]);
+  }, [subjects, debouncedSearchQuery]);
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);

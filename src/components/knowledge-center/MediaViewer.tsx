@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Download, Play, Pause, Volume2, FileText } from 'lucide-react';
+import { useState } from 'react';
+
+import { X, Download, Volume2, FileText } from 'lucide-react';
+
 import { CONTENT_TYPES, ContentType } from '@/types/knowledge-center';
 
 interface MediaViewerProps {
@@ -21,25 +23,7 @@ export default function MediaViewer({
   onClose,
   autoplay = false
 }: MediaViewerProps) {
-  const [isPlaying, setIsPlaying] = useState(autoplay);
-  const [volume, setVolume] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (autoplay && type === 'video') {
-      setIsPlaying(true);
-    }
-  }, [autoplay, type]);
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-  };
 
   const handleDownload = () => {
     const link = document.createElement('a');
@@ -48,16 +32,6 @@ export default function MediaViewer({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      document.documentElement.requestFullscreen?.();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
-      setIsFullscreen(false);
-    }
   };
 
   const renderVideoPlayer = () => (
@@ -71,58 +45,11 @@ export default function MediaViewer({
       <video
         src={src}
         className={`w-full h-auto ${className}`}
-        controls={false}
+        controls
         autoPlay={autoplay}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
         onLoadedData={() => setIsLoading(false)}
         onError={() => setIsLoading(false)}
       />
-
-      {/* Custom Controls */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-        <div className="flex items-center justify-between text-white">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handlePlayPause}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-            >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            </button>
-
-            <div className="flex items-center gap-2">
-              <Volume2 className="w-4 h-4" />
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="w-20 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleDownload}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Download"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Fullscreen"
-            >
-              <X className="w-4 h-4 rotate-45" />
-            </button>
-          </div>
-        </div>
-      </div>
 
       {title && (
         <div className="absolute top-4 left-4 right-4 text-white">
