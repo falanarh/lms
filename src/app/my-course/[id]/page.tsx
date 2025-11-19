@@ -39,15 +39,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
-  if (isCourseLoading || !courseDetail) {
-    return (
-      <PageContainer>
-        <MyCoursePageSkeleton />
-      </PageContainer>
-    );
-  }
-
-  const course = courseDetail;
+  const course = courseDetail!;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -202,6 +194,14 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       alert('Gagal mengirim ulasan. Silakan coba lagi.');
     }
   };
+
+    if (isCourseLoading || !courseDetail) {
+    return (
+      <PageContainer>
+        <MyCoursePageSkeleton />
+      </PageContainer>
+    );
+  }
 
   if (error) {
     return (

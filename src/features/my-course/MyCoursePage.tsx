@@ -149,7 +149,7 @@ export function MyCoursePage() {
         </div> */}
 
         {/* Results Summary */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="my-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               Hasil Pencarian

@@ -48,7 +48,9 @@ export const TaskContent = ({ content, isSidebarOpen }: TaskContentProps) => {
   return (
     <div
       className={`relative w-full bg-white rounded-md overflow-y-auto transition-all duration-500 border border-gray-200 shadow-sm flex flex-col ${
-        isSidebarOpen ? "aspect-[3/4] md:h-[520px]" : "aspect-[3/4] md:h-[520px]"
+        isSidebarOpen
+          ? "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
+          : "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
       }`}
     >
       <div className="hidden md:block absolute md:top-4 md:right-4 z-10">

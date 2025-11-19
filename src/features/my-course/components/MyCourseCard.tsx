@@ -84,7 +84,7 @@ export function MyCourseCard({ course, viewMode = "grid-4" }: MyCourseCardProps)
               </div>
 
               {/* Bottom Progress Info */}
-              <div className="absolute bottom-3 left-3 right-3">
+              {/* <div className="absolute bottom-3 left-3 right-3">
                 <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm rounded-lg p-2">
                   <div className="flex justify-between items-center text-xs text-gray-700 dark:text-gray-300 mb-1">
                     <span>Progress</span>
@@ -97,7 +97,7 @@ export function MyCourseCard({ course, viewMode = "grid-4" }: MyCourseCardProps)
                     />
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 

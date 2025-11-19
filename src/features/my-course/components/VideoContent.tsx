@@ -24,8 +24,8 @@ export const VideoContent = ({ content, isSidebarOpen }: VideoContentProps) => {
     <div
       className={`relative w-full rounded-md overflow-hidden transition-all duration-500 bg-black ${
         isSidebarOpen
-          ? "aspect-[3/4] md:aspect-auto md:h-[520px]"
-          : "aspect-[3/4] md:aspect-auto md:h-[520px]"
+          ? "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
+          : "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
       }`}
     >
       <video
@@ -46,7 +46,10 @@ export const VideoContent = ({ content, isSidebarOpen }: VideoContentProps) => {
           onClick={handlePlayClick}
         >
           <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-            <Play className="w-10 h-10 text-blue-600 ml-1" fill="currentColor" />
+            <Play
+              className="w-10 h-10 text-blue-600 ml-1"
+              fill="currentColor"
+            />
           </div>
         </div>
       )}

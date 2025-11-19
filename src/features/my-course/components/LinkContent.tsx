@@ -45,7 +45,9 @@ export const LinkContent = ({ url, title, description, isSidebarOpen }: LinkCont
   if (isVideo) {
     return (
       <div className={`relative w-full rounded-md overflow-hidden transition-all duration-500 bg-black ${
-        isSidebarOpen ? "aspect-[3/4] md:h-[520px]" : "aspect-[3/4] md:h-[520px]"
+        isSidebarOpen
+          ? "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
+          : "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
       }`}>
         <iframe
           src={embedUrl}

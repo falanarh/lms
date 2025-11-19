@@ -1,4 +1,3 @@
-import { API_BASE_URL, API_COURSE_BASE_URL } from "@/config/api";
 import axios from "axios";
 import { Content } from "./contents";
 

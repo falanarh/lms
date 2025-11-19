@@ -85,7 +85,7 @@ export const ContentPlayer = ({ content, isSidebarOpen = true }: ContentPlayerPr
 
       default:
         return (
-          <div className="w-full aspect-video bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center">
+          <div className="w-full aspect-video md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px] bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center">
             <div className="text-center">
               <LinkIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 font-medium">Unsupported content type</p>

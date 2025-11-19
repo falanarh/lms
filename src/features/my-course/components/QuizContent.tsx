@@ -296,7 +296,7 @@ export const QuizContent = ({ content, isSidebarOpen }: QuizContentProps) => {
   };
 
   const wrapperClasses =
-    "relative w-full bg-white rounded-md transition-all duration-500 border border-gray-200 shadow-sm flex flex-col md:flex-row h-[520px]";
+    "relative w-full bg-white rounded-md transition-all duration-500 border border-gray-200 shadow-sm flex flex-col md:flex-row md:h-[520px] md:min-h-[520px] md:max-h-[520px]";
 
   const getIsCorrect = (q: QuizQuestion) => {
     const user = quizAnswers[q.id];
