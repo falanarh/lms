@@ -1,16 +1,11 @@
 "use client";
 /**
- * Komponen: SectionActivities (UPDATED WITH EDIT SUPPORT)
- * Tujuan: Manajemen section dan activities dengan drag & drop + EDIT ACTIVITY
- *
- * Fitur Baru:
- * - ✅ Edit activity menggunakan drawer
- * - ✅ Pre-fill form saat edit
- * - ✅ Integrasi dengan ActivityDrawerContent
- * - ✅ View button beside edit/delete (eye icon only)
- * - ✅ Confirmation dialog for sequence changes
- * - ✅ Proper rollback on cancel
+ * Komponen: SectionActivities (OPTIMIZED - NO SEPARATE CONTENT FETCH)
+ * - Uses listContent from sections API response directly
+ * - Fixes sync issues when adding activities
+ * - More efficient data fetching
  */
+
 import {
   Pencil,
   Plus,
@@ -37,8 +32,6 @@ import {
   useUpdateSectionsSequence,
 } from "@/hooks/useSections";
 import {
-  getContentQueryKey,
-  useContents,
   useDeleteContent,
   useUpdateContentsSequence,
 } from "@/hooks/useContent";
@@ -52,7 +45,7 @@ import {
   UpdateSectionInput,
   updateSectionSchema,
 } from "@/schemas/section.schema";
-import z, { ZodError } from "zod";
+import { ZodError } from "zod";
 
 interface Activity {
   id: string;
@@ -89,6 +82,7 @@ export function SectionActivities({
   onManageQuizQuestions,
   groupId,
 }: SectionActivitiesProps) {
+  // ✅ ONLY fetch sections - contents are included in listContent
   const {
     data: sectionsData,
     isPending: isSectionsPending,
@@ -96,14 +90,6 @@ export function SectionActivities({
     error: sectionsError,
     refetch: refetchSections,
   } = useSections();
-
-  const {
-    data: contentsData,
-    isPending: isContentsPending,
-    isFetching: isContentsFetching,
-    error: contentsError,
-    refetch: refetchContents,
-  } = useContents();
 
   const { mutate: createSection, isPending: isCreating } = useCreateSection({
     onSuccess: async () => {
@@ -117,9 +103,7 @@ export function SectionActivities({
       }
       setEditingSectionId(null);
       form.reset();
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: getSectionQueryKey() }),
-      ]);
+      await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
     },
     onError: (error: any) => {
       setShowToast(true);
@@ -132,7 +116,7 @@ export function SectionActivities({
   const { mutate: deleteContent, isPending: isDeleting } = useDeleteContent({
     onSuccess: async () => {
       showToastMessage("success", "Activity berhasil dihapus!");
-      await queryClient.refetchQueries({ queryKey: ["contents"] });
+      await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
     },
     onError: (error: any) => {
       console.error(error);
@@ -147,7 +131,7 @@ export function SectionActivities({
     useDeleteSection({
       onSuccess: async () => {
         showToastMessage("success", "Section berhasil dihapus!");
-        await queryClient.refetchQueries({ queryKey: ["sections"] });
+        await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
       },
       onError: (error: any) => {
         console.error(error);
@@ -161,7 +145,7 @@ export function SectionActivities({
   const { mutate: updateSection } = useUpdateSection({
     onSuccess: async () => {
       showToastMessage("success", "Section berhasil diedit!");
-      await queryClient.refetchQueries({ queryKey: ["sections"] });
+      await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
     },
     onError: (error: any) => {
       console.error(error);
@@ -175,7 +159,6 @@ export function SectionActivities({
         setLocalSections([]);
         await queryClient.invalidateQueries({ queryKey: getSectionQueryKey() });
         await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
-        console.log(sectionsData);
         showToastMessage("success", "Urutan section berhasil diubah!");
       },
       onError: (error: any) => {
@@ -194,12 +177,12 @@ export function SectionActivities({
   } = useUpdateContentsSequence({
     onSuccess: async () => {
       showToastMessage("success", "Urutan activity berhasil diubah!");
-      await queryClient.refetchQueries({ queryKey: getContentQueryKey() });
+      await queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
     },
     onError: (error: any) => {
       console.error("❌ Update Contents Sequence Error:", error);
       showToastMessage("warning", "Gagal mengubah urutan activity!");
-      queryClient.refetchQueries({ queryKey: getContentQueryKey() });
+      queryClient.refetchQueries({ queryKey: getSectionQueryKey() });
     },
   });
 
@@ -239,9 +222,7 @@ export function SectionActivities({
     },
   });
 
-  const fetchError = sectionsError || contentsError;
   const [localSections, setLocalSections] = useState<Section[]>([]);
-  
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     type: "section" | "activity" | null;
@@ -266,6 +247,99 @@ export function SectionActivities({
     pendingUpdates: [],
     description: "",
   });
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState<"info" | "warning" | "success">("success");
+  const [loadingActivityId, setLoadingActivityId] = useState<string | null>(null);
+
+  const sectionsContainerRef = useRef<HTMLDivElement>(null);
+  const sortableInstanceRef = useRef<Sortable | null>(null);
+  const activitiesSortableRefs = useRef<Map<string, Sortable>>(new Map());
+  const viewCallbacks = useRef<Map<string, () => void>>(new Map());
+  const originalSectionsOrderRef = useRef<Section[]>([]);
+  const originalActivitiesOrderRef = useRef<Map<string, any[]>>(new Map());
+
+  // ✅ SIMPLIFIED: Transform sections data directly (no separate contents fetch needed)
+  const sectionsFromMemo = useMemo<Section[]>(() => {
+    if (!sectionsData?.data) {
+      console.log("⚠️ No sections data available");
+      return [];
+    }
+
+    const sectionsArray = sectionsData.data.filter(Boolean);
+    
+    console.log("📊 Processing sections:", {
+      totalSections: sectionsArray.length,
+      groupId,
+    });
+
+    const filteredSections = groupId
+      ? sectionsArray.filter((s) => s?.idGroup === groupId)
+      : sectionsArray;
+
+    const processedSections = filteredSections
+      .filter((section) => section && section.id)
+      .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+      .map((section) => {
+        // ✅ Use listContent directly from API response
+        const sectionActivities = (section.listContent || [])
+          .filter((content) => content && content.id)
+          .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+          .map((content) => ({
+            id: content.id,
+            title: content.name || "Untitled",
+            type: mapContentType(content.type || "PDF"),
+            contentUrl: content.contentUrl || "",
+            size: calculateFileSize(content.contentUrl || ""),
+            description: content.description || "",
+            sequence: content.sequence || 0,
+          }));
+
+        console.log(`📦 Section "${section.name}" has ${sectionActivities.length} activities`);
+
+        return {
+          id: section.id,
+          title: section.name || "Untitled Section",
+          description: section.description || "",
+          activities: sectionActivities,
+          sequence: section.sequence || 0,
+        };
+      });
+
+    console.log("✅ Processed sections:", processedSections.length);
+    return processedSections;
+  }, [sectionsData?.data, groupId]);
+
+  const displayedSections = useMemo(() => {
+    const combined = [...sectionsFromMemo, ...localSections];
+    return combined.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  }, [sectionsFromMemo, localSections]);
+
+  function mapContentType(type: string): "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK" {
+    const typeUpper = type.toUpperCase();
+    if (
+      typeUpper === "PDF" ||
+      typeUpper === "VIDEO" ||
+      typeUpper === "LINK" ||
+      typeUpper === "SCORM" ||
+      typeUpper === "QUIZ" ||
+      typeUpper === "TASK"
+    ) {
+      return typeUpper as "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK";
+    }
+    return "PDF";
+  }
+
+  function calculateFileSize(url: string): string {
+    const ext = url.split(".").pop()?.toLowerCase();
+    if (ext === "pdf") return "~2 MB";
+    if (ext === "mp4" || ext === "avi") return "~150 MB";
+    if (ext === "zip") return "~5 MB";
+    return "Unknown";
+  }
 
   const handleDeleteSectionClick = (section: Section) => {
     setDeleteConfirm({
@@ -325,359 +399,32 @@ export function SectionActivities({
     });
   };
 
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Update handleCancelSequence
-const handleCancelSequence = () => {
-  // Destroy all sortable instances first to reset DOM
-  if (sortableInstanceRef.current) {
-    sortableInstanceRef.current.destroy();
-    sortableInstanceRef.current = null;
-  }
-  
-  activitiesSortableRefs.current.forEach((sortable) => {
-    sortable.destroy();
-  });
-  activitiesSortableRefs.current.clear();
-
-  setSequenceConfirm({
-    isOpen: false,
-    type: "activity",
-    pendingUpdates: [],
-    description: "",
-  });
-  
-  // Clear local sections
-  setLocalSections([]);
-  
-  Promise.all([
-    queryClient.refetchQueries({ queryKey: getSectionQueryKey() }),
-    queryClient.refetchQueries({ queryKey: getContentQueryKey() })
-  ]).then(() => {
-    // Small delay to ensure DOM updates complete before incrementing refresh key
-    setTimeout(() => {
-      // Force re-render by incrementing refresh key
-      setRefreshKey(prev => prev + 1);
-    }, 50);
-  });
-};
-
-  const sectionsFromMemo = useMemo<Section[]>(() => {
-    if (!sectionsData?.data || !contentsData?.data) return [];
-    const sectionsArray = sectionsData.data.filter(Boolean);
-    const contentsArray = contentsData.data.filter(Boolean);
-
-    const filteredSections = groupId
-      ? sectionsArray.filter((s) => s?.idGroup === groupId)
-      : sectionsArray;
-
-    return filteredSections
-      .filter((section) => section && section.id)
-      .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-      .map((section) => {
-        const sectionActivities = contentsArray
-          .filter((content) => content && content.idSection === section.id)
-          .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-          .map((content) => ({
-            id: content.id,
-            title: content.name || "Untitled",
-            type: mapContentType(content.type || "DOC"),
-            contentUrl: content.contentUrl || "", 
-            size: calculateFileSize(content.contentUrl || ""),
-            description: content.description || "",
-            sequence: content.sequence || 0,
-          }));
-
-        return {
-          id: section.id,
-          title: section.name || "Untitled Section",
-          description: section.description || "",
-          activities: sectionActivities,
-          sequence: section.sequence || 0,
-        };
-      });
-  }, [sectionsData?.data, contentsData?.data, groupId]);
-
-  const displayedSections = useMemo(() => {
-    const combined = [...sectionsFromMemo, ...localSections];
-    return combined.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-  }, [sectionsFromMemo, localSections]);
-
-  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
-  const [editedTitle, setEditedTitle] = useState<string>("");
-  const [editedDescription, setEditedDescription] = useState<string>("");
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  
-  const [toastVariant, setToastVariant] = useState<"info" | "warning" | "success">("success");
-
-  const [loadingActivityId, setLoadingActivityId] = useState<string | null>(null);
-
-  const sectionsContainerRef = useRef<HTMLDivElement>(null);
-  const activityCardRefs = useRef<Map<string, any>>(new Map());
-  const sortableInstanceRef = useRef<Sortable | null>(null);
-  const activitiesSortableRefs = useRef<Map<string, Sortable>>(new Map());
-  
-  // Refs to store original order before drag
-  const originalSectionsOrderRef = useRef<Section[]>([]);
-  const originalActivitiesOrderRef = useRef<Map<string, any[]>>(new Map());
-
-  function mapContentType(type: string): "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK" {
-    const typeUpper = type.toUpperCase();
-    if (
-      typeUpper === "PDF" ||
-      typeUpper === "VIDEO" ||
-      typeUpper === "LINK" ||
-      typeUpper === "SCORM" || 
-      typeUpper === "QUIZ" ||
-      typeUpper === "TASK"
-    ) {
-      return typeUpper as "PDF" | "VIDEO" | "LINK" | "SCORM" | "QUIZ" | "TASK";
-    }
-    return "PDF";
-  }
-
-  function calculateFileSize(url: string): string {
-    const ext = url.split(".").pop()?.toLowerCase();
-    if (ext === "pdf") return "~2 MB";
-    if (ext === "mp4" || ext === "avi") return "~150 MB";
-    if (ext === "zip") return "~5 MB";
-    return "Unknown";
-  }
-
-  // Initialize Sortable for sections
-  useEffect(() => {
-    // Always destroy existing instance when refreshKey changes
+  const handleCancelSequence = () => {
     if (sortableInstanceRef.current) {
       sortableInstanceRef.current.destroy();
       sortableInstanceRef.current = null;
     }
-  
-    // Create new instance if we have sections
-    if (sectionsContainerRef.current && displayedSections.length > 0) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(() => {
-        if (sectionsContainerRef.current && !sortableInstanceRef.current) {
-          sortableInstanceRef.current = new Sortable(sectionsContainerRef.current, {
-            animation: 150,
-            handle: ".section-drag-handle",
-            ghostClass: "sortable-ghost",
-            dragClass: "sortable-drag",
-            chosenClass: "sortable-chosen",
-            onStart: () => {
-              originalSectionsOrderRef.current = [...displayedSections];
-            },
-            onEnd: (evt) => {
-              const { oldIndex, newIndex } = evt;
-              if (
-                oldIndex === undefined ||
-                newIndex === undefined ||
-                oldIndex === newIndex
-              )
-                return;
-  
-              const combined = [...displayedSections];
-              const [movedItem] = combined.splice(oldIndex, 1);
-              combined.splice(newIndex, 0, movedItem);
-  
-              const updated = combined.map((section, idx) => ({
-                ...section,
-                sequence: idx + 1,
-              }));
-  
-              const serverSections = updated.filter(
-                (s) => !s.id.startsWith("local-"),
-              );
-  
-              const sequenceUpdates = serverSections.map((s) => ({
-                id: s.id,
-                sequence: s.sequence,
-              }));
-  
-              if (sequenceUpdates.length > 0) {
-                setSequenceConfirm({
-                  isOpen: true,
-                  type: "section",
-                  pendingUpdates: sequenceUpdates,
-                  description: `Apakah Anda yakin ingin mengubah urutan section? Perubahan akan mempengaruhi ${sequenceUpdates.length} section.`,
-                });
-              }
-            },
-          });
-        }
-      }, 100);
-  
-      return () => {
-        clearTimeout(timer);
-        if (sortableInstanceRef.current) {
-          sortableInstanceRef.current.destroy();
-          sortableInstanceRef.current = null;
-        }
-      };
-    }
-  
-    return () => {
-      if (sortableInstanceRef.current) {
-        sortableInstanceRef.current.destroy();
-        sortableInstanceRef.current = null;
-      }
-    };
-  }, [displayedSections.length, refreshKey, displayedSections]);
-
-  // Initialize Sortable for activities
-  useEffect(() => {
-    // Cleanup all existing sortables first
+    
     activitiesSortableRefs.current.forEach((sortable) => {
       sortable.destroy();
     });
     activitiesSortableRefs.current.clear();
-  
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      displayedSections.forEach((section) => {
-        const container = document.querySelector(
-          `[data-activities-section="${section.id}"]`,
-        );
-        if (container) {
-          const sortable = new Sortable(container as HTMLElement, {
-            animation: 150,
-            handle: ".activity-drag-handle",
-            ghostClass: "sortable-ghost",
-            dragClass: "sortable-drag",
-            group: "activities",
-            onStart: (evt) => {
-              const fromSectionId = evt.from.getAttribute("data-activities-section");
-              if (fromSectionId && contentsData?.data) {
-                const activities = contentsData.data
-                  .filter((content) => content.idSection === fromSectionId)
-                  .sort((a, b) => a.sequence - b.sequence);
-                originalActivitiesOrderRef.current.set(fromSectionId, [...activities]);
-              }
-            },
-            onEnd: (evt) => {
-              const { oldIndex, newIndex, from, to } = evt;
-              if (oldIndex === undefined || newIndex === undefined) return;
-  
-              const fromSectionId =
-                from.getAttribute("data-activities-section") || "";
-              const toSectionId =
-                to.getAttribute("data-activities-section") || "";
-  
-              if (!fromSectionId || !toSectionId || !contentsData?.data) return;
-  
-              try {
-                if (fromSectionId === toSectionId) {
-                  if (oldIndex === newIndex) return;
-  
-                  const sectionActivities = contentsData.data
-                    .filter((content) => content.idSection === fromSectionId)
-                    .sort((a, b) => a.sequence - b.sequence);
-  
-                  const [movedActivity] = sectionActivities.splice(oldIndex, 1);
-                  sectionActivities.splice(newIndex, 0, movedActivity);
-  
-                  const hasValidActivities = sectionActivities.every(
-                    (activity) => activity?.id,
-                  );
-  
-                  if (!hasValidActivities) {
-                    console.warn("⚠️ Cannot reorder activities: missing IDs");
-                    return;
-                  }
-  
-                  const sequenceUpdates = sectionActivities.map(
-                    (activity, idx) => ({
-                      id: activity?.id || `temp-${idx}`,
-                      sequence: idx + 1,
-                      idSection: fromSectionId,
-                    }),
-                  );
-  
-                  setSequenceConfirm({
-                    isOpen: true,
-                    type: "activity",
-                    pendingUpdates: sequenceUpdates,
-                    description: `Apakah Anda yakin ingin mengubah urutan activity dalam section ini? Perubahan akan mempengaruhi ${sequenceUpdates.length} activity.`,
-                  });
-                } else {
-                  const toSectionId = to.getAttribute("data-activities-section");
-                  if (toSectionId) {
-                    const toActivities = contentsData.data
-                      .filter((content) => content.idSection === toSectionId)
-                      .sort((a, b) => a.sequence - b.sequence);
-                    originalActivitiesOrderRef.current.set(toSectionId, [...toActivities]);
-                  }
-  
-                  const fromActivities = contentsData.data
-                    .filter((content) => content.idSection === fromSectionId)
-                    .sort((a, b) => a.sequence - b.sequence);
-                  const toActivities = contentsData.data
-                    .filter((content) => content.idSection === toSectionId)
-                    .sort((a, b) => a.sequence - b.sequence);
-  
-                  const [movedActivity] = fromActivities.splice(oldIndex, 1);
-                  if (!movedActivity) return;
-  
-                  toActivities.splice(newIndex, 0, {
-                    ...movedActivity,
-                    idSection: toSectionId,
-                  });
-  
-                  const fromUpdates = fromActivities.map((activity, idx) => ({
-                    id: activity?.id || `temp-from-${idx}`,
-                    sequence: idx + 1,
-                    idSection: fromSectionId,
-                  }));
-  
-                  const toUpdates = toActivities.map((activity, idx) => ({
-                    id: activity?.id || `temp-to-${idx}`,
-                    sequence: idx + 1,
-                    idSection: toSectionId,
-                  }));
-  
-                  const hasValidFromActivities = fromActivities.every(
-                    (activity) => activity?.id,
-                  );
-                  const hasValidToActivities = toActivities.every(
-                    (activity) => activity?.id,
-                  );
-  
-                  if (!hasValidFromActivities || !hasValidToActivities) {
-                    console.warn(
-                      "⚠️ Cannot move activities: some have missing IDs",
-                    );
-                    return;
-                  }
-  
-                  const allUpdates = [...fromUpdates, ...toUpdates].filter(
-                    (update) => update.id && !update.id.startsWith("temp-"),
-                  );
-  
-                  setSequenceConfirm({
-                    isOpen: true,
-                    type: "move-activity",
-                    pendingUpdates: allUpdates,
-                    description: `Apakah Anda yakin ingin memindahkan activity ke section lain? Perubahan akan mempengaruhi ${allUpdates.length} activity di kedua section.`,
-                  });
-                }
-              } catch (error) {
-                console.error("❌ Error handling drag:", error);
-              }
-            },
-          });
-          activitiesSortableRefs.current.set(section.id, sortable);
-        }
-      });
-    }, 100);
-  
-    return () => {
-      clearTimeout(timer);
-      activitiesSortableRefs.current.forEach((sortable) => {
-        sortable.destroy();
-      });
-      activitiesSortableRefs.current.clear();
-    };
-  }, [displayedSections, contentsData?.data, refreshKey]);
+    
+    setSequenceConfirm({
+      isOpen: false,
+      type: "activity",
+      pendingUpdates: [],
+      description: "",
+    });
+    
+    setLocalSections([]);
+    
+    queryClient.refetchQueries({ queryKey: getSectionQueryKey() }).then(() => {
+      setTimeout(() => {
+        setRefreshKey(prev => prev + 1);
+      }, 50);
+    });
+  };
 
   const showToastMessage = (
     variant: "info" | "warning" | "success",
@@ -701,15 +448,6 @@ const handleCancelSequence = () => {
 
   const handleCancelClick = () => {
     setEditingSectionId(null);
-    setEditedTitle("");
-    setEditedDescription("");
-  };
-
-  const handleDeleteSection = (sectionId: string) => {
-    if (!sectionId) return;
-    if (confirm("Yakin ingin menghapus section ini?")) {
-      deleteSection(sectionId);
-    }
   };
 
   const handleAddSection = () => {
@@ -731,43 +469,220 @@ const handleCancelSequence = () => {
         });
       }
       setEditingSectionId(newSection.id);
-      setEditedTitle(newSection.title);
-      setEditedDescription(newSection.description || "");
     }, 100);
   };
 
   const handleAddActivity = (sectionId: string) => {
+    console.log("➕ Adding activity to section:", sectionId);
     if (onAddActivity) {
       onAddActivity(sectionId);
     }
   };
 
-  // Handler for viewing activity content - store callback functions
-  const viewCallbacks = useRef<Map<string, () => void>>(new Map());
-
-
   const handleEditActivity = (sectionId: string, activityId: string) => {
-    if (!contentsData?.data) return;
-    const activityData = contentsData.data.find(
-      (content) => content.id === activityId,
-    );
+    console.log("✏️ Editing activity:", { sectionId, activityId });
+    
+    // ✅ Find activity from section's listContent
+    const section = sectionsData?.data.find(s => s.id === sectionId);
+    const activityData = section?.listContent?.find(content => content.id === activityId);
+    
     if (activityData && onEditActivity) {
-      onEditActivity(sectionId, activityId, activityData);
+      onEditActivity(sectionId, activityId, activityData as Content);
+    } else {
+      console.warn("⚠️ Activity not found:", activityId);
     }
   };
 
-  const handleDeleteActivity = (sectionId: string, activityId: string) => {
-    if (!activityId) return;
-    if (confirm("Yakin ingin menghapus activity ini?")) {
-      deleteContent(activityId);
+  // Initialize Sortable for sections
+  useEffect(() => {
+    if (sortableInstanceRef.current) {
+      sortableInstanceRef.current.destroy();
+      sortableInstanceRef.current = null;
     }
-  };
 
-  if (isSectionsPending || isContentsPending) {
+    if (sectionsContainerRef.current && displayedSections.length > 0) {
+      const timer = setTimeout(() => {
+        if (sectionsContainerRef.current && !sortableInstanceRef.current) {
+          sortableInstanceRef.current = new Sortable(sectionsContainerRef.current, {
+            animation: 150,
+            handle: ".section-drag-handle",
+            ghostClass: "sortable-ghost",
+            dragClass: "sortable-drag",
+            chosenClass: "sortable-chosen",
+            onStart: () => {
+              originalSectionsOrderRef.current = [...displayedSections];
+            },
+            onEnd: (evt) => {
+              const { oldIndex, newIndex } = evt;
+              if (
+                oldIndex === undefined ||
+                newIndex === undefined ||
+                oldIndex === newIndex
+              )
+                return;
+
+              const combined = [...displayedSections];
+              const [movedItem] = combined.splice(oldIndex, 1);
+              combined.splice(newIndex, 0, movedItem);
+
+              const updated = combined.map((section, idx) => ({
+                ...section,
+                sequence: idx + 1,
+              }));
+
+              const serverSections = updated.filter(
+                (s) => !s.id.startsWith("local-"),
+              );
+
+              const sequenceUpdates = serverSections.map((s) => ({
+                id: s.id,
+                sequence: s.sequence,
+              }));
+
+              if (sequenceUpdates.length > 0) {
+                setSequenceConfirm({
+                  isOpen: true,
+                  type: "section",
+                  pendingUpdates: sequenceUpdates,
+                  description: `Apakah Anda yakin ingin mengubah urutan section? Perubahan akan mempengaruhi ${sequenceUpdates.length} section.`,
+                });
+              }
+            },
+          });
+        }
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        if (sortableInstanceRef.current) {
+          sortableInstanceRef.current.destroy();
+          sortableInstanceRef.current = null;
+        }
+      };
+    }
+
+    return () => {
+      if (sortableInstanceRef.current) {
+        sortableInstanceRef.current.destroy();
+        sortableInstanceRef.current = null;
+      }
+    };
+  }, [displayedSections.length, refreshKey, displayedSections]);
+
+  // Initialize Sortable for activities
+  useEffect(() => {
+    activitiesSortableRefs.current.forEach((sortable) => {
+      sortable.destroy();
+    });
+    activitiesSortableRefs.current.clear();
+
+    const timer = setTimeout(() => {
+      displayedSections.forEach((section) => {
+        const container = document.querySelector(
+          `[data-activities-section="${section.id}"]`,
+        );
+        if (container) {
+          const sortable = new Sortable(container as HTMLElement, {
+            animation: 150,
+            handle: ".activity-drag-handle",
+            ghostClass: "sortable-ghost",
+            dragClass: "sortable-drag",
+            group: "activities",
+            onStart: (evt) => {
+              const fromSectionId = evt.from.getAttribute("data-activities-section");
+              if (fromSectionId) {
+                const fromSection = displayedSections.find(s => s.id === fromSectionId);
+                if (fromSection) {
+                  originalActivitiesOrderRef.current.set(fromSectionId, [...fromSection.activities]);
+                }
+              }
+            },
+            onEnd: (evt) => {
+              const { oldIndex, newIndex, from, to } = evt;
+              if (oldIndex === undefined || newIndex === undefined) return;
+
+              const fromSectionId = from.getAttribute("data-activities-section") || "";
+              const toSectionId = to.getAttribute("data-activities-section") || "";
+
+              if (!fromSectionId || !toSectionId) return;
+
+              const fromSection = displayedSections.find(s => s.id === fromSectionId);
+              const toSection = displayedSections.find(s => s.id === toSectionId);
+
+              if (!fromSection || !toSection) return;
+
+              try {
+                if (fromSectionId === toSectionId) {
+                  if (oldIndex === newIndex) return;
+
+                  const activities = [...fromSection.activities];
+                  const [movedActivity] = activities.splice(oldIndex, 1);
+                  activities.splice(newIndex, 0, movedActivity);
+
+                  const sequenceUpdates = activities.map((activity, idx) => ({
+                    id: activity.id,
+                    sequence: idx + 1,
+                    idSection: fromSectionId,
+                  }));
+
+                  setSequenceConfirm({
+                    isOpen: true,
+                    type: "activity",
+                    pendingUpdates: sequenceUpdates,
+                    description: `Apakah Anda yakin ingin mengubah urutan activity dalam section ini? Perubahan akan mempengaruhi ${sequenceUpdates.length} activity.`,
+                  });
+                } else {
+                  const fromActivities = [...fromSection.activities];
+                  const toActivities = [...toSection.activities];
+
+                  const [movedActivity] = fromActivities.splice(oldIndex, 1);
+                  toActivities.splice(newIndex, 0, movedActivity);
+
+                  const fromUpdates = fromActivities.map((activity, idx) => ({
+                    id: activity.id,
+                    sequence: idx + 1,
+                    idSection: fromSectionId,
+                  }));
+
+                  const toUpdates = toActivities.map((activity, idx) => ({
+                    id: activity.id,
+                    sequence: idx + 1,
+                    idSection: toSectionId,
+                  }));
+
+                  const allUpdates = [...fromUpdates, ...toUpdates];
+
+                  setSequenceConfirm({
+                    isOpen: true,
+                    type: "move-activity",
+                    pendingUpdates: allUpdates,
+                    description: `Apakah Anda yakin ingin memindahkan activity ke section lain? Perubahan akan mempengaruhi ${allUpdates.length} activity di kedua section.`,
+                  });
+                }
+              } catch (error) {
+                console.error("❌ Error handling drag:", error);
+              }
+            },
+          });
+          activitiesSortableRefs.current.set(section.id, sortable);
+        }
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      activitiesSortableRefs.current.forEach((sortable) => {
+        sortable.destroy();
+      });
+      activitiesSortableRefs.current.clear();
+    };
+  }, [displayedSections, refreshKey]);
+
+  if (isSectionsPending) {
     return <SectionSkeleton />;
   }
 
-  if (fetchError) {
+  if (sectionsError) {
     return (
       <div className="w-full flex flex-col items-center justify-center py-12 space-y-4">
         <div className="flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full">
@@ -775,16 +690,9 @@ const handleCancelSequence = () => {
         </div>
         <p className="text-lg font-semibold text-red-600 dark:text-red-400">Gagal memuat data!</p>
         <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-md">
-          Terjadi kesalahan saat mengambil data sections dan activities. Coba
-          lagi.
+          Terjadi kesalahan saat mengambil data sections dan activities. Coba lagi.
         </p>
-        <Button
-          onClick={() => {
-            refetchSections();
-            refetchContents();
-          }}
-          variant="outline"
-        >
+        <Button onClick={() => refetchSections()} variant="outline">
           Coba Lagi
         </Button>
       </div>
@@ -813,8 +721,7 @@ const handleCancelSequence = () => {
           </div>
           <p className="text-base mb-2 font-medium text-gray-700 dark:text-zinc-300">Belum ada Section</p>
           <p className="text-sm text-gray-400 dark:text-zinc-500 text-center max-w-md">
-            Mulai dengan menambahkan section baru untuk mengorganisir konten
-            course Anda
+            Mulai dengan menambahkan section baru untuk mengorganisir konten course Anda
           </p>
         </div>
       </div>
@@ -836,6 +743,7 @@ const handleCancelSequence = () => {
           Tambah Section Baru
         </Button>
       </div>
+      
       <div ref={sectionsContainerRef} className="space-y-4" key={refreshKey}>
         {displayedSections.map((section, index) => (
           <div
@@ -1010,6 +918,7 @@ const handleCancelSequence = () => {
                 </button>
               </div>
             </div>
+
             {/* Activities List */}
             {section.activities.length > 0 ? (
               <div
@@ -1038,7 +947,6 @@ const handleCancelSequence = () => {
                         showAction={false}
                         questionCount={activity.type === "QUIZ" ? 0 : undefined}
                         contentId={activity.id}
-                        timeLimit={activity.timeLimit}
                         onViewHandlerReady={(handler) => {
                           viewCallbacks.current.set(activity.id, async () => {
                             setLoadingActivityId(activity.id);
@@ -1088,7 +996,6 @@ const handleCancelSequence = () => {
                           )}
                         </button>
                       ) : (
-                        // Invisible spacer to maintain consistent width
                         <div className="w-10" />
                       )}
                       
@@ -1186,9 +1093,7 @@ const handleCancelSequence = () => {
       )}
 
       {/* Loading Overlay */}
-      {(isSectionsFetching ||
-        isContentsFetching ||
-        isUpdatingContentsSequence) && (
+      {(isSectionsFetching || isUpdatingContentsSequence) && (
         <div className="fixed inset-0 bg-black/10 flex items-center justify-center z-40">
           <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow-lg flex items-center gap-3">
             <Loader2 className="size-5 animate-spin text-blue-600" />
@@ -1249,7 +1154,7 @@ const handleCancelSequence = () => {
       `}</style>
 
       {/* Fetching Indicator */}
-      {(isSectionsFetching || isContentsFetching) && (
+      {isSectionsFetching && (
         <div className="fixed bottom-4 left-4 z-50 animate-in slide-in-from-left-5">
           <div className="bg-white dark:bg-zinc-800 rounded-lg p-3 shadow-lg border border-gray-200 dark:border-zinc-700 flex items-center gap-3">
             <Loader2 className="size-4 animate-spin text-blue-600" />

@@ -3,15 +3,14 @@ import axios from "axios";
 export type QuestionType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "ESSAY" | "SHORT_ANSWER";
 
 export interface QuestionRequest {
-  idContent: string;
   name: string;
+  description?: string;
   questionType: QuestionType;
   questionText: string;
   maxScore: number;
-  optionsCode?: string[];
   optionsText?: string[];
   answer: {
-    answer: string | string[];
+    answer: string;
     codeAnswer?: string | null;
   };
 }
@@ -22,28 +21,32 @@ export interface Answer {
   codeAnswer: string;
 }
 
-export interface Question {
+export interface MasterQuestion {
   id: string;
-  idContent: string;
   name: string;
-  questionType: QuestionType;
-  questionText: string;
+  description?: string;
+  idQuestionTag?: string | null;
   maxScore: number;
+  questionText: string;
+  questionType: QuestionType;
+  optionsCode?: string[];
   optionsText?: string[];
-  answers: Answer[];
+  answer: Answer; // Single answer object, not array
   createdAt: string;
   updatedAt: string;
 }
 
-export interface QuestionResponse {
+export interface MasterQuestionResponse {
   id: string;
-  idContent: string;
   name: string;
-  questionType: QuestionType;
-  questionText: string;
+  description?: string;
+  idQuestionTag?: string | null;
   maxScore: number;
+  questionText: string;
+  questionType: QuestionType;
+  optionsCode?: string[];
   optionsText?: string[];
-  answers: Answer[];
+  answer: Answer; // Single answer object, not array
   createdAt: string;
   updatedAt: string;
 }
@@ -60,26 +63,26 @@ export interface PageMeta {
   totalResultCount: number;
 }
 
-export interface QuestionsListResponse {
-  data: QuestionResponse[];
+export interface MasterQuestionsListResponse {
+  data: MasterQuestionResponse[];
   pageMeta: PageMeta;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_QUIZ_BASE_URL || "http://localhost:3002";
 
 /**
- * Creates a question with correct answer
- * Based on the curl example: POST /api/v1/questions/with-correct-answer
+ * Creates a master question with correct answer
+ * Based on the curl example: POST /api/v1/master-questions/with-correct-answer
  */
-export const createQuestion = async (
+export const createMasterQuestion = async (
   questionData: QuestionRequest
-): Promise<QuestionResponse> => {
+): Promise<MasterQuestionResponse> => {
   try {
-    console.log("📡 Creating question with data:", JSON.stringify(questionData, null, 2));
-    console.log("📡 Sending request to:", `${BASE_URL}/api/v1/questions/with-correct-answer`);
-    
-    const response = await axios.post<QuestionResponse>(
-      `${BASE_URL}/api/v1/questions/with-correct-answer`,
+    console.log("📡 Creating master question with data:", JSON.stringify(questionData, null, 2));
+    console.log("📡 Sending request to:", `${BASE_URL}/api/v1/master-questions/with-correct-answer`);
+
+    const response = await axios.post<MasterQuestionResponse>(
+      `${BASE_URL}/api/v1/master-questions/with-correct-answer`,
       questionData,
       {
         headers: {
@@ -89,12 +92,12 @@ export const createQuestion = async (
         withCredentials: false,
       }
     );
-    
+
     console.log("📡 Response status:", response.status);
-    console.log("📡 Question created successfully:", response.data);
+    console.log("📡 Master question created successfully:", response.data);
     return response.data;
   } catch (error) {
-    console.error("❌ Error creating question:", error);
+    console.error("❌ Error creating master question:", error);
     if (axios.isAxiosError(error)) {
       console.error("❌ Axios error details:", {
         message: error.message,
@@ -113,14 +116,13 @@ export const createQuestion = async (
  * Get all questions for a specific content with pagination support
  * Updated to support pagination parameters
  */
-export const getQuestionsByContentId = async (
-  idContent: string,
+export const getMasterQuestions = async (
   page: number = 1,
   perPage: number = 10
-): Promise<QuestionsListResponse> => {
+): Promise<MasterQuestionsListResponse> => {
   try {
-    const response = await axios.get<QuestionsListResponse>(
-      `${BASE_URL}/api/v1/questions?idContent=${idContent}&page=${page}&perPage=${perPage}`,
+    const response = await axios.get<MasterQuestionsListResponse>(
+      `${BASE_URL}/api/v1/master-questions?page=${page}&perPage=${perPage}`,
       {
         headers: {
           Accept: "application/json",
@@ -128,10 +130,10 @@ export const getQuestionsByContentId = async (
         withCredentials: false,
       }
     );
-    console.log("📡 Questions fetched for content:", response.data);
+
     return response.data;
   } catch (error) {
-    console.error("❌ Error fetching questions by content ID:", error);
+    console.error("❌ Error fetching questions:", error);
     throw error;
   }
 };
@@ -139,10 +141,10 @@ export const getQuestionsByContentId = async (
 /**
  * Get a specific question by ID
  */
-export const getQuestionById = async (id: string): Promise<QuestionResponse> => {
+export const getMasterQuestionById = async (id: string): Promise<MasterQuestionResponse> => {
   try {
-    const response = await axios.get<QuestionResponse>(
-      `${BASE_URL}/api/v1/questions/${id}`,
+    const response = await axios.get<MasterQuestionResponse>(
+      `${BASE_URL}/api/v1/master-questions/${id}`,
       {
         headers: {
           Accept: "application/json",
@@ -160,16 +162,16 @@ export const getQuestionById = async (id: string): Promise<QuestionResponse> => 
 /**
  * Update a question
  */
-export const updateQuestion = async ({
+export const updateMasterQuestion = async ({
   id,
   data,
 }: {
   id: string;
   data: Partial<QuestionRequest>;
-}): Promise<QuestionResponse> => {
+}): Promise<MasterQuestionResponse> => {
   try {
-    const response = await axios.patch<QuestionResponse>(
-      `${BASE_URL}/api/v1/questions/${id}`,
+    const response = await axios.patch<MasterQuestionResponse>(
+      `${BASE_URL}/api/v1/master-questions/${id}`,
       data,
       {
         headers: {
@@ -190,9 +192,9 @@ export const updateQuestion = async ({
 /**
  * Delete a question
  */
-export const deleteQuestion = async (id: string): Promise<void> => {
+export const deleteMasterQuestion = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${BASE_URL}/api/v1/questions/${id}`, {
+    await axios.delete(`${BASE_URL}/api/v1/master-questions/${id}`, {
       headers: {
         Accept: "application/json",
       },
@@ -201,32 +203,6 @@ export const deleteQuestion = async (id: string): Promise<void> => {
     console.log("📡 Question deleted successfully:", id);
   } catch (error) {
     console.error("❌ Error deleting question:", error);
-    throw error;
-  }
-};
-
-/**
- * Bulk create questions for a content
- */
-export const createBulkQuestions = async (
-  questions: QuestionRequest[]
-): Promise<QuestionResponse[]> => {
-  try {
-    const response = await axios.post<QuestionResponse[]>(
-      `${BASE_URL}/api/v1/questions/bulk`,
-      { questions },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        withCredentials: false,
-      }
-    );
-    console.log("📡 Bulk questions created successfully:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("❌ Error creating bulk questions:", error);
     throw error;
   }
 };

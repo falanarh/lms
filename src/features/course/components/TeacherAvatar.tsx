@@ -1,3 +1,6 @@
+"use client";
+
+// TeacherAvatar component with client-side state management
 import { User } from "lucide-react";
 import { useState } from "react";
 

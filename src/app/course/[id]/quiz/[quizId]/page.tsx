@@ -68,15 +68,106 @@ export default function QuizPage({ params }: QuizPageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-        <div className="flex flex-col items-center gap-6">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
-            <div className="w-16 h-16 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin absolute top-0"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+        {/* Header with Breadcrumb Skeleton */}
+        <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-200 dark:border-zinc-700">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-4">
+              <div className="animate-pulse">
+                <div className="flex items-center space-x-2">
+                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Loading quiz...</p>
-            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Please wait a moment</p>
+        </div>
+
+        {/* Quiz Overview Stats Skeleton */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700 overflow-hidden mb-6">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 px-6 py-6 animate-pulse">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+                <div className="space-y-2">
+                  <div className="h-3 w-16 bg-blue-400 rounded"></div>
+                  <div className="h-6 w-12 bg-blue-400 rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-12 bg-blue-400 rounded"></div>
+                  <div className="h-6 w-8 bg-blue-400 rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-20 bg-blue-400 rounded"></div>
+                  <div className="h-6 w-8 bg-blue-400 rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-24 bg-blue-400 rounded"></div>
+                  <div className="h-6 w-16 bg-blue-400 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Questions List Skeleton */}
+          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-700">
+            {/* Questions Header Skeleton */}
+            <div className="px-6 py-5 bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+                <div className="flex items-center gap-2 animate-pulse">
+                  <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                  <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                  <div className="h-10 w-28 bg-blue-200 dark:bg-blue-700 rounded-lg"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Skeleton Question Items */}
+            <div className="p-6 bg-gray-50 dark:bg-zinc-900 space-y-3">
+              {[...Array(5)].map((_, index) => (
+                <div key={index} className="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-4 animate-pulse">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded-md"></div>
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                        <div className="h-5 w-20 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                        <div className="h-5 w-12 bg-amber-100 dark:bg-amber-900/30 rounded-full"></div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+                        <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Skeleton */}
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="flex items-center gap-2 animate-pulse">
+                  <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+                <div className="flex items-center gap-2 animate-pulse">
+                  <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -134,13 +225,29 @@ export default function QuizPage({ params }: QuizPageProps) {
   const quiz = quizData;
   
   const initialQuestions: QuizQuestion[] = questionsResponse?.data?.map((q, index) => {
-    const questionType = q.questionType.toLowerCase() as "multiple_choice" | "essay" | "true_false";
-    
+    // Map API question types back to frontend types
+    let questionType: "multiple_choice" | "essay" | "true_false";
+    switch (q.questionType.toUpperCase()) {
+      case "MULTIPLE_CHOICE":
+        questionType = "multiple_choice";
+        break;
+      case "TRUE_FALSE":
+        questionType = "true_false";
+        break;
+      case "SHORT_ANSWER":
+        questionType = "essay"; // Map API SHORT_ANSWER back to frontend essay
+        break;
+      default:
+        questionType = "multiple_choice";
+    }
+
     let options = undefined;
     let correctAnswer = undefined;
-    
+
     if (questionType === "multiple_choice" && q.optionsText && q.optionsText.length > 0) {
-      const correctAnswerText = q.answers?.[0]?.answer || "";
+      // Fix: Use q.answer.answer instead of q.answers?.[0]?.answer
+      const correctAnswerText = q.answer?.answer || "";
+      correctAnswer = correctAnswerText; // Set correctAnswer for multiple choice too
       options = q.optionsText.map((text, idx) => ({
         id: String(idx),
         text: text,
@@ -148,10 +255,14 @@ export default function QuizPage({ params }: QuizPageProps) {
         order: idx,
       }));
     } else if (questionType === "true_false") {
-      const answerValue = q.answers?.[0]?.answer?.toLowerCase();
+      // Fix: Use q.answer.answer instead of q.answers?.[0]?.answer
+      const answerValue = q.answer?.answer?.toLowerCase();
       correctAnswer = answerValue === "true" ? "true" : "false";
+    } else if (questionType === "essay") {
+      // For essay questions, the answer is the expected answer text
+      correctAnswer = q.answer?.answer || "";
     }
-    
+
     return {
       id: q.id,
       questionText: q.questionText,

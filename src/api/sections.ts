@@ -19,7 +19,7 @@ export type Section  = {
 const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000"
 
 export const getSections = async (): Promise<Section[]> => {
-    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=b8d1607e-4edf-4f7a-8a0b-0552191bdd71&orderBy[0][sequence]=asc`, {
+    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=7d4a43cf-684a-4eac-98d1-05c800621492&orderBy[0][sequence]=asc`, {
       withCredentials: false,
     })
     return response.data

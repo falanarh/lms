@@ -81,19 +81,17 @@ export function BankContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // Get page and perPage from URL params, default to page 1 and 10 per page
-  const currentPage = parseInt(searchParams.get('page') || '1');
-  const perPage = parseInt(searchParams.get('perPage') || '10');
-  const searchTitle = searchParams.get('search') || '';
-  const filterType = searchParams.get('type') || '';
+  // Local state management instead of URL parameters
+  const [currentPage, setCurrentPage] = useState(Math.max(1, parseInt(searchParams.get('page') || '1')));
+  const [perPage, setPerPage] = useState(Math.max(1, parseInt(searchParams.get('perPage') || '6')));
+  const [searchTitle, setSearchTitle] = useState(searchParams.get('search') || '');
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '');
 
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [editingContent, setEditingContent] = useState<MasterContent | null>(null);
   const [searchInput, setSearchInput] = useState(searchTitle);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchTitle);
-  const [typeFilter, setTypeFilter] = useState(filterType);
-  const isClearingFilters = useRef(false);
   const [formData, setFormData] = useState({
     type: "",
     name: "",
@@ -126,30 +124,28 @@ export function BankContent() {
     title: "",
   });
 
-  // Sync local state with URL params (only if we're not in the middle of clearing filters)
+  // Initialize local state from URL params only on component mount
   useEffect(() => {
-    if (!isClearingFilters.current) {
-      setSearchInput(searchTitle);
-      setDebouncedSearchQuery(searchTitle);
-      setTypeFilter(filterType);
-    }
-    // Reset the flag after sync
-    isClearingFilters.current = false;
-  }, [searchTitle, filterType]);
+    const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const initialPerPage = Math.max(1, parseInt(searchParams.get('perPage') || '6'));
+    const initialSearch = searchParams.get('search') || '';
+    const initialType = searchParams.get('type') || '';
+
+    setCurrentPage(initialPage);
+    setPerPage(initialPerPage);
+    setSearchTitle(initialSearch);
+    setTypeFilter(initialType);
+    setSearchInput(initialSearch);
+    setDebouncedSearchQuery(initialSearch);
+  }, []); // Run only on mount
 
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchInput);
-      // Update URL when debounced query changes
-      const params = new URLSearchParams(searchParams.toString());
-      if (searchInput.trim()) {
-        params.set('search', searchInput.trim());
-      } else {
-        params.delete('search');
-      }
-      params.set('page', '1'); // Reset to first page when searching
-      router.push(`${pathname}?${params.toString()}`);
+      // Update local state when debounced query changes
+      setSearchTitle(searchInput.trim());
+      setCurrentPage(1); // Reset to first page when searching
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
@@ -170,11 +166,30 @@ export function BankContent() {
     page: currentPage,
     perPage: perPage,
     searchQuery: debouncedSearchQuery,
-    type: filterType,
+    type: typeFilter,
   });
 
   const masterContents = response?.data || [];
   const pageMeta = response?.pageMeta;
+
+  // Debug: Log pagination info
+  console.log("🔍 BankContent Pagination Debug:", {
+    currentPage,
+    perPage,
+    pageMeta,
+    masterContentsLength: masterContents.length,
+    shouldShowPagination: pageMeta?.totalPageCount > 1,
+    searchQuery: debouncedSearchQuery,
+    typeFilter: typeFilter
+  });
+
+  // If current page is beyond available pages, reset to page 1
+  useEffect(() => {
+    const totalPages = pageMeta?.totalPageCount || 1;
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, pageMeta?.totalPageCount]);
 
   // Edit and Delete hooks
   const updateMasterContentMutation = useUpdateMasterContent({
@@ -209,18 +224,14 @@ export function BankContent() {
 
   // Handle page change
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', page.toString());
-    router.push(`${pathname}?${params.toString()}`);
+    setCurrentPage(page);
   };
 
   // Handle per page change
   const handlePerPageChange = (perPageValue: string) => {
-    const params = new URLSearchParams(searchParams.toString());
     const newPerPage = parseInt(perPageValue);
-    params.set('perPage', newPerPage.toString());
-    params.set('page', '1'); // Reset to first page when changing per page
-    router.push(`${pathname}?${params.toString()}`);
+    setPerPage(newPerPage);
+    setCurrentPage(1); // Reset to first page when changing per page
   };
 
   // Handle search input change
@@ -230,15 +241,8 @@ export function BankContent() {
 
   // Handle type filter
   const handleTypeFilter = (value: string) => {
-    setTypeFilter(value);
-    const params = new URLSearchParams(searchParams.toString());
-    if (value && value !== 'all') {
-      params.set('type', value);
-    } else {
-      params.delete('type');
-    }
-    params.set('page', '1'); // Reset to first page when filtering
-    router.push(`${pathname}?${params.toString()}`);
+    setTypeFilter(value === 'all' ? '' : value);
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
     const createMasterContentMutation = useCreateMasterContent({
@@ -471,12 +475,10 @@ export function BankContent() {
   ];
 
   const perPageOptions = [
-    { value: '5', label: '5' },
-    { value: '10', label: '10' },
-    { value: '15', label: '15' },
-    { value: '20', label: '20' },
-    { value: '25', label: '25' },
-    { value: '50', label: '50' },
+    { value: '6', label: '6' },
+    { value: '12', label: '12' },
+    { value: '24', label: '24' },
+    { value: '48', label: '48' },
   ];
 
   if (isLoading) {
@@ -551,21 +553,17 @@ export function BankContent() {
         </div>
 
         {/* Active Filters Display */}
-        {(searchTitle || filterType) && (
+        {(searchTitle || typeFilter) && (
           <div className="flex flex-wrap gap-2">
             {searchTitle && (
               <Badge variant="outline" className="flex items-center gap-1">
                 Search: "{searchTitle}"
                 <button
                   onClick={() => {
-                    // Set flag to prevent URL sync from overwriting our cleared state
-                    isClearingFilters.current = true;
                     setSearchInput('');
+                    setSearchTitle('');
                     setDebouncedSearchQuery('');
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.delete('search');
-                    params.set('page', '1');
-                    router.push(`${pathname}?${params.toString()}`);
+                    setCurrentPage(1);
                   }}
                   className="ml-1 text-gray-500 hover:text-gray-700"
                 >
@@ -573,18 +571,13 @@ export function BankContent() {
                 </button>
               </Badge>
             )}
-            {filterType && (
+            {typeFilter && (
               <Badge variant="outline" className="flex items-center gap-1">
-                Type: {filterType}
+                Type: {typeFilter}
                 <button
                   onClick={() => {
-                    // Set flag to prevent URL sync from overwriting our cleared state
-                    isClearingFilters.current = true;
                     setTypeFilter('');
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.delete('type');
-                    params.set('page', '1');
-                    router.push(`${pathname}?${params.toString()}`);
+                    setCurrentPage(1);
                   }}
                   className="ml-1 text-gray-500 hover:text-gray-700"
                 >
@@ -677,7 +670,7 @@ export function BankContent() {
       ) : (
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 mb-4">
-            {searchTitle || filterType
+            {searchTitle || typeFilter
               ? 'Tidak ada konten bank yang sesuai dengan kriteria pencarian Anda'
               : 'Tidak ada konten bank yang tersedia'
             }
@@ -693,7 +686,7 @@ export function BankContent() {
       )}
 
       {/* Pagination */}
-      {pageMeta && (pageMeta.totalPageCount > 1 || perPageOptions.length > 0) && (
+      {pageMeta && (pageMeta.totalPageCount > 1 || perPageOptions.length > 0) && masterContents.length > 0 && (
         <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-6">
           <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
             {pageMeta.showingFrom > 0 && pageMeta.showingTo > 0 ? (

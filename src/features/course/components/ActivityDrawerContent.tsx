@@ -355,9 +355,9 @@ export function ActivityDrawerContent({
       scormFile: undefined as File | undefined,
       contentStart: "",
       contentEnd: "",
-      deadline: "", // ✅ NEW: Add deadline field for TASK type
-      videoSource: "upload" as "upload" | "link", // ✅ NEW: Video source selection
-      videoUrl: "", // ✅ NEW: Video URL for link option
+      deadline: "",
+      videoSource: "upload" as "upload" | "link",
+      videoUrl: "",
     },
     onSubmit: async ({ value }) => {
       console.log("🚀 Form submission started:", {
@@ -370,7 +370,7 @@ export function ActivityDrawerContent({
         restrictionEnabled,
         timeEnabled: restrictions.timeEnabled,
       });
-
+  
       if (!sectionId && !isEditMode) {
         console.log("❌ No section ID found");
         setShowToast(true);
@@ -378,7 +378,7 @@ export function ActivityDrawerContent({
         setToastVariant("warning");
         return;
       }
-
+  
       if (!selectedActivityType) {
         console.log("❌ No activity type selected");
         setShowToast(true);
@@ -386,13 +386,14 @@ export function ActivityDrawerContent({
         setToastVariant("warning");
         return;
       }
-
+  
       try {
         console.log("✅ Form validation passed, proceeding with submission...");
-        // ✅ UPDATED: Prepare dates - z.coerce.date() akan otomatis convert string ke Date object
+  
+        // ✅ Prepare dates - z.coerce.date() will automatically convert string to Date object
         let contentStart: Date | null = null;
         let contentEnd: Date | null = null;
-
+  
         // Set dates if form values exist (from form fields)
         if (value.contentStart) {
           contentStart = new Date(value.contentStart);
@@ -400,71 +401,193 @@ export function ActivityDrawerContent({
           contentStart.setHours(contentStart.getHours() - 7);
           console.log("✅ Set contentStart (-7h UTC):", contentStart);
         }
+  
         if (value.contentEnd) {
           contentEnd = new Date(value.contentEnd);
           // ✅ Subtract 7 hours to convert from WIB to UTC for backend
           contentEnd.setHours(contentEnd.getHours() - 7);
           console.log("✅ Set contentEnd (-7h UTC):", contentEnd);
         }
-        console.log("📅 Final dates (UTC for backend):", { contentStart, contentEnd });
-
+  
+        // ✅ Get current user ID - REPLACE WITH YOUR AUTH CONTEXT
+        // For example: const { user } = useAuth(); const currentUserId = user.id;
+        const currentUserId = "93f4cbda-f755-4bb9-a44c-928f8270659b"; // ⚠️ TODO: Replace with actual user ID
+        
+  
         if (selectedActivityType === "QUIZ") {
-          // ========== QUIZ CREATION/UPDATE ==========
-          const contentData = {
-            idSection: sectionId!,
-            name: value.name,
-            description: value.description || "",
-            type: "QUIZ",
-            contentUrl: "", // Quiz doesn't need contentUrl
-            sequence: isEditMode && initialData?.sequence
-              ? initialData.sequence
-              : calculateNextSequence(sectionId!),
-          };
+          const sequence = isEditMode && initialData?.sequence
+        ? initialData.sequence
+        : calculateNextSequence(sectionId!);
 
-          const quizData = {
-            durationLimit: quizTimeLimitEnabled
-              ? parseInt(quizTimeLimit) || 60
-              : 60, // Minimum 1 required by DTO validation, set to 60 as default
-            totalQuestions: 1, // DTO requires positive number
-            maxPoint: 100, // Default, can be calculated from questions
-            passingScore: passingGradeEnabled
-              ? parseFloat(quizGradeToPass) || 60
-              : 60,
-            attemptLimit: parseInt(quizAttemptsAllowed) || 1,
-            shuffleQuestions: quizShuffleQuestions,
-          };
+      const contentData = {
+        idSection: sectionId!,
+        name: value.name,
+        description: value.description || "",
+        type: "QUIZ",
+        contentUrl: "",
+        sequence,
+        contentStart,
+        contentEnd,
+      };
 
+      const quizData = {
+        durationLimit: quizTimeLimitEnabled
+          ? parseInt(quizTimeLimit) || 60
+          : 60,
+        totalQuestions: 1, // Will be calculated from questions
+        maxPoint: 100, // Will be calculated from questions
+        passingScore: passingGradeEnabled
+          ? parseFloat(quizGradeToPass) || 60
+          : 60,
+        attemptLimit: parseInt(quizAttemptsAllowed) || 1,
+        shuffleQuestions: quizShuffleQuestions,
+      };
+
+      if (isEditMode && contentId) {
+        // ========== UPDATE EXISTING QUIZ ==========
+        const updateData = {
+          type: "QUIZ" as const,
+          name: value.name,
+          description: value.description || "",
+          contentStart,
+          contentEnd,
+          quizData,
+        };
+
+        console.log("🚀 Updating QUIZ with data:", updateData);
+
+        const validatedData = updateContentSchema.parse(updateData);
+
+        const apiData = {
+          ...validatedData,
+          contentStart: validatedData.contentStart?.toISOString() ?? null,
+          contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+          quizData: updateData.quizData,
+        };
+
+        console.log("🚀 Final API data for UPDATE:", apiData);
+        updateContent({ id: contentId, data: apiData as any });
+      } else {
+        // ========== CREATE NEW QUIZ ==========
+        const createData = {
+          idSection: sectionId!,
+          type: "QUIZ" as const,
+          name: value.name,
+          description: value.description || "",
+          contentUrl: "",
+          sequence,
+          contentStart,
+          contentEnd,
+          quizData,
+        };
+
+        console.log("🚀 Creating QUIZ with data:", createData);
+
+        const validatedData = createContentSchema.parse(createData);
+
+        const apiData = {
+          ...validatedData,
+          contentStart: validatedData.contentStart?.toISOString() ?? null,
+          contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+          quizData: createData.quizData,
+        };
+
+        console.log("🚀 Final API data for CREATE:", apiData);
+        createContent(apiData as any);
+      }
+        } else if (selectedActivityType === "TASK") {
+          // ========== TASK CREATION/UPDATE ==========
+          
+          // Prepare task deadline from form
+          let taskDeadline: Date | null = null;
+          if (deadlineEnabled && value.deadline) {
+            taskDeadline = new Date(value.deadline);
+            // ✅ Subtract 7 hours to convert from WIB to UTC for backend
+            taskDeadline.setHours(taskDeadline.getHours() - 7);
+            console.log("✅ TASK deadline (-7h UTC):", taskDeadline);
+          }
+  
           if (isEditMode && contentId) {
-            // UPDATE existing quiz
-            updateQuizWithContent({
-              id: contentId,
-              data: {
-                content: contentData,
-                quiz: quizData,
+            // ========== UPDATE EXISTING TASK ==========
+            let updateData = {
+              type: selectedActivityType,
+              name: value.name,
+              description: value.description || "",
+              contentUrl: uploadedFileUrl || value.contentUrl || "",
+              contentStart,
+              contentEnd: taskDeadline || contentEnd, // Use task deadline if available
+              ...(value.documentFile && { documentFile: value.documentFile }),
+              // ✅ Include taskData for update
+              taskData: {
+                maxPoint: 100, // Default value
+                isRequired: taskSubmissionRequired,
+                dueDate: taskDeadline?.toISOString(),
+                createdBy: currentUserId,
               },
-            });
+            };
+  
+            console.log("🚀 Final updateData for TASK:", updateData);
+  
+            const validatedData = updateContentSchema.parse(updateData);
+  
+            // ✅ Convert Date objects back to ISO strings for API
+            const apiData = {
+              ...validatedData,
+              contentStart: validatedData.contentStart?.toISOString() ?? null,
+              contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+            };
+  
+            updateContent({ id: contentId, data: apiData as any });
           } else {
-            // CREATE new quiz
-            createQuizWithContent({
-              content: contentData,
-              quiz: quizData,
-            });
+            // ========== CREATE NEW TASK ==========
+            const sequence = calculateNextSequence(sectionId!);
+  
+            let createData = {
+              idSection: sectionId!,
+              type: selectedActivityType,
+              name: value.name,
+              description: value.description || "",
+              contentUrl: uploadedFileUrl || value.contentUrl || "",
+              sequence,
+              contentStart,
+              contentEnd: taskDeadline || contentEnd, // Use task deadline if available
+              ...(value.documentFile && { documentFile: value.documentFile }),
+              // ✅ Include taskData for creation
+              taskData: {
+                maxPoint: 100, // Default value
+                isRequired: taskSubmissionRequired,
+                dueDate: taskDeadline?.toISOString(),
+                createdBy: currentUserId,
+              },
+            };
+  
+            console.log("🚀 Final createData for TASK:", createData);
+  
+            const validatedData = createContentSchema.parse(createData);
+  
+            // ✅ Convert Date objects back to ISO strings for API
+            const apiData = {
+              ...validatedData,
+              contentStart: validatedData.contentStart?.toISOString() ?? null,
+              contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+            };
+  
+            createContent(apiData as any);
           }
         } else {
-          // ========== OTHER ACTIVITY TYPES ==========
+          // ========== OTHER ACTIVITY TYPES (VIDEO, PDF, LINK, SCORM) ==========
           if (isEditMode && contentId) {
-            // ========== MODE UPDATE ==========
+            // ========== UPDATE OTHER TYPES ==========
             let updateData = {
               type: selectedActivityType,
               name: value.name,
               description: value.description || "",
               contentUrl: value.contentUrl || "",
-              contentStart, // ✅ Date object or null - z.coerce.date() will handle it
-              contentEnd, // ✅ Date object or null - z.coerce.date() will handle it
+              contentStart,
+              contentEnd,
               ...(value.videoFile && { videoFile: value.videoFile }),
               ...(value.documentFile && { documentFile: value.documentFile }),
               ...(value.scormFile && { scormFile: value.scormFile }),
-              // Add schedule data for jadwal_kurikulum
               ...(selectedActivityType === "jadwal_kurikulum" &&
                 selectedSession && {
                   idSchedule: selectedSession.id,
@@ -473,44 +596,30 @@ export function ActivityDrawerContent({
                   scheduleDate: selectedSession.date,
                 }),
             };
-
-            // ✅ NEW: Add deadline for TASK type - store in contentEnd for consistency
-            if (selectedActivityType === "TASK" && deadlineEnabled && value.deadline) {
-              const taskDeadline = new Date(value.deadline);
-              // ✅ Subtract 7 hours to convert from WIB to UTC for backend
-              taskDeadline.setHours(taskDeadline.getHours());
-              updateData.contentEnd = taskDeadline;
-              console.log("✅ TASK deadline saved (-7h UTC):", taskDeadline);
-            }
-
-            // ✅ NEW: Handle video source selection for VIDEO type
+  
+            // ✅ Handle video source selection for VIDEO type
             if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
-              // If user selected link option, change type to LINK and use videoUrl
               updateData.type = "LINK";
               updateData.contentUrl = value.videoUrl;
-              // Remove videoFile if exists
               delete (updateData as any).videoFile;
               console.log("✅ VIDEO link mode UPDATE - converted to LINK type:", updateData);
             }
-
+  
             console.log("🚀 Final updateData:", updateData);
-
+  
             const validatedData = updateContentSchema.parse(updateData);
-
-            // ✅ Convert Date objects back to ISO strings for API
+  
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-
+  
             updateContent({ id: contentId, data: apiData as any });
           } else {
-            // ========== MODE CREATE ==========
+            // ========== CREATE OTHER TYPES ==========
             const sequence = calculateNextSequence(sectionId!);
-
-            // Use union schema instead of individual schema selection
-
+  
             let createData = {
               idSection: sectionId!,
               type:
@@ -521,12 +630,11 @@ export function ActivityDrawerContent({
               description: value.description || "",
               contentUrl: value.contentUrl || "",
               sequence,
-              contentStart, // ✅ Date object or null - z.coerce.date() will handle it
-              contentEnd, // ✅ Date object or null - z.coerce.date() will handle it
+              contentStart,
+              contentEnd,
               ...(value.videoFile && { videoFile: value.videoFile }),
               ...(value.documentFile && { documentFile: value.documentFile }),
               ...(value.scormFile && { scormFile: value.scormFile }),
-              // Add schedule data for jadwal_kurikulum
               ...(selectedActivityType === "jadwal_kurikulum" &&
                 selectedSession && {
                   idSchedule: selectedSession.id,
@@ -535,52 +643,38 @@ export function ActivityDrawerContent({
                   scheduleDate: selectedSession.date,
                 }),
             };
-
-            // ✅ NEW: Add deadline for TASK type - store in contentEnd for consistency
-            if (selectedActivityType === "TASK" && deadlineEnabled && value.deadline) {
-              const taskDeadline = new Date(value.deadline);
-              // ✅ Subtract 7 hours to convert from WIB to UTC for backend
-              taskDeadline.setHours(taskDeadline.getHours() - 7);
-              createData.contentEnd = taskDeadline;
-              console.log("✅ TASK deadline created (-7h UTC):", taskDeadline);
-            }
-
-            // ✅ NEW: Handle video source selection for VIDEO type
+  
+            // ✅ Handle video source selection for VIDEO type
             if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
-              // If user selected link option, change type to LINK and use videoUrl
               createData.type = "LINK";
               createData.contentUrl = value.videoUrl;
-              // Remove videoFile if exists
               delete (createData as any).videoFile;
               console.log("✅ VIDEO link mode - converted to LINK type:", createData);
             }
-
-            // Debug: Log complete createData object
+  
             console.log("🚀 Final createData:", createData);
-
+  
             const validatedData = createContentSchema.parse(createData);
-
-            // ✅ Convert Date objects back to ISO strings for API
+  
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-
+  
             createContent(apiData as any);
           }
         }
       } catch (error) {
         console.log("❌ Form submission error:", {
           error,
-          errorType:
-            error instanceof Error ? error.constructor.name : "Unknown",
+          errorType: error instanceof Error ? error.constructor.name : "Unknown",
           isZodError: error instanceof ZodError,
           isRegularError: error instanceof Error,
           errorMessage: error instanceof Error ? error.message : String(error),
           zodIssues: error instanceof ZodError ? error.issues : null,
         });
-
+  
         if (error instanceof ZodError) {
           setShowToast(true);
           setToastMessage(error.issues[0].message);
@@ -591,9 +685,7 @@ export function ActivityDrawerContent({
           setToastVariant("warning");
         } else {
           setShowToast(true);
-          setToastMessage(
-            `Terjadi kesalahan tidak diketahui: ${String(error)}`,
-          );
+          setToastMessage(`Terjadi kesalahan tidak diketahui: ${String(error)}`);
           setToastVariant("warning");
         }
       }
@@ -2375,80 +2467,82 @@ export function ActivityDrawerContent({
         )}
 
         {selectedActivityType === "TASK" && (
-          <form.Field
-            name="documentFile"
-            validators={{
-              onChange: ({ value }) => {
-                if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
-                  return "Dokumen tugas harus diupload";
-                }
-                return undefined;
-              },
-            }}
-            children={(field) => (
-              <>
-                <div>
-                  <Label>Dokumen Tugas</Label>
-                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
-                    Upload dokumen tugas yang akan dikerjakan oleh mahasiswa
-                    (Max 5MB) - Akan diupload ke Cloud Storage
-                  </p>
-                </div>
-                <FileUploadArea
-                  icon={ClipboardList}
-                  label=""
-                  accept=".pdf,.doc,.docx,.ppt,.pptx"
-                  description="Klik untuk upload dokumen tugas"
-                  color="indigo"
-                  id="task-upload"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const files = e.target.files;
-                    if (files && files.length > 0) {
-                      const file = files[0];
-                      field.handleChange(file);
-                      handleTaskUploadToR2(file);
-                    }
-                  }}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                    {field.state.meta.errors[0]}
-                  </p>
-                )}
-                {uploading && (
-                  <div className="mt-3 flex items-center text-indigo-600">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span className="text-sm">Mengupload dokumen tugas...</span>
+          <>
+            <form.Field
+              name="documentFile"
+              validators={{
+                onChange: ({ value }) => {
+                  if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
+                    return "Dokumen tugas harus diupload";
+                  }
+                  return undefined;
+                },
+              }}
+              children={(field) => (
+                <>
+                  <div>
+                    <Label>Dokumen Tugas</Label>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
+                      Upload dokumen tugas yang akan dikerjakan oleh mahasiswa
+                      (Max 5MB) - Akan diupload ke Cloud Storage
+                    </p>
                   </div>
-                )}
-                {uploadedMaterials.length > 0 && !uploading && (
-                  <div className="mt-3 space-y-2">
-                    {uploadedMaterials.map((material) => (
-                      <UploadedFile
-                        key={material.id}
-                        icon={ClipboardList}
-                        name={material.title}
-                        color="indigo"
-                        badge={material.size}
-                        onRemove={() => {
-                          handleRemoveMaterial(material.id);
-                          setUploadedFileUrl("");
-                          form.setFieldValue("contentUrl", "");
-                          field.handleChange(undefined);
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-                {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm">{uploadError}</span>
-                  </div>
-                )}
-              </>
-            )}
-          />
+                  <FileUploadArea
+                    icon={ClipboardList}
+                    label=""
+                    accept=".pdf,.doc,.docx,.ppt,.pptx"
+                    description="Klik untuk upload dokumen tugas"
+                    color="indigo"
+                    id="task-upload"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        const file = files[0];
+                        field.handleChange(file);
+                        handleTaskUploadToR2(file);
+                      }
+                    }}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                      {field.state.meta.errors[0]}
+                    </p>
+                  )}
+                  {uploading && (
+                    <div className="mt-3 flex items-center text-indigo-600">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span className="text-sm">Mengupload dokumen tugas...</span>
+                    </div>
+                  )}
+                  {uploadedMaterials.length > 0 && !uploading && (
+                    <div className="mt-3 space-y-2">
+                      {uploadedMaterials.map((material) => (
+                        <UploadedFile
+                          key={material.id}
+                          icon={ClipboardList}
+                          name={material.title}
+                          color="indigo"
+                          badge={material.size}
+                          onRemove={() => {
+                            handleRemoveMaterial(material.id);
+                            setUploadedFileUrl("");
+                            form.setFieldValue("contentUrl", "");
+                            field.handleChange(undefined);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {uploadError && (
+                    <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      <span className="text-sm">{uploadError}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            />
+          </>
         )}
 
         {selectedActivityType === "QUIZ" && (
@@ -2500,37 +2594,6 @@ export function ActivityDrawerContent({
                 </div>
               )}
             </form.Field>
-
-            {/* ✅ Quiz Questions Management */}
-            <Card className="p-6 border-2 border-blue-100 bg-linear-to-br from-blue-50/30 to-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 shadow-md">
-                    <Edit3 className="size-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Manajemen Soal</h3>
-                    <p className="text-sm text-gray-600 dark:text-zinc-400">
-                      Buat dan kelola soal untuk quiz ini
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => setShowQuizQuestionsManager(true)}
-                  variant="outline"
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:bg-blue-900/30"
-                >
-                  <Edit3 className="size-4 mr-2" />
-                  Kelola Soal
-                </Button>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Info:</strong> Klik tombol "Kelola Soal" untuk membuat, mengedit, atau menghapus soal quiz. Anda dapat membuat berbagai jenis soal seperti pilihan ganda, essay, atau benar/salah.
-                </p>
-              </div>
-            </Card>
 
             {/* 2. Pengaturan Waktu */}
             <Card className="p-6 border-2 border-green-100 bg-linear-to-br from-green-50/30 to-white">

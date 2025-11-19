@@ -79,8 +79,13 @@ export function ThemeToggle({
   return (
     <button
       onClick={() => {
-        // Cycle through themes: light -> dark -> system -> light
-        const nextTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+        // Simple toggle between light and dark
+        const nextTheme = theme === 'light' ? 'dark' : 'light';
+        console.log('🎨 Theme Toggle - Click:', {
+          currentTheme: theme,
+          nextTheme,
+          systemTheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        });
         setTheme(nextTheme);
       }}
       className={cn(
