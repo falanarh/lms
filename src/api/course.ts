@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_COURSE_BASE_URL } from "@/config/api";
+import { API_BASE_URL } from "@/config/api";
 
 export type PageMeta = {
   page: number;
@@ -79,7 +79,7 @@ export const getCourses = async (
   }
 
   const queryString = params.toString();
-  const url = `${API_COURSE_BASE_URL}/courses?${queryString}`;
+  const url = `${API_BASE_URL}/courses?${queryString}`;
   const response = await axios.get(url);
 
   return {
@@ -114,7 +114,7 @@ export type CourseDetail = {
 };
 
 export const getCourseById = async (id: string): Promise<CourseDetail> => {
-  const response = await axios.get(`${API_COURSE_BASE_URL}/courses/${id}`);
+  const response = await axios.get(`${API_BASE_URL}/courses/${id}`);
   return response.data.data as CourseDetail;
 };
 

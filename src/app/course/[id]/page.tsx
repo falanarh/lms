@@ -16,7 +16,7 @@ import {
 } from "@/features/detail-course/components";
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
-import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
+import { useSectionContent } from "@/hooks/useSectionContent";
 import { mockReviews } from "@/features/detail-course/constants/reviews";
 
 interface DetailCoursePageProps {
@@ -32,9 +32,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
-  const { data: sections, isLoading: isSectionsLoading } = useSectionsByGroupId({
-    groupId: courseDetail?.groupCourse?.id ?? "",
-    enabled: activeTab === "course_contents" && Boolean(courseDetail?.groupCourse?.id),
+  const { data: sectionContent, isLoading: isSectionsLoading } = useSectionContent({
+    courseId: id,
+    enabled: activeTab === "course_contents",
   });
 
   if (isLoading || !courseDetail) {
@@ -100,7 +100,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
               type={course.groupCourse.typeCourse}
               isEnrolled={isEnrolled}
               onToggle={handleEnrollToggle}
-              courseId={course.groupCourse.id}
+              courseId={course.id}
             />
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
               </div>
             ) : (
               <CourseContentsTab
-                sections={sections || []}
+                sections={(sectionContent?.data?.listSection as any) || []}
                 expandedSections={expandedSections}
                 onToggleSection={handleToggleSection}
               />

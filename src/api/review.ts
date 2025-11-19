@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_COURSE_BASE_URL } from "@/config/api";
+import { API_BASE_URL } from "@/config/api";
 
 export type ReviewUser = {
   name: string;
@@ -46,7 +46,7 @@ export const getReviewsByCourseId = async (
   perPage: number = 20
 ): Promise<ReviewResponse> => {
   const response = await axios.get(
-    `${API_COURSE_BASE_URL}/activities/course/${courseId}/rating-reviews`,
+    `${API_BASE_URL}/activities/course/${courseId}/rating-reviews`,
     {
       params: {
         page,
@@ -58,7 +58,7 @@ export const getReviewsByCourseId = async (
 };
 
 export const getReviewById = async (id: string): Promise<Review> => {
-  const response = await axios.get(`${API_COURSE_BASE_URL}/reviews/${id}`);
+  const response = await axios.get(`${API_BASE_URL}/reviews/${id}`);
   return response.data.data;
 };
 
@@ -69,7 +69,7 @@ export const createReview = async (
   const dummyActivityId = "dummy-activity-id";
   
   const response = await axios.post(
-    `${API_COURSE_BASE_URL}/activities/${dummyActivityId}/rating`,
+    `${API_BASE_URL}/activities/${dummyActivityId}/rating`,
     reviewData,
     {
       headers: {

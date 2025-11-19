@@ -1,7 +1,7 @@
 import { BookOpen } from "lucide-react";
 import { CourseSectionItem } from "./CourseSectionItem";
-import { Section } from "@/api/sections";
-import { Content } from "@/api/contents";
+import type { Section } from "@/api/sections";
+import type { Content } from "@/api/contents";
 
 interface CourseContentsTabProps {
   sections: Section[];
@@ -10,10 +10,8 @@ interface CourseContentsTabProps {
   selectedContentId?: string;
   onSelectContent?: (content: Content) => void;
   completedContentIds?: string[];
-  mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
+  mode?: 'preview' | 'learning';
   onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
-  disableFetchFirstForIndexZero?: boolean;
-  disableFetchAll?: boolean;
 }
 
 export const CourseContentsTab = ({
@@ -25,8 +23,6 @@ export const CourseContentsTab = ({
   completedContentIds = [],
   mode = 'learning',
   onSectionDataUpdate,
-  disableFetchFirstForIndexZero = false,
-  disableFetchAll = false,
 }: CourseContentsTabProps) => {
 
   return (
@@ -60,7 +56,6 @@ export const CourseContentsTab = ({
             variant="tab"
             completedContentIds={completedContentIds}
             mode={mode}
-            disableFetch={disableFetchAll || (disableFetchFirstForIndexZero && index === 0)}
             onSectionDataUpdate={onSectionDataUpdate}
           />
         ))}

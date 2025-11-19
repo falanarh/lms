@@ -1,8 +1,8 @@
 import { CourseContentsTab as UnifiedCourseContentsTab } from "@/features/my-course/components/CourseContentsTab";
-import { Section } from "@/api/sections";
+import type { Section } from "@/api/sections";
 
 interface CourseContentsTabProps {
-  sections: Section[];
+  sections: Section[] | any[];
   expandedSections: string[];
   onToggleSection: (sectionId: string) => void;
 }
@@ -14,7 +14,7 @@ export const CourseContentsTab = ({
 }: CourseContentsTabProps) => {
   return (
     <UnifiedCourseContentsTab
-      sections={sections}
+      sections={sections as any}
       expandedSections={expandedSections}
       onToggleSection={onToggleSection}
       mode="preview"

@@ -2,8 +2,8 @@
 
 import { BookOpen, X } from "lucide-react";
 import { CourseSectionItem } from "./CourseSectionItem";
-import { Section } from "@/api/sections";
-import { Content } from "@/api/contents";
+import type { Section } from "@/api/sections";
+import type { Content } from "@/api/contents";
 
 interface CourseContentsSidebarProps {
   sections: Section[];
@@ -13,9 +13,7 @@ interface CourseContentsSidebarProps {
   onSelectContent: (content: Content) => void;
   onClose: () => void;
   completedContentIds?: string[];
-  disableFetchFirstForIndexZero?: boolean;
   onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
-  disableFetchAll?: boolean;
 }
 
 export const CourseContentsSidebar = ({
@@ -26,9 +24,7 @@ export const CourseContentsSidebar = ({
   onSelectContent,
   onClose,
   completedContentIds = [],
-  disableFetchFirstForIndexZero = false,
   onSectionDataUpdate,
-  disableFetchAll = false,
 }: CourseContentsSidebarProps) => {
 
   return (
@@ -73,19 +69,18 @@ export const CourseContentsSidebar = ({
 
             {/* Sections List */}
             {sections.map((section, index) => (
-              <CourseSectionItem
-                key={section.id}
-                section={section}
-                index={index}
-                isExpanded={expandedSections.includes(section.id)}
-                onToggle={onToggleSection}
-                selectedContentId={selectedContentId}
-                onSelectContent={onSelectContent}
-                variant="sidebar"
-                completedContentIds={completedContentIds}
-                disableFetch={disableFetchAll || (disableFetchFirstForIndexZero && index === 0)}
-                onSectionDataUpdate={onSectionDataUpdate}
-              />
+            <CourseSectionItem
+              key={section.id}
+              section={section}
+              index={index}
+              isExpanded={expandedSections.includes(section.id)}
+              onToggle={onToggleSection}
+              selectedContentId={selectedContentId}
+              onSelectContent={onSelectContent}
+              variant="sidebar"
+              completedContentIds={completedContentIds}
+              onSectionDataUpdate={onSectionDataUpdate}
+            />
             ))}
           </div>
         </div>
