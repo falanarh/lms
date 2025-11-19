@@ -155,6 +155,7 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
   const [isLiked, setIsLiked] = useState(false);
   const viewCountIncrementedRef = useRef(false);
 
+  const queryClient = useQueryClient();
   const detailQuery = useKnowledgeDetail(id);
   const likeMutation = useToggleLike();
 
@@ -162,9 +163,19 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
   useEffect(() => {
     if (detailQuery.data && !viewCountIncrementedRef.current) {
       viewCountIncrementedRef.current = true;
+      // Optimistically update view count in React Query cache so UI updates immediately
+      queryClient.setQueryData(['knowledge-centers', 'detail', id], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          viewCount: (old.viewCount ?? 0) + 1,
+        };
+      });
+
+      // Fire-and-forget API call to increment view count on the server
       incrementKnowledgeCenterView(id);
     }
-  }, [detailQuery.data, id]);
+  }, [detailQuery.data, id, queryClient]);
 
   // Initialize like status based on knowledge center data
   useEffect(() => {
@@ -784,6 +795,16 @@ export const useEditKnowledgePage = ({
         ? rawPublishedAt.slice(0, 16)
         : new Date().toISOString().slice(0, 16);
 
+      // Normalisasi zoomDate webinar agar cocok dengan input datetime-local (YYYY-MM-DDTHH:MM)
+      const rawZoomDate = knowledgeData.webinar?.zoomDate;
+      const normalizedZoomDate = rawZoomDate && rawZoomDate.includes('T')
+        ? rawZoomDate.slice(0, 16)
+        : (rawZoomDate || '');
+
+      const webinarFormData = knowledgeData.webinar
+        ? { ...knowledgeData.webinar, zoomDate: normalizedZoomDate }
+        : null;
+
       const formData = {
         title: knowledgeData.title || '',
         description: knowledgeData.description || '',
@@ -794,7 +815,7 @@ export const useEditKnowledgePage = ({
         publishedAt: normalizedPublishedAt,
         tags: knowledgeData.tags || [],
         thumbnail: knowledgeData.thumbnail || '',
-        webinar: knowledgeData.webinar || null,
+        webinar: webinarFormData,
         knowledgeContent: knowledgeData.knowledgeContent || null,
       };
       

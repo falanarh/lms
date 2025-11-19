@@ -16,6 +16,7 @@ const optionalUrl = z
   .string()
   .url('Please enter a valid URL')
   .or(z.literal(''))
+  .or(z.null())
   .optional();
 
 // ============================================================================
@@ -88,8 +89,8 @@ export const webinarDetailsSchema = z.object({
   recordLink: optionalUrl,
   youtubeLink: optionalUrl,
   vbLink: optionalUrl,
-  contentText: z.union([z.instanceof(File), z.string()]).optional(),
-  noteFile: z.union([z.instanceof(File), z.string()]).optional(), // For form state (will be transformed to contentText)
+  contentText: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
+  noteFile: z.union([z.instanceof(File), z.string(), z.null()]).optional(), // For form state (will be transformed to contentText)
   jpCount: z.number({
     required_error: 'Please enter JP credits',
     invalid_type_error: 'JP credits must be a number'

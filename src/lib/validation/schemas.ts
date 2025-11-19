@@ -12,7 +12,12 @@ import { KNOWLEDGE_TYPES, CONTENT_TYPES, type KnowledgeType } from '@/types/know
 const dateSchema = z.string().min(1, 'This field is required');
 const urlSchema = z.string().url('Please enter a valid URL');
 const stringSchema = z.string().min(1, 'This field is required');
-const optionalUrlSchema = z.string().url('Please enter a valid URL').or(z.literal('')).optional();
+const optionalUrlSchema = z
+  .string()
+  .url('Please enter a valid URL')
+  .or(z.literal(''))
+  .or(z.null())
+  .optional();
 
 // File validation schemas
 const imageFileSchema = z.instanceof(File, {
@@ -68,7 +73,7 @@ const webinarDetailsStepSchema = z.object({
     recordLink: urlSchema,
     youtubeLink: optionalUrlSchema,
     vbLink: optionalUrlSchema,
-    contentText: z.union([pdfFileSchema, z.string()]).optional(),
+    contentText: z.union([pdfFileSchema, z.string(), z.null()]).optional(),
     jpCount: z.number().int().min(0, 'JP credits must be a positive number'),
   }).optional(),
 });

@@ -593,7 +593,7 @@ export const knowledgeCenterApi = {
 // View count increment API function
 export const incrementKnowledgeCenterView = async (id: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_ENDPOINTS.KNOWLEDGE_CENTERS}/${id}/like`, {
+    const response = await fetch(`${API_ENDPOINTS.KNOWLEDGE_CENTERS}/${id}/engage`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -618,7 +618,7 @@ export const incrementKnowledgeCenterView = async (id: string): Promise<void> =>
 
 // Like/Unlike knowledge center API function
 export const toggleKnowledgeCenterLike = async (id: string, like: boolean): Promise<{ success: boolean; message?: string }> => {
-  const response = await fetch(`${API_ENDPOINTS.KNOWLEDGE_CENTERS}/${id}/like`, {
+  const response = await fetch(`${API_ENDPOINTS.KNOWLEDGE_CENTERS}/${id}/engage`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

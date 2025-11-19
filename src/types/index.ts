@@ -75,7 +75,6 @@ export type {
   // KnowledgeCenterSettings removed - settings page deleted
 
   // Taxonomy Types
-  Penyelenggara,
   Tag,
 } from './knowledge-center';
 
@@ -84,7 +83,6 @@ export {
   CONTENT_TYPES,
   KNOWLEDGE_STATUS,
   SORT_OPTIONS,
-  PENYELENGGARA,
 } from './knowledge-center';
 
 // Knowledge Subject Types

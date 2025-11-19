@@ -224,6 +224,12 @@ export function FormFileUpload({
 
   const displayValue = field.state.value;
 
+  const errors = field.state.meta.errors
+    .filter(Boolean)
+    .map(getErrorMessage);
+  const uniqueErrors = Array.from(new Set(errors));
+  const hasError = uniqueErrors.length > 0;
+
   // Simple logic: Use previewUrl if available, otherwise create object URL dari File image
   const imageSource = previewUrl ||
     (displayValue instanceof File && displayValue.type.startsWith('image/')
@@ -243,7 +249,7 @@ export function FormFileUpload({
 
       {displayValue ? (
         // Preview mode - Increased size
-        <div className="relative border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 h-80">
+        <div className={`relative border-2 rounded-lg overflow-hidden bg-gray-50 h-80 ${hasError ? 'border-red-500' : 'border-gray-300'}`}>
           {(() => {
             console.log('🎯 Render Logic Debug:', {
               imageSource: imageSource ? 'EXISTS' : 'NULL',
@@ -309,7 +315,7 @@ export function FormFileUpload({
         </div>
       ) : (
         // Upload mode
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 transition-colors bg-white hover:border-blue-400">
+        <div className={`border-2 border-dashed rounded-lg p-8 transition-colors bg-white hover:border-blue-400 ${hasError ? 'border-red-500' : 'border-gray-300'}`}>
           <input
             type="file"
             accept={accept}
@@ -584,7 +590,7 @@ export const FormDropdown = ({
           field.handleBlur();
         }}
         placeholder={placeholder}
-        error={field.state.meta.errors.length > 0}
+        error={hasError}
         size="lg"
         variant="solid"
         className="w-full"
