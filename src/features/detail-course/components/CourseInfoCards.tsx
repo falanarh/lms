@@ -101,7 +101,7 @@ export const CourseInfoCards = ({
       </div>
 
       {zoomUrl && (
-        <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+        <div className="col-span-2 bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
               <Video className="w-6 h-6 text-white" strokeWidth={2} />
