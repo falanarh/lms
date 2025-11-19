@@ -15,8 +15,7 @@ import { queryClient } from "@/lib/queryClient";
 export default function ManageCoursePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("section_activities");
-  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
-
+  
   const baseItems: TabItem[] = [
     { key: "section_activities", label: "Section & Aktivitas" },
     { key: "bank_content", label: "Bank Content" },

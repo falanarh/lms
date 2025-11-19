@@ -24,7 +24,7 @@ export const QuizQuestionSchema = z.object({
 }).refine((data) => {
   // Validation rules based on question type
   switch (data.questionType) {
-    case 'multiple_choice':
+    case 'multiple_choice': {
       // Must have at least 2 options and at most 6 options
       if (!data.options || data.options.length < 2) {
         return {
@@ -79,9 +79,10 @@ export const QuizQuestionSchema = z.object({
         };
       }
       break;
+    }
 
     case 'true_false':
-    case 'essay':
+    case 'essay': {
       // Should not have options
       if (data.options && data.options.length > 0) {
         return {
@@ -96,6 +97,7 @@ export const QuizQuestionSchema = z.object({
         };
       }
       break;
+    }
 
     default:
       return { success: true, data };

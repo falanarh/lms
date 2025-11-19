@@ -93,7 +93,7 @@ export const useUpdateSectionsSequence = (
     // ❌ HAPUS onMutate - Jangan gunakan optimistic update untuk sequence
     // Biarkan UI menunggu response dari backend
     
-    onSuccess: async (data, variables, context) => {
+    onSuccess: async () => {
       // ✅ Tunggu sebentar agar backend commit data
       await new Promise(resolve => setTimeout(resolve, 200));
       

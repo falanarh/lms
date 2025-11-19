@@ -15,10 +15,10 @@ export type Section  = {
 }
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "https://service-courses.vercel.app/api/v1"
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://service-courses.vercel.app/api/v1"
 
 export const getSections = async (): Promise<Section[]> => {
-    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=7d4a43cf-684a-4eac-98d1-05c800621492&orderBy[0][sequence]=asc`, {
+    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=12ecb1ea-e097-43af-9d6c-8f5a6e6098f0&orderBy[0][sequence]=asc`, {
       withCredentials: false,
     })
     return response.data

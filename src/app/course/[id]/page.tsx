@@ -21,7 +21,6 @@ import { useSectionContent } from "@/hooks/useSectionContent";
 import { useStartActivity, useCheckEnroll } from "@/hooks/useActivity";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { createToastState } from "@/utils/toastUtils";
-import { mockReviews } from "@/features/detail-course/constants/reviews";
 
 interface DetailCoursePageProps {
   params: Promise<{
@@ -116,7 +115,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
         <div className="space-y-4">
           <CourseInfoCard
-            category={course.groupCourse.description.category}
+            category={course.groupCourse.description?.category}
             rating={course.rating}
             totalRatings={course.totalUserRating}
             type={course.groupCourse.typeCourse}
@@ -126,7 +125,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             buttonLabel={
               justEnrolled
                 ? "Start Learning"
-                : Boolean(enrollStatus?.data)
+                : enrollStatus?.data !== undefined && enrollStatus?.data !== null
                 ? "Continue Learning"
                 : "Enroll Now"
             }

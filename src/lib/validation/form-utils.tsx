@@ -619,22 +619,18 @@ export const FormDropdown = ({
   label,
   options,
   required = false,
-  className = "",
   placeholder = "Select an option",
   actionButton,
-  children,
-  ...props
+  children
 }: {
   field: FormField<string>;
   label?: string;
   options: { value: string; label: string }[];
   required?: boolean;
-  className?: string;
   placeholder?: string;
   errorClassName?: string;
   actionButton?: React.ReactNode;
   children?: React.ReactNode;
-  [key: string]: unknown;
 }) => {
   // Get unique errors only
   const errors = field.state.meta.errors.filter(Boolean).map(getErrorMessage);

@@ -39,7 +39,7 @@ export type Content = {
 };
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
 export const getContents = async (): Promise<Content[]> => {
   const response = await axios.get<Content[]>(`${BASE_URL}/contents`, {

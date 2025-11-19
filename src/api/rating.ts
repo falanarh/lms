@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, API_COURSE_BASE_URL } from "@/config/api";
+import { API_BASE_URL } from "@/config/api";
 
 export type RatingDistribution = {
   1: number;

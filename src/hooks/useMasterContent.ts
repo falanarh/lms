@@ -1,4 +1,4 @@
-import {createContent, deleteContent, getContents, updateContent, updateContentsSequence} from "@/api/contents";
+import {createContent, deleteContent, updateContent, updateContentsSequence} from "@/api/contents";
 import { createMasterContent, getMasterContents, updateMasterContent, deleteMasterContent } from "@/api/masterContent";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";

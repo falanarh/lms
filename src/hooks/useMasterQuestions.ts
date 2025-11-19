@@ -4,11 +4,9 @@ import {
   createMasterQuestion,
   updateMasterQuestion,
   deleteMasterQuestion,
-  MasterQuestion,
   QuestionRequest,
   MasterQuestionResponse,
   MasterQuestionsListResponse,
-  PageMeta
 } from "@/api/masterQuestions";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";

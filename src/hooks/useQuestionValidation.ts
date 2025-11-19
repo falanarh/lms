@@ -1,15 +1,11 @@
 import { useState, useCallback } from 'react';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import {
   QuizQuestionSchema,
   CreateQuestionRequestSchema,
   ImportQuestionSchema,
   AIGeneratedQuestionSchema,
-  formatZodError,
-  type QuizQuestionType,
-  type CreateQuestionRequestType,
-  type ImportQuestionType,
-  type AIGeneratedQuestionType
+  formatZodError
 } from '@/schemas/question.schema';
 
 interface UseQuestionValidationReturn<T> {
@@ -94,12 +90,13 @@ export const validateQuestionField = (
       }
       return { isValid: true };
 
-    case 'points':
+    case 'points': {
       const points = Number(value);
       if (!value || isNaN(points) || points < 1 || points > 100) {
         return { isValid: false, error: 'Points must be between 1 and 100' };
       }
       return { isValid: true };
+    }
 
     case 'correctAnswer':
       if (questionType === 'multiple_choice' && (!value || value.trim() === '')) {

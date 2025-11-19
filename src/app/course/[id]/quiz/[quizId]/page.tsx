@@ -43,7 +43,7 @@ export default function QuizPage({ params }: QuizPageProps) {
     router.push(`/course/manage`);
   };
 
-  const handleSaveQuiz = async (quizInfo: QuizInfo, questions: QuizQuestion[]) => {
+  const handleSaveQuiz = async (quizInfo: QuizInfo) => {
     try {
       await updateQuizMutation.mutateAsync({
         id: resolvedParams.quizId,

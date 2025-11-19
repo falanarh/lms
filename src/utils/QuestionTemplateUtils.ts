@@ -201,7 +201,7 @@ export async function parseQuizExcel(file: File): Promise<{
         } else {
           resolve({ success: true, data: validatedData });
         }
-      } catch (error) {
+      } catch {
         resolve({
           success: false,
           errors: ['Gagal membaca file Excel. Pastikan format file benar.'],
