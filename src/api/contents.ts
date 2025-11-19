@@ -18,6 +18,24 @@ export type Content = {
   scheduleName?: string;
   jp?: number;
   scheduleDate?: string;
+   // ✅ NEW: Task data fields
+  taskData?: {
+    maxPoint: number;
+    isRequired?: boolean;
+    dueDate?: string;
+    createdBy: string;
+  };
+  // ✅ Quiz data fields (already exists)
+  quizData?: {
+    idCurriculum?: string;
+    curriculum?: string;
+    durationLimit: number;
+    totalQuestions?: number;
+    maxPoint: number;
+    passingScore: number;
+    attemptLimit?: number;
+    shuffleQuestions: boolean;
+  };
 };
 
 const BASE_URL =
@@ -34,6 +52,7 @@ export const getContents = async (): Promise<Content[]> => {
 export const createContent = async (
   newContent: Omit<Content, "id" | "createdAt" | "updatedAt">,
 ): Promise<Content> => {
+  console.log("📡 Creating content with data:", newContent);
   const response = await axios.post<Content>(
     `${BASE_URL}/contents`,
     newContent,

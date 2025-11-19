@@ -6,6 +6,7 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import Tabs, { TabItem } from "@/components/ui/Tabs";
 import { SectionActivities } from "@/features/course/components/SectionActivities";
 import { BankContent } from "@/features/course/components/BankContent";
+import { BankSoal } from "@/features/course/components/BankSoal";
 import { Drawer } from "@/components/ui/Drawer";
 import { ActivityDrawerContent } from "@/features/course/components/ActivityDrawerContent";
 import { Content } from "@/api/contents";
@@ -19,9 +20,10 @@ export default function ManageCoursePage() {
   const baseItems: TabItem[] = [
     { key: "section_activities", label: "Section & Aktivitas" },
     { key: "bank_content", label: "Bank Content" },
+    { key: "bank_soal", label: "Bank Soal" },
     { key: "peserta", label: "Peserta", counter: 12 },
     { key: "penilaian", label: "Penilaian" },
-    
+
   ];
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -106,7 +108,8 @@ export default function ManageCoursePage() {
     ),
     bank_content:
       <BankContent />,
-  
+    bank_soal:
+      <BankSoal />,
     peserta: <div>Peserta Content</div>,
     penilaian: <div>Penilaian Content</div>,
   } as const;

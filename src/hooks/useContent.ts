@@ -25,6 +25,7 @@ export const useContents = (params: UseContentParams = {}) => {
 export const useCreateContent = (
   config: MutationConfig<typeof createContent> = {}
 ) => {
+  
   return useMutation({
     mutationFn: createContent,
     onSuccess: async (...args) => {
