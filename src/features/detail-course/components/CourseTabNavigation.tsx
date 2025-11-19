@@ -1,4 +1,4 @@
-import { Info, List, MessageSquare, Star, ChevronDown } from "lucide-react";
+import { Info, List, MessageSquare, Star, ChevronDown, FileText } from "lucide-react";
 import { CourseTabType, TabConfig } from "../types/tab";
 
 interface CourseTabNavigationProps {
@@ -17,6 +17,11 @@ const tabs: TabConfig[] = [
     key: "course_contents" as CourseTabType,
     label: "Course Contents",
     icon: <List className="w-4 h-4" />,
+  },
+  {
+    key: "summary" as CourseTabType,
+    label: "Summary",
+    icon: <FileText className="w-4 h-4" />,
   },
   {
     key: "discussion_forum" as CourseTabType,

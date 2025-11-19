@@ -1,17 +1,17 @@
-import { getRatingSummaryByGroupCourse } from "@/api/rating";
+import { getRatingSummaryByCourseId } from "@/api/rating";
 import { QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 // Query key generator
-export const getRatingSummaryQueryKey = (groupCourseId: string) => 
-  ["rating-summary", groupCourseId];
+export const getRatingSummaryQueryKey = (courseId: string) => 
+  ["rating-summary", courseId];
 
 // Query options
-export const getRatingSummaryQueryOptions = (groupCourseId: string) => {
+export const getRatingSummaryQueryOptions = (courseId: string) => {
   return queryOptions({
-    queryKey: getRatingSummaryQueryKey(groupCourseId),
-    queryFn: () => getRatingSummaryByGroupCourse(groupCourseId),
-    enabled: !!groupCourseId,
+    queryKey: getRatingSummaryQueryKey(courseId),
+    queryFn: () => getRatingSummaryByCourseId(courseId),
+    enabled: !!courseId,
   });
 };
 
@@ -22,11 +22,11 @@ type UseRatingSummaryParams = {
 
 // Hook
 export const useRatingSummary = (
-  groupCourseId: string, 
+  courseId: string, 
   params: UseRatingSummaryParams = {}
 ) => {
   return useQuery({
-    ...getRatingSummaryQueryOptions(groupCourseId),
+    ...getRatingSummaryQueryOptions(courseId),
     ...params.queryConfig,
   });
 };

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/config/api";
+import { API_BASE_URL, API_COURSE_BASE_URL } from "@/config/api";
 import axios from "axios";
 import { Content } from "./contents";
 
@@ -16,7 +16,7 @@ export type Section  = {
 }
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000"
+const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "https://service-courses.vercel.app/api/v1"
 
 export const getSections = async (): Promise<Section[]> => {
     const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=7d4a43cf-684a-4eac-98d1-05c800621492&orderBy[0][sequence]=asc`, {

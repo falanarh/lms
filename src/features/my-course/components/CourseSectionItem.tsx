@@ -1,8 +1,7 @@
+import { useEffect, useState } from "react";
 import { ChevronDown, FileText, Video, Link as LinkIcon, Package, ClipboardList, FileCheck, File, Check, Lock } from "lucide-react";
-import { useEffect } from "react";
-import { Content } from "@/api/contents";
-import { Section } from "@/api/sections";
-import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
+import type { Content } from "@/api/contents";
+import type { Section } from "@/api/sections";
 
 interface CourseSectionItemProps {
   section: Section;
@@ -14,7 +13,7 @@ interface CourseSectionItemProps {
   variant?: 'sidebar' | 'tab';
   completedContentIds?: string[];
   mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
-  disableFetch?: boolean;
+  onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
 }
 
 const getContentIcon = (type: string, isTabVariant: boolean = false) => {
@@ -49,13 +48,13 @@ const getContentIcon = (type: string, isTabVariant: boolean = false) => {
     case "quiz":
       return (
         <div className={`${boxSize} rounded-md bg-orange-100 flex items-center justify-center flex-shrink-0`}>
-          <FileCheck className={`${iconSize} text-orange-600`} />
+          <ClipboardList className={`${iconSize} text-orange-600`} />
         </div>
       );
     case "task":
       return (
         <div className={`${boxSize} rounded-md bg-green-100 flex items-center justify-center flex-shrink-0`}>
-          <ClipboardList className={`${iconSize} text-green-600`} />
+          <FileCheck className={`${iconSize} text-green-600`} />
         </div>
       );
     default:
@@ -77,17 +76,21 @@ export const CourseSectionItem = ({
   variant = 'sidebar',
   completedContentIds = [],
   mode = 'learning',
-  disableFetch = false,
+  onSectionDataUpdate,
 }: CourseSectionItemProps) => {
   const isTabVariant = variant === 'tab';
   const isPreviewMode = mode === 'preview';
   const isLearningMode = mode === 'learning';
   
-  // Fetch contents when section is expanded
-  const { data: contents, isLoading: isLoadingContents } = useContentsBySectionId({
-    sectionId: section.id,
-    enabled: isExpanded && !disableFetch,
-  });
+  const providedContents = (section as any).listContents || (section as any).listContent || [];
+  const contents: Content[] | undefined = providedContents;
+
+  // Update parent component's expandedSectionsData when contents are fetched
+  useEffect(() => {
+    if (contents && isExpanded && onSectionDataUpdate) {
+      onSectionDataUpdate(section.id, contents);
+    }
+  }, [contents, isExpanded, section.id, onSectionDataUpdate]);
 
   useEffect(() => {
     if (
@@ -154,11 +157,7 @@ export const CourseSectionItem = ({
           <div className={`
             ${isTabVariant ? 'px-5 pb-3 space-y-3' : 'px-4 pb-2 space-y-2'}
           `}>
-            {isLoadingContents ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="text-sm text-gray-500">Loading contents...</div>
-              </div>
-            ) : contents && contents.length > 0 ? (
+            {contents && contents.length > 0 ? (
               contents.map((content) => {
               const isSelected = selectedContentId === content.id;
               const isCompleted = completedContentIds.includes(content.id);

@@ -7,3 +7,4 @@ export { CourseSectionItem } from "./CourseSectionItem";
 export { RatingsReviewsHeader } from "./RatingsReviewsHeader";
 export { WriteReviewModal } from "./WriteReviewModal";
 export { MyCoursePageSkeleton } from "./MyCoursePageSkeleton";
+export { SummaryTab } from "./SummaryTab";

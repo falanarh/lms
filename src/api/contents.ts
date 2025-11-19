@@ -1,9 +1,9 @@
-import { API_BASE_URL } from "@/config/api";
+import { API_COURSE_BASE_URL } from "@/config/api";
 import axios from "axios";
 
 export type Content = {
   id: string;
-  idSection: string;
+  idSection?: string; // Optional since API response doesn't include this
   type: string;
   contentUrl: string;
   name: string;
@@ -47,6 +47,14 @@ export const getContents = async (): Promise<Content[]> => {
   });
   console.log(response.data);
   return response.data;
+};
+
+export const getContentsBySectionId = async (sectionId: string): Promise<Content[]> => {
+  const response = await axios.get(`${API_COURSE_BASE_URL}/sections/${sectionId}/content`, {
+    withCredentials: false,
+  });
+  
+  return response.data.data.listContent;
 };
 
 export const createContent = async (

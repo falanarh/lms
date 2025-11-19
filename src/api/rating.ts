@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL } from "@/config/api";
+import { API_BASE_URL, API_COURSE_BASE_URL } from "@/config/api";
 
 export type RatingDistribution = {
   1: number;
@@ -19,11 +19,11 @@ export type RatingSummaryResponse = {
   data: RatingSummary;
 };
 
-export const getRatingSummaryByGroupCourse = async (
-  groupCourseId: string
+export const getRatingSummaryByCourseId = async (
+  courseId: string
 ): Promise<RatingSummaryResponse> => {
   const response = await axios.get(
-    `${API_BASE_URL}/activities/group-course/${groupCourseId}/rating-summary`
+    `${API_BASE_URL}/activities/course/${courseId}/rating-summary`
   );
   return response.data;
 };

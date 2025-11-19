@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { ActivityCard } from "./ActivityCard";
-import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
+ 
 
 interface Section {
   id: string;
@@ -22,10 +22,7 @@ export const CourseSectionItem = ({
   isExpanded,
   onToggle,
 }: CourseSectionItemProps) => {
-  const { data: contents, isLoading: isContentsLoading } = useContentsBySectionId({
-    sectionId: section.id,
-    enabled: isExpanded,
-  });
+  const contents: any[] = (section as any).listContents || (section as any).listContent || [];
 
   return (
     <div className="bg-white dark:bg-zinc-800 rounded-xl border border-gray-200 dark:border-zinc-700 overflow-hidden">
@@ -57,21 +54,15 @@ export const CourseSectionItem = ({
 
       {/* Section Content */}
       {isExpanded && (
-        <div className="dark:bg-zinc-800">
-          {isContentsLoading ? (
-            <div className="p-6 text-center text-gray-500 dark:text-zinc-400">
-              Loading contents...
-            </div>
-          ) : (
-            <div className="p-4 space-y-2">
-              {contents?.map((content) => (
-                <ActivityCard
-                  key={content.id}
-                  activity={content}
-                />
-              ))}
-            </div>
-          )}
+        <div className="">
+          <div className="p-4 space-y-2">
+            {contents?.map((content) => (
+              <ActivityCard key={content.id} activity={content} />
+            ))}
+            {(!contents || contents.length === 0) && (
+              <div className="p-6 text-center text-gray-500">No contents available</div>
+            )}
+          </div>
         </div>
       )}
     </div>
