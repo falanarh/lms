@@ -12,6 +12,7 @@ interface WizardActionsProps {
   onNext: () => void;
   onSaveDraft: () => void;
   onPublish: () => void;
+  minBackStep?: number;
 }
 
 export default function WizardActions({
@@ -23,7 +24,9 @@ export default function WizardActions({
   onNext,
   onSaveDraft,
   onPublish,
+  minBackStep = 1,
 }: WizardActionsProps) {
+
   // Check which button is loading
   const isSavingDraft = isCreating && submittingAs === 'draft';
   const isPublishing = isCreating && submittingAs === 'published';
@@ -32,7 +35,7 @@ export default function WizardActions({
     <div className="flex items-center justify-between mt-12 pt-8 border-t border-[var(--border,rgba(0,0,0,0.12))]">
       <button
         onClick={onPrevious}
-        disabled={currentStep === 1 || isCreating}
+        disabled={currentStep <= minBackStep || isCreating}
         className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronLeft className="w-4 h-4" />

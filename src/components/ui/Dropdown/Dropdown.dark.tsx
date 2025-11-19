@@ -87,8 +87,8 @@ const sizeMap: Record<DropdownSize, { button: string; text: string; menu: string
 function variantClasses(variant: DropdownVariant, error?: boolean) {
   if (error) {
     return [
-      "bg-[var(--danger,#dc2626)] text-[var(--on-danger,#ffffff)] border border-transparent",
-      "hover:bg-[color-mix(in_oklab,var(--danger,#dc2626)_92%,black)]",
+      "bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]",
+      "border-2 border-[var(--danger,#dc2626)]",
     ].join(" ");
   }
   switch (variant) {
@@ -224,7 +224,7 @@ export function Dropdown({
   const listboxId = React.useId();
 
   return (
-    <div className={["inline-flex items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
+    <div className={["w-full items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
       {label && (
         <span className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)] font-[var(--font-body)]">
           {label}
@@ -238,7 +238,7 @@ export function Dropdown({
           ref={buttonRef}
           type="button"
           className={[
-            "inline-flex items-center justify-between min-w-48",
+            "inline-flex w-full items-center justify-between min-w-48",
             sz.button,
             sz.text,
             variantClasses(variant, error),

@@ -6,6 +6,7 @@ import { KNOWLEDGE_TYPES, KnowledgeCenter } from '@/types/knowledge-center';
 
 interface KnowledgeDetailActionBarProps {
   knowledge: KnowledgeCenter;
+  isLiked: boolean;
   isLiking: boolean;
   onLike: () => void;
 }
@@ -13,6 +14,7 @@ interface KnowledgeDetailActionBarProps {
 export default function KnowledgeDetailActionBar({
   knowledge,
   isLiking,
+  isLiked,
   onLike,
 }: KnowledgeDetailActionBarProps) {
   const isWebinar = knowledge.type === KNOWLEDGE_TYPES.WEBINAR;
@@ -24,9 +26,17 @@ export default function KnowledgeDetailActionBar({
       <button
         onClick={onLike}
         disabled={isLiking}
-        className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-black transition-colors disabled:opacity-50"
+        className={`flex items-center gap-2 px-4 py-2 transition-colors disabled:opacity-50 ${
+          isLiked 
+            ? 'text-red-500 hover:text-red-600' 
+            : 'text-gray-600 hover:text-black'
+        }`}
       >
-        <Heart className={`w-5 h-5 ${isLiking ? 'animate-pulse' : ''}`} />
+        <Heart 
+          className={`w-5 h-5 ${isLiking ? 'animate-pulse' : ''} ${
+            isLiked ? 'fill-current' : ''
+          }`} 
+        />
         <span className="font-medium">{knowledge.likeCount}</span>
       </button>
 

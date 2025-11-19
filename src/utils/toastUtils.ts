@@ -22,7 +22,7 @@ export function createToastState() {
 
   const showSuccess = (message: string) => showToast(message, 'success');
   const showWarning = (message: string) => showToast(message, 'warning');
-  const showError = (message: string) => showToast(message, 'warning');
+  const showError = (message: string) => showToast(message, 'warning'); // Using 'warning' variant for errors
   const showInfo = (message: string) => showToast(message, 'info');
 
   const dismissToast = () => setToast(null);

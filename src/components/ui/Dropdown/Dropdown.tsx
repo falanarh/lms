@@ -48,7 +48,7 @@ const sizeMap: Record<DropdownSize, { button: string; text: string; menu: string
 
 function variantClasses(variant: DropdownVariant, error?: boolean) {
   if (error) {
-    return "bg-red-600 text-white border border-red-600 hover:bg-red-700";
+    return "bg-white text-gray-900 border-2 border-red-500 hover:border-red-600";
   }
   switch (variant) {
     case "outline":
@@ -175,7 +175,7 @@ export function Dropdown({
   const listboxId = React.useId();
 
   return (
-    <div className={["inline-flex items-center gap-2", className].filter(Boolean).join(" ")}> 
+    <div className={["flex items-center gap-2", className].filter(Boolean).join(" ")}> 
       {label && (
         <span className="text-sm text-gray-700 font-medium">
           {label}

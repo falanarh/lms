@@ -14,28 +14,38 @@ export interface ConfirmModalProps {
   cancelText?: string;
   variant?: "danger" | "warning" | "info";
   isLoading?: boolean;
+  illustration?: React.ReactNode;
 }
 
 const variantStyles = {
   danger: {
-    icon: "text-red-500",
-    iconBg: "bg-red-50",
-    confirmButton: "bg-red-500 hover:bg-red-600 text-white",
-    title: "text-red-900",
+    icon: "text-rose-500",
+    iconBg: "bg-rose-50",
+    headerBg: "bg-gradient-to-b from-rose-400 to-rose-500",
+    confirmButton: "bg-rose-500 hover:bg-rose-600 text-white",
+    cancelButton: "text-rose-500 border-rose-200 hover:bg-rose-50",
+    closeButton: "bg-white/90 text-rose-600 hover:bg-white",
+    title: "text-gray-900",
   },
   warning: {
-    icon: "text-orange-500",
-    iconBg: "bg-orange-50",
-    confirmButton: "bg-orange-500 hover:bg-orange-600 text-white",
-    title: "text-orange-900",
+    icon: "text-amber-500",
+    iconBg: "bg-amber-50",
+    headerBg: "bg-gradient-to-b from-amber-300 to-amber-500",
+    confirmButton: "bg-amber-500 hover:bg-amber-600 text-white",
+    cancelButton: "text-amber-600 border-amber-200 hover:bg-amber-50",
+    closeButton: "bg-white/90 text-amber-600 hover:bg-white",
+    title: "text-gray-900",
   },
   info: {
-    icon: "text-blue-500",
-    iconBg: "bg-blue-50",
-    confirmButton: "bg-blue-500 hover:bg-blue-600 text-white",
-    title: "text-blue-900",
+    icon: "text-sky-500",
+    iconBg: "bg-sky-50",
+    headerBg: "bg-gradient-to-b from-sky-400 to-sky-500",
+    confirmButton: "bg-sky-500 hover:bg-sky-600 text-white",
+    cancelButton: "text-sky-600 border-sky-200 hover:bg-sky-50",
+    closeButton: "bg-white/90 text-sky-600 hover:bg-white",
+    title: "text-gray-900",
   },
-};
+} as const;
 
 export function ConfirmModal({
   isOpen,
@@ -47,6 +57,7 @@ export function ConfirmModal({
   cancelText = "Batal",
   variant = "danger",
   isLoading = false,
+  illustration,
 }: ConfirmModalProps) {
   const styles = variantStyles[variant];
 
@@ -89,47 +100,47 @@ export function ConfirmModal({
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 transform"
+          className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 transform"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${styles.iconBg}`}>
-                  <AlertTriangle className={`w-5 h-5 ${styles.icon}`} />
-                </div>
-                <h3 className={`text-lg font-semibold ${styles.title}`}>
-                  {title}
-                </h3>
+          {/* Top illustration / header */}
+          <div className={`relative flex items-center justify-center px-6 pt-8 pb-6 ${styles.headerBg}`}>
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isLoading}
+              className={`absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium shadow-md transition-colors disabled:opacity-50 ${styles.closeButton}`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {illustration ? (
+              <div className="flex items-center justify-center">
+                {illustration}
               </div>
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isLoading}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-lg">
+                <AlertTriangle className={`w-10 h-10 ${styles.icon}`} />
+              </div>
+            )}
           </div>
 
           {/* Content */}
-          <div className="px-6 py-4">
-            <p className="text-gray-600 leading-relaxed">
+          <div className="px-8 pt-6 pb-8 text-center">
+            <h3 className={`text-2xl font-semibold tracking-tight ${styles.title}`}>
+              {title}
+            </h3>
+            <p className="mt-3 text-sm text-gray-500 leading-relaxed">
               {message}
             </p>
-          </div>
 
-          {/* Actions */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-            <div className="flex items-center justify-end gap-3">
+            {/* Actions */}
+            <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
                 disabled={isLoading}
-                className="px-6"
+                className={`w-full sm:w-auto px-6 rounded-full ${styles.cancelButton}`}
               >
                 {cancelText}
               </Button>
@@ -137,8 +148,8 @@ export function ConfirmModal({
                 type="button"
                 onClick={handleConfirm}
                 disabled={isLoading}
-                isLoading={isLoading}
-                className={`px-6 ${styles.confirmButton}`}
+                aria-busy={isLoading}
+                className={`w-full sm:w-auto px-6 rounded-full ${styles.confirmButton}`}
               >
                 {isLoading ? "Memproses..." : confirmText}
               </Button>

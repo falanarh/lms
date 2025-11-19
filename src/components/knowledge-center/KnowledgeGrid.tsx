@@ -3,16 +3,19 @@
  * Focused on UI logic and presentation only
  */
 
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import { Search, BookOpen } from 'lucide-react';
 import { KnowledgeCard, Subject } from '@/components/knowledge-center';
 import { Pagination } from '@/components/shared/Pagination/Pagination';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Input } from '@/components/ui/Input/Input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledge } from '@/hooks/useKnowledgeCenter';
+import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { SortOption, KnowledgeQueryParams, SORT_OPTIONS, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface KnowledgeGridProps {
   searchQuery: string;
@@ -24,6 +27,38 @@ interface KnowledgeGridProps {
   onSortChange: (sort: SortOption) => void;
 }
 
+// Skeleton component for knowledge cards
+const KnowledgeCardSkeleton = () => (
+  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    {/* Image skeleton */}
+    <Skeleton className="w-full h-48" />
+    
+    <div className="p-6">
+      {/* Title skeleton */}
+      <Skeleton className="h-6 w-3/4 mb-3" />
+      
+      {/* Description skeleton */}
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-2/3 mb-4" />
+      
+      {/* Tags skeleton */}
+      <div className="flex gap-2 mb-4">
+        <Skeleton className="h-6 w-16" />
+        <Skeleton className="h-6 w-20" />
+      </div>
+      
+      {/* Footer skeleton */}
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-12" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function KnowledgeGrid({
   searchQuery,
   onSearchChange,
@@ -34,20 +69,34 @@ export default function KnowledgeGrid({
   onSortChange,
 }: KnowledgeGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const { data: subjects } = useKnowledgeSubjects();
+
+  // Debounce grid search to prevent API calls on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // Map subject name to ID for API filtering
+  const subjectId = useMemo(() => {
+    if (selectedSubject === 'all') return undefined;
+    
+    const subject = subjects?.find(s => s.name === selectedSubject);
+    return subject?.id || selectedSubject; // Fallback to name if ID not found
+  }, [selectedSubject, subjects]);
 
   // Build query params for API
   const queryparams: KnowledgeQueryParams = useMemo(() => ({
-    search: searchQuery || undefined,
+    search: debouncedSearchQuery || undefined,
     knowledgeType: selectedType !== 'all' ? selectedType as typeof KNOWLEDGE_TYPES.WEBINAR | typeof KNOWLEDGE_TYPES.CONTENT : undefined,
-    subject: selectedSubject !== 'all' ? [selectedSubject] : undefined,
+    subject: subjectId ? [subjectId] : undefined,
     sort: sortBy,
     page: currentPage,
-    limit: 12,
-  }), [searchQuery, selectedType, selectedSubject, sortBy, currentPage]);
+    limit: itemsPerPage,
+  }), [debouncedSearchQuery, selectedType, subjectId, sortBy, currentPage, itemsPerPage]);
 
   const {
     data: knowledgeItems,
     isLoading,
+    isFetching,
     error,
     total,
     totalPages,
@@ -55,10 +104,8 @@ export default function KnowledgeGrid({
 
   const sortOptions = [
     { value: SORT_OPTIONS.NEWEST, label: 'Recently Added' },
-    { value: SORT_OPTIONS.MOST_LIKED, label: 'Most Popular' },
+    { value: SORT_OPTIONS.MOST_LIKED, label: 'Most Liked' },
     { value: SORT_OPTIONS.MOST_VIEWED, label: 'Most Viewed' },
-    { value: SORT_OPTIONS.UPCOMING_WEBINAR, label: 'Upcoming Events' },
-    { value: SORT_OPTIONS.POPULAR, label: 'Trending Now' },
   ];
 
   const sortDropdownItems = sortOptions.map((option) => ({
@@ -68,6 +115,11 @@ export default function KnowledgeGrid({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   const handleClearFilters = () => {
@@ -90,22 +142,28 @@ export default function KnowledgeGrid({
       <div>
         {/* Header with Search and Sort */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 w-full">
-          <div className="mb-4 max-w-1/5">
+          <div className="mb-4 max-w-1/2">
             <h2 className="text-2xl font-bold text-gray-900">
               {searchQuery
                 ? `Search Results for "${searchQuery}"`
                 : 'All Resources'}
             </h2>
             <p className="text-gray-600 mt-1">
-              {total || 0} items found
-              {selectedType !== 'all' &&
-                ` • ${selectedType === 'webinar' ? 'Webinars' : 'Content'}`}
-              {selectedSubject !== 'all' && ` • ${selectedSubject}`}
+              {isLoading || isFetching ? (
+                'Searching resources...'
+              ) : (
+                <>
+                  {total || 0} items found
+                  {selectedType !== 'all' &&
+                    ` • ${selectedType === 'webinar' ? 'Webinars' : 'Content'}`}
+                  {selectedSubject !== 'all' && ` • ${selectedSubject}`}
+                </>
+              )}
             </p>
           </div>
 
           {/* Search and Filter Bar */}
-          <div className="flex items-center justify-end gap-4 max-w-4/5 w-full">
+          <div className="flex items-center justify-end gap-4 max-w-1/2 w-full">
             <Input
               type="text"
               placeholder="Search resources..."
@@ -116,42 +174,27 @@ export default function KnowledgeGrid({
               containerClassName="flex-1 max-w-xl"
             />
 
-            <Dropdown
-              items={sortDropdownItems}
-              value={sortBy}
-              onChange={(value) => onSortChange(value as SortOption)}
-              placeholder="Sort by"
-              label="Sort by:"
-              searchable={false}
-              size="md"
-              variant="outline"
-            />
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <span className="text-sm text-gray-600">Sort by:</span>
+              <Dropdown
+                items={sortDropdownItems}
+                value={sortBy}
+                onChange={(value) => onSortChange(value as SortOption)}
+                placeholder="Sort by"
+                searchable={false}
+                size="md"
+                variant="outline"
+                className="min-w-[140px]"
+              />
+            </div>
           </div>
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {(isLoading || isFetching) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-              >
-                <div className="aspect-video bg-gray-200 animate-pulse"></div>
-                <div className="p-6 flex flex-col h-full">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
-                  <div className="h-3 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3 mb-2 animate-pulse"></div>
-                  <div className="mt-auto">
-                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2 animate-pulse"></div>
-                    <div className="flex gap-4">
-                      <div className="h-2 bg-gray-200 rounded w-12 animate-pulse"></div>
-                      <div className="h-2 bg-gray-200 rounded w-12 animate-pulse"></div>
-                      <div className="h-2 bg-gray-200 rounded w-12 animate-pulse"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {[...Array(itemsPerPage)].map((_, index) => (
+              <KnowledgeCardSkeleton key={index} />
             ))}
           </div>
         )}
@@ -173,6 +216,7 @@ export default function KnowledgeGrid({
 
         {/* Knowledge Grid */}
         {!isLoading &&
+          !isFetching &&
           !error &&
           knowledgeItems &&
           knowledgeItems.length > 0 && (
@@ -185,6 +229,7 @@ export default function KnowledgeGrid({
 
         {/* Empty State */}
         {!isLoading &&
+          !isFetching &&
           !error &&
           (!knowledgeItems || knowledgeItems.length === 0) && (
             <div className="text-center py-16">
@@ -215,24 +260,51 @@ export default function KnowledgeGrid({
           )}
 
         {/* Pagination with Showing Info */}
-        {!isLoading && knowledgeItems && knowledgeItems.length > 0 && (
-          <div className="mt-12 flex items-center justify-between">
-            {/* Showing X from Y Knowledge - Left */}
-            <p className="text-sm text-gray-600">
-              Showing <span className="font-semibold text-gray-900">{knowledgeItems.length}</span> from{' '}
-              <span className="font-semibold text-gray-900">{total || 0}</span> Knowledge
-            </p>
+        {!isLoading && !isFetching && knowledgeItems && knowledgeItems.length > 0 && (
+          <div className="mt-12">
+            {/* Single row with all three components */}
+            <div className="flex items-center justify-between">
+              {/* Showing X from Y Knowledge - Left */}
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-semibold text-gray-900">{knowledgeItems.length}</span> from{' '}
+                  <span className="font-semibold text-gray-900">{total || 0}</span> Knowledge
+                </p>
+              </div>
 
-            {/* Pagination - Right */}
-            {totalPages > 1 && (
-              <Pagination
-                alignment="right"
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                className="max-w-xl"
-              />
-            )}
+              {/* Pagination - Center */}
+              <div className="flex-1 flex justify-center">
+                {totalPages > 1 && (
+                  <Pagination
+                    alignment="center"
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    className="max-w-xl"
+                  />
+                )}
+              </div>
+
+              {/* Items Per Page Selector - Right */}
+              <div className="flex-1 flex justify-end">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Tampilkan:</span>
+                  <Dropdown
+                    value={itemsPerPage.toString()}
+                    onChange={(value: string) => handleItemsPerPageChange(parseInt(value))}
+                    items={[
+                      { value: '5', label: '5' },
+                      { value: '10', label: '10' },
+                      { value: '12', label: '12' },
+                      { value: '20', label: '20' },
+                      { value: '50', label: '50' },
+                    ]}
+                    className="w-20"
+                    searchable={false}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

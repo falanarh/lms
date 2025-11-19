@@ -29,7 +29,10 @@ export const transformFormDataToAPI = (
     penyelenggara: formValues.penyelenggara,
     thumbnail: thumbnailUrl,
     isFinal: status === 'published',
-    publishedAt: formValues.publishedAt || new Date().toISOString(),
+    // Konversi nilai datetime-local (YYYY-MM-DDTHH:MM) menjadi ISO string penuh untuk API
+    publishedAt: formValues.publishedAt
+      ? new Date(formValues.publishedAt).toISOString()
+      : new Date().toISOString(),
     tags: formValues.tags,
   };
 

@@ -5,23 +5,52 @@
 
 'use client';
 
-import { BookOpen, Users, Eye, ThumbsUp, TrendingUp } from 'lucide-react';
+import { BookOpen, Users, Eye, ThumbsUp } from 'lucide-react';
 import { useKnowledgeStats } from '@/hooks/useKnowledgeStats';
 
 export default function KnowledgeStats() {
   const { stats, isLoading } = useKnowledgeStats();
-  const topSubjects = stats.topSubjects;
 
   if (isLoading) {
+    const skeletonCards = [
+      { bg: 'bg-gradient-to-br from-blue-100 to-blue-200', iconBg: 'bg-blue-300' },
+      { bg: 'bg-gradient-to-br from-green-100 to-green-200', iconBg: 'bg-green-300' },
+      { bg: 'bg-gradient-to-br from-purple-100 to-purple-200', iconBg: 'bg-purple-300' },
+      { bg: 'bg-gradient-to-br from-orange-100 to-orange-200', iconBg: 'bg-orange-300' },
+    ];
+
     return (
       <section className="py-16 bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, index) => (
+            {skeletonCards.map((skeleton, index) => (
               <div
                 key={index}
-                className="h-32 bg-white/80 border border-gray-100 rounded-2xl animate-pulse shadow-sm"
-              ></div>
+                className={`relative overflow-hidden ${skeleton.bg} rounded-2xl p-6 shadow-sm border border-white/50 animate-pulse`}
+              >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer"></div>
+                
+                {/* Content structure */}
+                <div className="relative flex items-start gap-4">
+                  {/* Icon skeleton */}
+                  <div className={`w-14 h-14 ${skeleton.iconBg} rounded-xl flex items-center justify-center`}>
+                    <div className="w-7 h-7 bg-white/60 rounded"></div>
+                  </div>
+                  
+                  {/* Text content skeleton */}
+                  <div className="flex-1 space-y-2">
+                    {/* Number skeleton */}
+                    <div className="h-8 bg-white/60 rounded-lg w-16"></div>
+                    {/* Title skeleton */}
+                    <div className="h-4 bg-white/40 rounded w-20"></div>
+                  </div>
+                </div>
+
+                {/* Decorative elements */}
+                <div className="absolute top-3 right-3 w-2 h-2 bg-white/40 rounded-full"></div>
+                <div className="absolute bottom-3 right-3 w-1.5 h-1.5 bg-white/30 rounded-full"></div>
+              </div>
             ))}
           </div>
         </div>
@@ -31,7 +60,7 @@ export default function KnowledgeStats() {
 
   const statCards = [
     {
-      title: 'Total Resources',
+      title: 'Total Contents',
       value: stats.totalKnowledge,
       icon: BookOpen,
       background: 'bg-gradient-to-br from-blue-500 to-blue-600',
@@ -39,7 +68,7 @@ export default function KnowledgeStats() {
       subTextColor: 'text-blue-100',
     },
     {
-      title: 'Webinars',
+      title: 'Total Webinars',
       value: stats.totalWebinars,
       icon: Users,
       background: 'bg-white border-2 border-green-100',
@@ -95,7 +124,7 @@ export default function KnowledgeStats() {
                 {/* Decorative elements for other cards */}
                 {!isPrimaryCard && (
                   <>
-                    {card.title === 'Webinars' && (
+                    {card.title === 'Total Webinars' && (
                       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-100 to-green-50 rounded-full -mr-12 -mt-12 transition-all duration-500 group-hover:scale-150 group-hover:opacity-50"></div>
                     )}
                     {card.title === 'Total Views' && (
@@ -118,7 +147,7 @@ export default function KnowledgeStats() {
                   <div className={`flex items-center justify-center w-14 h-14 ${
                     isPrimaryCard
                       ? 'bg-white/20 backdrop-blur-sm group-hover:rotate-12'
-                      : card.title === 'Webinars'
+                      : card.title === 'Total Webinars'
                         ? 'bg-gradient-to-br from-green-400 to-green-500 group-hover:shadow-lg group-hover:shadow-green-200 group-hover:rotate-6'
                         : card.title === 'Total Views'
                           ? 'bg-gradient-to-br from-purple-400 to-purple-800 group-hover:shadow-lg group-hover:shadow-purple-200 group-hover:rotate-6'

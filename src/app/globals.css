@@ -86,6 +86,20 @@
   animation: bounce-gentle-delay 2.5s ease-in-out infinite;
 }
 
+/* Shimmer animation for skeleton loading */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 .vote-count.updating {
   animation: voteUpdate 0.3s ease-in-out;
 }

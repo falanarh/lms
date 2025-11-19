@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/Input/Input';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { Icon, IconName } from '../ui/icon-picker';
+import { KnowledgeSubject } from '@/types/knowledge-subject';
 
 interface SubjectProps {
   selectedSubject: string;
@@ -66,7 +67,7 @@ export default function Subject({
           acc.push(subject);
         }
         return acc;
-      }, [] as any[])
+      }, [] as KnowledgeSubject[])
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return [
@@ -216,8 +217,8 @@ export default function Subject({
     setIsExpanded(true);
   };
 
-  const handleSubjectChange = (subject: string) => {
-    onSubjectChange(subject);
+  const handleSubjectChange = (subjectValue: string) => {
+    onSubjectChange(subjectValue);
   };
 
   const baseButtonClasses =

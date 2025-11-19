@@ -3,12 +3,15 @@
  * Focused on UI logic and presentation only
  */
 
-'use client';
+"use client";
 
+import { useState, useEffect } from "react";
 import { Search, LayoutGrid, Calendar, BookOpen } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { KnowledgeType } from '@/types/knowledge-center';
+import KnowledgeSearchResults from './KnowledgeSearchResults';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface KnowledgeHeroProps {
   searchQuery: string;
@@ -24,6 +27,20 @@ export default function KnowledgeHero({
   onTypeChange,
 }: KnowledgeHeroProps) {
   const { data: knowledgeSubjects = [] } = useKnowledgeSubjects();
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchInputFocused, setSearchInputFocused] = useState(false);
+
+  // Debounce hero search so global search suggestions are not fetched on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+  // Show search results when user types and input is focused (with debounce)
+  useEffect(() => {
+    if (debouncedSearchQuery.length >= 2 && searchInputFocused) {
+      setShowSearchResults(true);
+    } else if (debouncedSearchQuery.length < 2) {
+      setShowSearchResults(false);
+    }
+  }, [debouncedSearchQuery, searchInputFocused]);
 
   const typeButtons = [
     {
@@ -50,7 +67,7 @@ export default function KnowledgeHero({
   ];
 
   return (
-    <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-blue-50/30 border-b border-gray-200/50 overflow-hidden -mt-[74px] pt-20">
+    <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-blue-50/30 border-b border-gray-200/50 -mt-16">
       {/* Animated Background Decorations */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Large blur circles */}
@@ -66,7 +83,7 @@ export default function KnowledgeHero({
         <div className="absolute bottom-32 right-20 w-24 h-24 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-3xl -rotate-6 backdrop-blur-sm border border-white/20"></div>
       </div>
 
-      <div className="relative w-full max-w-7xl mx-auto mb-12 px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative w-full max-w-7xl mx-auto mb-12 px-4 sm:px-6 lg:px-8">
         {/* Title Section */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm border border-blue-200/50 rounded-full text-sm text-blue-600 font-medium shadow-sm">
@@ -100,7 +117,7 @@ export default function KnowledgeHero({
               <div className="text-left">
                 <div className="text-xs text-blue-600 font-semibold mb-0.5">Categories</div>
                 <div className="text-sm font-bold text-gray-900">
-                  {knowledgeSubjects.length} Topics
+                  {knowledgeSubjects.length} Subjects
                 </div>
               </div>
             </div>
@@ -130,12 +147,21 @@ export default function KnowledgeHero({
                 placeholder="Search for webinars, videos, PDFs, audio content..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
+                onFocus={() => setSearchInputFocused(true)}
+                onBlur={() => setTimeout(() => setSearchInputFocused(false), 200)}
                 className="w-full px-6 py-4 pr-14 bg-transparent focus:outline-none text-gray-900 placeholder:text-gray-400"
               />
               <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 transition-colors">
                 <Search size={20} />
               </button>
             </div>
+
+            {/* Live Search Results Panel - Right below search bar */}
+            <KnowledgeSearchResults
+              searchQuery={debouncedSearchQuery}
+              isVisible={showSearchResults}
+              onClose={() => setShowSearchResults(false)}
+            />
           </div>
 
           {/* Quick Filter Pills - Enhanced */}

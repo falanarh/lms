@@ -9,24 +9,22 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { knowledgeSubjectApi } from '@/api/knowledge-subject';
+
 import {
   CreateKnowledgeSubjectRequest,
   UpdateKnowledgeSubjectRequest,
 } from '@/types/knowledge-subject';
-
-// Query keys
-export const KNOWLEDGE_SUBJECTS_QUERY_KEY = ['knowledge-subjects'] as const;
-export const KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY = (id: string) => ['knowledge-subjects', 'detail', id] as const;
+import { subjectKeys } from '@/lib/query-keys';
+import { CACHE_TIMES } from '@/constants/knowledge';
 
 /**
  * Hook untuk mengambil semua knowledge subjects
  */
 export const useKnowledgeSubjects = () => {
   return useQuery({
-    queryKey: KNOWLEDGE_SUBJECTS_QUERY_KEY,
+    queryKey: subjectKeys.all,
     queryFn: () => knowledgeSubjectApi.fetchKnowledgeSubjects(),
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 15, // 15 minutes
+    ...CACHE_TIMES.subjects,
   });
 };
 
@@ -35,14 +33,13 @@ export const useKnowledgeSubjects = () => {
  */
 export const useKnowledgeSubject = (id: string) => {
   return useQuery({
-    queryKey: KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY(id),
+    queryKey: subjectKeys.detail(id),
     queryFn: async () => {
       // Kita bisa menggunakan endpoint detail individual subject
       return await knowledgeSubjectApi.fetchKnowledgeSubjectById(id);
     },
     enabled: Boolean(id),
-    staleTime: 1000 * 60 * 10, // 10 minutes
-    gcTime: 1000 * 60 * 15, // 15 minutes
+    ...CACHE_TIMES.subjects,
   });
 };
 
@@ -61,9 +58,9 @@ export const useCreateKnowledgeSubject = (
       knowledgeSubjectApi.createKnowledgeSubject(payload),
     onSuccess: (data) => {
       // Invalidate cache untuk refresh data
-      queryClient.invalidateQueries({ queryKey: KNOWLEDGE_SUBJECTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: subjectKeys.all });
       queryClient.invalidateQueries({
-        queryKey: KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY(data.id)
+        queryKey: subjectKeys.detail(data.id),
       });
       onSuccess?.('Knowledge subject berhasil dibuat');
     },
@@ -94,9 +91,9 @@ export const useUpdateKnowledgeSubject = (
       knowledgeSubjectApi.updateKnowledgeSubject(id, data),
     onSuccess: (data) => {
       // Invalidate cache untuk refresh data
-      queryClient.invalidateQueries({ queryKey: KNOWLEDGE_SUBJECTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: subjectKeys.all });
       queryClient.invalidateQueries({
-        queryKey: KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY(data.id)
+        queryKey: subjectKeys.detail(data.id),
       });
       onSuccess?.('Knowledge subject berhasil diupdate');
     },
@@ -126,9 +123,9 @@ export const useDeleteKnowledgeSubject = (
     mutationFn: (id: string) => knowledgeSubjectApi.deleteKnowledgeSubject(id),
     onSuccess: (_, deletedId) => {
       // Invalidate cache untuk refresh data
-      queryClient.invalidateQueries({ queryKey: KNOWLEDGE_SUBJECTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: subjectKeys.all });
       queryClient.invalidateQueries({
-        queryKey: KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY(deletedId)
+        queryKey: subjectKeys.detail(deletedId),
       });
       onSuccess?.('Knowledge subject berhasil dihapus');
     },
@@ -161,7 +158,7 @@ export const useKnowledgeSubjectManager = () => {
 
   // Utility functions
   const refetch = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: KNOWLEDGE_SUBJECTS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: subjectKeys.all });
   }, [queryClient]);
 
   const getSubjectById = useCallback((id: string) => {

@@ -270,32 +270,6 @@ Choose the best matching icon name for "${subjectName}":`;
 
   return (
     <>
-      {/* Sync icon changes with add form */}
-      <addForm.Subscribe
-        selector={(state) => state.values.icon}
-        children={(iconValue) => {
-          React.useEffect(() => {
-            if (iconValue !== icon) {
-              addForm.setFieldValue('icon', icon || '');
-            }
-          }, [icon, addForm]);
-          return null;
-        }}
-      />
-
-      {/* Sync icon changes with update form */}
-      <updateForm.Subscribe
-        selector={(state) => state.values.icon}
-        children={(iconValue) => {
-          React.useEffect(() => {
-            if (iconValue !== editingIcon) {
-              updateForm.setFieldValue('icon', editingIcon || '');
-            }
-          }, [editingIcon, updateForm]);
-          return null;
-        }}
-      />
-
       {/* <div className="space-y-3"> */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-900">Manage Subjects</h3>
