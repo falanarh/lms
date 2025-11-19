@@ -27,6 +27,7 @@ import {
   basicInfoSchema,
   thumbnailValidator,
 } from "@/lib/validation/knowledge-schemas";
+import TagsField from "./TagsField";
 
 // ============================================================================
 // Types
@@ -65,7 +66,7 @@ export default function BasicInfoForm({
 
   const { form, thumbnailPreview, formValues } = wizard;
   const { handleThumbnailSelect, handleThumbnailRemove } = wizard;
-  
+
   // Access tags directly from form values
   const currentTags = formValues.tags || [];
 
@@ -231,7 +232,6 @@ export default function BasicInfoForm({
       <form.Field
         name="thumbnail"
         validators={{
-          // Gunakan thumbnailValidator supaya mendukung File (create) maupun string URL (edit)
           onChange: thumbnailValidator,
           onBlur: thumbnailValidator,
         }}
@@ -274,80 +274,7 @@ export default function BasicInfoForm({
           },
         }}
       >
-        {(field: any) => {
-          // Use field.state.value as source of truth
-          const currentFieldTags = field.state.value || [];
-
-          const handleAddTagLocal = () => {
-            const trimmedTag = localTagInput.trim();
-            if (trimmedTag && !currentFieldTags.includes(trimmedTag)) {
-              const newTags = [...currentFieldTags, trimmedTag];
-              field.handleChange(newTags);
-              setLocalTagInput('');
-            }
-          };
-
-          const handleRemoveTagLocal = (tagToRemove: string) => {
-            const updatedTags = currentFieldTags.filter((tag: string) => tag !== tagToRemove);
-            field.handleChange(updatedTags);
-          };
-
-          return (
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Tags <span className="text-red-500">*</span>
-              </label>
-              <div className={`border-2 ${field.state.meta.errors.length > 0 ? 'border-red-500' : 'border-[var(--border,rgba(0,0,0,0.12))]'} rounded-lg p-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all max-h-[120px] overflow-y-auto`}>
-                {currentFieldTags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {currentFieldTags.map((tag: any, index: any) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all"
-                      >
-                        <span>#{tag}</span>
-                        <button
-                          onClick={() => handleRemoveTagLocal(tag)}
-                          className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
-                          type="button"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <input
-                  type="text"
-                  value={localTagInput}
-                  onChange={(e) => setLocalTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      handleAddTagLocal();
-                    }
-                  }}
-                  placeholder={
-                    currentFieldTags.length === 0
-                      ? "Type a tag and press Enter or comma"
-                      : "Add another tag..."
-                  }
-                  className="w-full h-12 px-4 outline-none text-gray-900 placeholder:text-gray-400 text-sm"
-                />
-              </div>
-              {field.state.meta.errors.length > 0 ? (
-                <p className="text-red-600 text-xs mt-1.5">
-                  {field.state.meta.errors[0]}
-                </p>
-              ) : (
-                <p className="text-gray-500 text-xs mt-1.5">
-                  Press Enter or comma to add a tag
-                </p>
-              )}
-            </div>
-          );
-        }}
+        {(field: any) => <TagsField field={field} label="Tags" required />}
       </form.Field>
     </div>
   );
