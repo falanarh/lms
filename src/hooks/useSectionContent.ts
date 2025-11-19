@@ -1,8 +1,7 @@
 import { getSectionContent } from "@/api/sectionContent";
 import { QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useQuery } from "@tanstack/react-query";
-
-const DUMMY_USER_ID = "318d7df4-fa79-4b1c-bbda-407e5dba7c05";
+import { DUMMY_USER_ID } from "@/config/api";
 
 export const getSectionContentQueryKey = (courseId: string, userId: string) => [
   "section-content",

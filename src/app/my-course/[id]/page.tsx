@@ -16,9 +16,9 @@ import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
 import { useCreateReview } from "@/hooks/useReviews";
 import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton, SummaryTab } from "@/features/my-course/components";
 import { Sparkles } from "lucide-react";
-import { Content } from "@/api/contents";
-import { mockGroupCourseDetailResponse, mockGroupCourseSectionsResponse } from "@/features/my-course/constant/mockLearningApi";
-import { Section } from "@/api/sections";
+import type { Content } from "@/api/contents";
+import { useSectionContent } from "@/hooks/useSectionContent";
+import { useCourse } from "@/hooks/useCourse";
 
 interface MyCoursePageProps {
   params: Promise<{ id: string }>;
@@ -26,18 +26,9 @@ interface MyCoursePageProps {
 
 export default function MyCoursePage({ params }: MyCoursePageProps) {
   const { id } = use(params);
-  const course = mockGroupCourseDetailResponse.data;
-  const sections: Section[] = useMemo(() => {
-    return mockGroupCourseSectionsResponse.listSection.map((s) => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      sequence: s.sequence,
-      createdAt: new Date("2024-02-01T00:00:00.000Z"),
-      updatedAt: new Date("2024-07-01T00:00:00.000Z"),
-      listContents: s.listContent,
-    }));
-  }, []);
+  const { data: courseDetail, isLoading: isCourseLoading, error } = useCourse(id);
+  const { data: sectionContent } = useSectionContent({ courseId: id });
+  const sections = useMemo(() => (sectionContent?.data?.listSection as any) || [], [sectionContent]);
   const { activeContentId, updateContentInUrl } = useContentUrl(id);
   const createReviewMutation = useCreateReview(id);
   const [activeTab, setActiveTab] = useState<CourseTabType>('information');
@@ -47,7 +38,16 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
   const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+
+  if (isCourseLoading || !courseDetail) {
+    return (
+      <PageContainer>
+        <MyCoursePageSkeleton />
+      </PageContainer>
+    );
+  }
+
+  const course = courseDetail;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -58,7 +58,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     const firstSection = sections?.[0];
     if (firstSection && expandedSections.length === 0) {
       setExpandedSections([firstSection.id]);
-      const contents = firstSection.listContents || [];
+      const contents = (firstSection as any).listContents || (firstSection as any).listContent || [];
       if (contents.length > 0) {
         setExpandedSectionsData((prev) => ({ ...prev, [firstSection.id]: contents }));
       }
@@ -68,9 +68,10 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   useEffect(() => {
     if (sections && sections.length > 0) {
       const ids: string[] = [];
-      sections.forEach((sec: Section & { listContents?: any[] }) => {
-        (sec.listContents || []).forEach((c: any) => {
-          const hasFinished = Array.isArray(c.activityContents) && c.activityContents.some((a: any) => a?.isFinished);
+      sections.forEach((sec: any) => {
+        const contents = (sec.listContents || sec.listContent || []) as any[];
+        contents.forEach((c: any) => {
+          const hasFinished = Boolean(c?.userStatus?.isFinished);
           if (hasFinished) ids.push(c.id);
         });
       });
@@ -84,18 +85,23 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [isSidebarOpen]);
 
-  const firstSectionContents = useMemo(() => sections?.[0]?.listContents || [], [sections]);
+  const firstSectionContents = useMemo(() => {
+    const s0 = sections?.[0] as any;
+    return s0?.listContents || s0?.listContent || [];
+  }, [sections]);
 
   useEffect(() => {
     const allData: Record<string, Content[]> = {};
-    sections.forEach((sec) => {
-      const contents = (sec as any).listContents || [];
-      if (contents.length > 0) {
-        allData[sec.id] = contents;
+    if (Array.isArray(sections)) {
+      sections.forEach((sec: any) => {
+        const contents = (sec.listContents || sec.listContent || []) as Content[];
+        if (contents.length > 0) {
+          allData[sec.id] = contents;
+        }
+      });
+      if (Object.keys(allData).length > 0) {
+        setExpandedSectionsData(allData);
       }
-    });
-    if (Object.keys(allData).length > 0) {
-      setExpandedSectionsData(allData);
     }
   }, [sections]);
 
@@ -129,8 +135,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         ? prev.filter(id => id !== sectionId)
         : [...prev, sectionId];
       if (!prev.includes(sectionId)) {
-        const section = sections.find(s => s.id === sectionId);
-        const contents = section?.listContents || [];
+        const section = sections.find((s: any) => s.id === sectionId);
+        const contents = (section as any)?.listContents || (section as any)?.listContent || [];
         if (contents.length > 0) {
           setExpandedSectionsData(prevData => ({ ...prevData, [sectionId]: contents }));
         }
@@ -162,7 +168,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   }, []);
 
   const { handleNext, handlePrevious, isNavigating, navigationState } = useContentNavigation({
-    sections: sections || [],
+    sections: (sections as any) || [],
     selectedContent,
     expandedSectionsData,
     onContentSelect: handleContentSelect,
@@ -214,7 +220,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "My Courses", href: "/my-course" },
-    { label: course.course.title, isActive: true },
+    { label: course.groupCourse.title, isActive: true },
   ];
 
   const handleCloseSidebar = () => {
@@ -250,7 +256,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
             />
           )}
 
-          <CourseTitle title={course.course.title} />
+          <CourseTitle title={course.groupCourse.title} />
 
           {/* Tabs & Content */}
           <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
@@ -262,11 +268,11 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.course.description.method}
-              syllabusFile={course.course.description.silabus}
-              totalJP={course.course.description.totalJp}
-              quota={course.course.description.quota}
-              description={course.course.description.description}
+              method={course.groupCourse.description.method}
+              syllabusFile={course.groupCourse.description.silabus}
+              totalJP={course.groupCourse.description.totalJp}
+              quota={course.groupCourse.description.quota}
+              description={course.groupCourse.description.description}
               zoomUrl={course.zoomUrl || undefined}
               isEnrolled={true}
             />
@@ -274,20 +280,18 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           {activeTab === "course_contents" && (
             <CourseContentsTab
-              sections={sections || []}
+              sections={(sections as any) || []}
               expandedSections={expandedSections}
               onToggleSection={handleToggleSection}
               selectedContentId={selectedContent?.id}
               onSelectContent={handleContentSelect}
               completedContentIds={completedContentIds}
-              disableFetchFirstForIndexZero={true}
-              disableFetchAll={true}
               onSectionDataUpdate={handleSectionDataUpdate}
             />
           )}
 
           {activeTab === "summary" && (
-              <SummaryTab text={course.course.description.description} />
+              <SummaryTab text={course.groupCourse.description.description} />
           )}
 
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
@@ -308,15 +312,13 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
       {isSidebarOpen && (
         <CourseContentsSidebar
-          sections={sections || []}
+          sections={(sections as any) || []}
           expandedSections={expandedSections}
           onToggleSection={handleToggleSection}
           selectedContentId={selectedContent?.id}
           onSelectContent={handleContentSelect}
           onClose={handleCloseSidebar}
           completedContentIds={completedContentIds}
-          disableFetchFirstForIndexZero={true}
-          disableFetchAll={true}
           onSectionDataUpdate={handleSectionDataUpdate}
         />
       )}
@@ -331,7 +333,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         onSubmit={handleSubmitReview}
-        courseName={course.course.title}
+        courseName={course.groupCourse.title}
         isLoading={createReviewMutation.isPending}
       />
 

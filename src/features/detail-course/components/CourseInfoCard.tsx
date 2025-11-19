@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge/Badge";
-import { Users } from "lucide-react";
+import { ArrowRight, Plus, Users, Loader2 } from "lucide-react";
 import { renderStars } from "@/features/course/hooks/stars";
 import { TeacherAvatar } from "@/features/course/components/TeacherAvatar";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,8 @@ interface CourseInfoCardProps {
   isEnrolled: boolean;
   onToggle: () => void;
   courseId?: string; // ID untuk navigasi ke my-course
+  buttonLabel?: string;
+  isProcessing?: boolean;
 }
 
 export const CourseInfoCard = ({
@@ -24,15 +26,18 @@ export const CourseInfoCard = ({
   isEnrolled,
   onToggle,
   courseId,
+  buttonLabel,
+  isProcessing = false,
 }: CourseInfoCardProps) => {
   const router = useRouter();
+  const label = buttonLabel ?? (isEnrolled ? "Start Learning" : "Enroll Now");
 
   const handleButtonClick = () => {
-    if (isEnrolled && courseId) {
+    if (label !== "Enroll Now" && courseId) {
       router.push(`/my-course/${courseId}`);
-    } else {
-      onToggle();
+      return;
     }
+    onToggle();
   };
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -92,54 +97,30 @@ export const CourseInfoCard = ({
         {/* Enroll Button */}
         <button
           onClick={handleButtonClick}
+          disabled={label === "Enroll Now" && isProcessing}
           className={`
             w-full font-semibold text-base py-4 px-6 rounded-xl transition-all duration-200 
             flex items-center justify-center gap-2.5 hover:-translate-y-0.5
-            ${
-              isEnrolled
-                ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
-                : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-            }
+            ${label === "Enroll Now"
+              ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"}
+            ${label === "Enroll Now" && isProcessing ? "opacity-75 cursor-not-allowed" : ""}
           `}
         >
-          {isEnrolled ? (
-            <>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M16.6667 5L7.50004 14.1667L3.33337 10"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span>Start Learning</span>
-            </>
-          ) : (
-            <>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M10 4V16M4 10H16"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span>Enroll Now</span>
-            </>
+          {label === "Enroll Now" ? (
+              <>
+                {isProcessing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Plus className="w-5 h-5" />
+                )}
+                <span>{isProcessing ? "Processing..." : label}</span>
+              </>
+            ) : (
+              <>
+                <span>{label}</span>
+                <ArrowRight className="w-5 h-5" />
+              </>
           )}
         </button>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CourseBreadcrumb,
   CourseThumbnail,
@@ -17,6 +18,9 @@ import {
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
 import { useSectionContent } from "@/hooks/useSectionContent";
+import { useStartActivity, useCheckEnroll } from "@/hooks/useActivity";
+import { Toast } from "@/components/ui/Toast/Toast";
+import { createToastState } from "@/utils/toastUtils";
 import { mockReviews } from "@/features/detail-course/constants/reviews";
 
 interface DetailCoursePageProps {
@@ -27,15 +31,21 @@ interface DetailCoursePageProps {
 
 export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: courseDetail, isLoading, error } = useCourse(id);
   const { activeTab, setActiveTab } = useCourseTab(id);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const toastState = createToastState();
 
   const { data: sectionContent, isLoading: isSectionsLoading } = useSectionContent({
     courseId: id,
     enabled: activeTab === "course_contents",
   });
+
+  const { mutate: enroll, isPending: isEnrolling } = useStartActivity(id);
+  const { data: enrollStatus } = useCheckEnroll({ courseId: id });
+  const [justEnrolled, setJustEnrolled] = useState(false);
 
   if (isLoading || !courseDetail) {
     return (
@@ -62,7 +72,19 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const course = courseDetail;
 
   const handleEnrollToggle = () => {
-    setIsEnrolled(true);
+    if (isEnrolling) return;
+    const enrolled = justEnrolled || Boolean(enrollStatus?.data);
+    if (!enrolled) {
+      enroll(undefined, {
+        onSuccess: () => {
+          setIsEnrolled(true);
+          setJustEnrolled(true);
+          toastState.showSuccess("Berhasil enroll. Klik Start Learning untuk mulai.");
+        },
+      });
+      return;
+    }
+    router.push(`/my-course/${id}`);
   };
 
   const handleToggleSection = (sectionId: string) => {
@@ -93,15 +115,23 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         </div>
 
         <div className="space-y-4">
-            <CourseInfoCard
-              category={course.groupCourse.description.category}
-              rating={course.rating}
-              totalRatings={course.totalUserRating}
-              type={course.groupCourse.typeCourse}
-              isEnrolled={isEnrolled}
-              onToggle={handleEnrollToggle}
-              courseId={course.id}
-            />
+          <CourseInfoCard
+            category={course.groupCourse.description.category}
+            rating={course.rating}
+            totalRatings={course.totalUserRating}
+            type={course.groupCourse.typeCourse}
+            isEnrolled={isEnrolled}
+            onToggle={handleEnrollToggle}
+            courseId={course.id}
+            buttonLabel={
+              justEnrolled
+                ? "Start Learning"
+                : Boolean(enrollStatus?.data)
+                ? "Continue Learning"
+                : "Enroll Now"
+            }
+            isProcessing={isEnrolling}
+          />
           </div>
         </div>
 
@@ -143,6 +173,19 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             />
           )}
         </div>
+        {/* Toast */}
+        {toastState.toast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+            <Toast
+              variant={toastState.toast.variant}
+              message={toastState.toast.message}
+              onClose={toastState.dismissToast}
+              autoDismiss
+              duration={4000}
+              dismissible
+            />
+          </div>
+        )}
     </PageContainer>
     );
 }
