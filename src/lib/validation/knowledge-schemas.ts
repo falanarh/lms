@@ -91,10 +91,14 @@ export const webinarDetailsSchema = z.object({
   vbLink: optionalUrl,
   contentText: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
   noteFile: z.union([z.instanceof(File), z.string(), z.null()]).optional(), // For form state (will be transformed to contentText)
-  jpCount: z.number({
-    required_error: 'Please enter JP credits',
-    invalid_type_error: 'JP credits must be a number'
-  }).int('JP credits must be a whole number').min(0, 'JP credits cannot be negative').default(0),
+  jpCount: z
+    .number({
+      required_error: 'Please enter JP credits',
+      invalid_type_error: 'JP credits must be a number',
+    })
+    .int('JP credits must be a whole number')
+    .min(1, 'JP credits must be greater than 0')
+    .default(0),
 });
 
 // ============================================================================
@@ -116,11 +120,6 @@ export const contentDetailsSchema = z.object({
 // Custom validator function for JP Count (compatible with TanStack Form)
 export const jpCountValidator = {
   validate: (value: any) => {
-    // Allow 0 as valid value
-    if (value === 0) {
-      return undefined;
-    }
-
     // Handle empty string (user cleared the input)
     if (value === '') {
       return 'Please enter JP credits';
@@ -139,9 +138,9 @@ export const jpCountValidator = {
       return 'Please enter a valid number for JP credits';
     }
 
-    // Check if negative
-    if (num < 0) {
-      return 'JP credits cannot be negative';
+    // Disallow 0 and negative values
+    if (num <= 0) {
+      return 'JP credits must be greater than 0';
     }
 
     // Check if integer
@@ -151,7 +150,7 @@ export const jpCountValidator = {
 
     // Valid
     return undefined;
-  }
+  },
 };
 
 // Field-level validators for content details

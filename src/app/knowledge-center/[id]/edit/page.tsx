@@ -59,41 +59,40 @@ const steps = [
 // ============================================================================
 
 const EditPageSkeleton = () => (
-  <div className="min-h-screen bg-white">
-    <div className="flex">
-      {/* Left Sidebar Skeleton */}
-      <div className="w-80 bg-gray-50 border-r border-gray-200 p-6">
-        <div className="space-y-4">
-          {[1, 2, 3, 4].map((step) => (
-            <div key={step} className="flex items-center space-x-3">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-32" />
-              </div>
+  <div className="min-h-screen bg-white flex">
+    {/* Left Sidebar Skeleton */}
+    <div className="w-80 bg-gray-50 border-r border-gray-200 p-6 flex flex-col">
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center space-x-3">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-32" />
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex-1" />
+    </div>
+
+    {/* Right Content Skeleton */}
+    <div className="flex-1 flex flex-col">
+      {/* Header Skeleton */}
+      <div className="border-b border-gray-200 px-8 py-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-48 mt-2" />
       </div>
 
-      {/* Right Content Skeleton */}
-      <div className="flex-1">
-        {/* Header Skeleton */}
-        <div className="border-b border-gray-200 px-8 py-6">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-48 mt-2" />
-        </div>
-
-        {/* Content Skeleton */}
-        <div className="px-8 py-8">
-          <div className="space-y-6">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <div className="flex space-x-4">
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-            </div>
+      {/* Content Skeleton */}
+      <div className="flex-1 px-8 py-8">
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <div className="flex space-x-4">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
           </div>
         </div>
       </div>

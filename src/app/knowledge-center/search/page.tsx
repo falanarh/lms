@@ -98,6 +98,11 @@ export default function KnowledgeSearchPage() {
     return Array.from(resultMap.values());
   }, [searchResults, knowledgeItems]);
 
+  // Use paginated knowledge items from the main list API for grid & pagination,
+  // so itemsPerPage and meta from the server stay in sync.
+  const paginatedKnowledgeItems = knowledgeItems || [];
+  const currentPageCount = paginatedKnowledgeItems.length;
+
   const isLoading = isSearchLoading || isKnowledgeLoading;
   const error = searchError || knowledgeError;
 
@@ -303,10 +308,10 @@ export default function KnowledgeSearchPage() {
                 </div>
               )}
 
-              {/* Knowledge Centers Grid */}
-              {!isLoading && !error && combinedResults.length > 0 && (
+              {/* Knowledge Centers Grid - uses paginated list from API */}
+              {!isLoading && !error && paginatedKnowledgeItems.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                  {combinedResults.map((knowledge) => (
+                  {paginatedKnowledgeItems.map((knowledge) => (
                     <KnowledgeCard key={knowledge.id} knowledge={knowledge} />
                   ))}
                 </div>
@@ -336,13 +341,13 @@ export default function KnowledgeSearchPage() {
               )}
 
               {/* Pagination */}
-              {!isLoading && combinedResults.length > 0 && totalPages > 1 && (
+              {!isLoading && currentPageCount > 0 && totalPages > 1 && (
                 <div className="mt-12">
                   <div className="flex items-center justify-between">
                     {/* Showing X from Y Knowledge - Left */}
                     <div className="flex-1">
                       <p className="text-sm text-gray-600">
-                        Showing <span className="font-semibold text-gray-900">{combinedResults.length}</span> from{' '}
+                        Showing <span className="font-semibold text-gray-900">{currentPageCount}</span> from{' '}
                         <span className="font-semibold text-gray-900">{total || 0}</span> Knowledge Centers
                       </p>
                     </div>

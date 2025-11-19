@@ -653,7 +653,7 @@ export default function KnowledgeManagementList({
 
           {/* Advanced Filters */}
           {showFilters && (
-            <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm mb-8">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

@@ -176,7 +176,13 @@ export default function KnowledgeSubjectDetailPage() {
                   : 'All Resources'}
               </h2>
               <p className="text-gray-600 mt-1">
-                {total || 0} items found in {currentSubject.name}
+                {isLoading || isFetching ? (
+                  'Searching items in this subject...'
+                ) : (
+                  <>
+                    {total || 0} items found in {currentSubject.name}
+                  </>
+                )}
               </p>
             </div>
 

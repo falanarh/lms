@@ -28,6 +28,23 @@ import {
 import { Button } from '@/components/ui/Button/Button';
 import { KnowledgeCenter, ContentType, CONTENT_TYPES, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 
+type KnowledgeStatus = 'draft' | 'scheduled' | 'published';
+
+const getKnowledgeStatus = (knowledge: KnowledgeCenter): KnowledgeStatus => {
+  if (!knowledge.isFinal) {
+    return 'draft';
+  }
+
+  const publishDate = new Date(knowledge.publishedAt);
+  const now = new Date();
+
+  if (publishDate > now) {
+    return 'scheduled';
+  }
+
+  return 'published';
+};
+
 interface KnowledgeManagementCardProps {
   knowledge: KnowledgeCenter;
   onEdit: () => void;
@@ -157,6 +174,18 @@ export default function KnowledgeManagementCard({
     knowledge.webinar?.zoomDate &&
     new Date(knowledge.webinar.zoomDate) > new Date();
 
+  const status: KnowledgeStatus = getKnowledgeStatus(knowledge);
+
+  const statusBadgeClasses =
+    status === 'draft'
+      ? 'bg-yellow-100/90 text-yellow-700 border-yellow-200/50'
+      : status === 'scheduled'
+      ? 'bg-blue-100/90 text-blue-700 border-blue-200/50'
+      : 'bg-green-100/90 text-green-700 border-green-200/50';
+
+  const statusLabel =
+    status === 'draft' ? 'Draft' : status === 'scheduled' ? 'Scheduled' : 'Published';
+
   // Actions are handled by the bottom buttons instead of dropdown
 
   return (
@@ -214,12 +243,10 @@ export default function KnowledgeManagementCard({
 
         {/* Status badge */}
         <div className="absolute top-2 right-2">
-          <div className={`px-2 py-1 rounded-md text-xs font-medium backdrop-blur-sm border ${
-            knowledge.isFinal 
-              ? 'bg-green-100/90 text-green-700 border-green-200/50' 
-              : 'bg-yellow-100/90 text-yellow-700 border-yellow-200/50'
-          }`}>
-            {knowledge.isFinal ? 'Published' : 'Draft'}
+          <div
+            className={`px-2 py-1 rounded-md text-xs font-medium backdrop-blur-sm border ${statusBadgeClasses}`}
+          >
+            {statusLabel}
           </div>
         </div>
 
@@ -322,20 +349,29 @@ export default function KnowledgeManagementCard({
             onClick={onToggleStatus}
             disabled={isDeleting || isUpdating}
             className={`flex-1 ${
-              knowledge.isFinal 
-                ? 'text-yellow-600 hover:text-yellow-700 border-yellow-200 hover:border-yellow-300' 
-                : 'text-green-600 hover:text-green-700 border-green-200 hover:border-green-300'
+              status === 'draft'
+                ? 'text-green-600 hover:text-green-700 border-green-200 hover:border-green-300'
+                : status === 'scheduled'
+                ? 'text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300'
+                : 'text-yellow-600 hover:text-yellow-700 border-yellow-200 hover:border-yellow-300'
             }`}
           >
-            {knowledge.isFinal ? (
-              <>
-                <XCircle className="w-3 h-3 mr-1" />
-                Unpublish
-              </>
-            ) : (
+            {status === 'draft' && (
               <>
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Publish
+              </>
+            )}
+            {status === 'scheduled' && (
+              <>
+                <XCircle className="w-3 h-3 mr-1" />
+                Unschedule
+              </>
+            )}
+            {status === 'published' && (
+              <>
+                <XCircle className="w-3 h-3 mr-1" />
+                Unpublish
               </>
             )}
           </Button>

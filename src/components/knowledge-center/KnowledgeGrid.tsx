@@ -149,10 +149,16 @@ export default function KnowledgeGrid({
                 : 'All Resources'}
             </h2>
             <p className="text-gray-600 mt-1">
-              {total || 0} items found
-              {selectedType !== 'all' &&
-                ` • ${selectedType === 'webinar' ? 'Webinars' : 'Content'}`}
-              {selectedSubject !== 'all' && ` • ${selectedSubject}`}
+              {isLoading || isFetching ? (
+                'Searching resources...'
+              ) : (
+                <>
+                  {total || 0} items found
+                  {selectedType !== 'all' &&
+                    ` • ${selectedType === 'webinar' ? 'Webinars' : 'Content'}`}
+                  {selectedSubject !== 'all' && ` • ${selectedSubject}`}
+                </>
+              )}
             </p>
           </div>
 
