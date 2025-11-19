@@ -22,23 +22,15 @@ import {
   KnowledgeLastActivitiesResponse,
 } from '@/types/knowledge-center';
 import { API_ENDPOINTS, API_CONFIG } from '@/config/api';
-
-// Hardcoded penyelenggara data for dropdown (temporary until API ready)
-export const PENYELENGGARA_DATA = [
-  { value: 'Politeknik Statistika STIS', label: 'Politeknik Statistika STIS' },
-  { value: 'Pusdiklat BPS', label: 'Pusdiklat BPS' },
-  { value: 'Pusdiklat BPS RI', label: 'Pusdiklat BPS RI' },
-  { value: 'Badan Pusat Statistik', label: 'Badan Pusat Statistik' },
-  { value: 'BPS', label: 'BPS' },
-];
+import { knowledgeKeys } from '@/lib/query-keys';
+import { CACHE_TIMES } from '@/constants/knowledge';
+import { ApiError, NetworkError } from '@/lib/errors/knowledge-errors';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 12;
-const DEFAULT_STALE_TIME = 1000 * 60 * 5; // 5 minutes
-const DEFAULT_GC_TIME = 1000 * 60 * 10; // 10 minutes
 
 const sanitizeKnowledgeParams = (params: KnowledgeQueryParams = {}) => {
-  const query: Record<string, any> = {};
+  const query: Record<string, unknown> = {};
 
   // Pagination parameters (API uses perPage, not limit)
   query.page = params.page ?? DEFAULT_PAGE;
@@ -143,15 +135,10 @@ const sanitizeKnowledgeParams = (params: KnowledgeQueryParams = {}) => {
   return query;
 };
 
-const serializeKnowledgeParams = (params: KnowledgeQueryParams = {}) =>
-  JSON.stringify(sanitizeKnowledgeParams(params));
+export const getKnowledgeQueryKey = (params: KnowledgeQueryParams = {}) =>
+  knowledgeKeys.list(params);
 
-export const getKnowledgeQueryKey = (params: KnowledgeQueryParams = {}) => [
-  'knowledge-centers',
-  serializeKnowledgeParams(params),
-] as const;
-
-export const getKnowledgeDetailQueryKey = (id: string) => ['knowledge-centers', 'detail', id] as const;
+export const getKnowledgeDetailQueryKey = (id: string) => knowledgeKeys.detail(id);
 
 // Helper functions for building API-compliant query parameters
 export const buildKnowledgeQueryParams = {
@@ -194,13 +181,13 @@ export const buildKnowledgeQueryParams = {
     byType: (type: 'webinar' | 'content') => ({ type }),
     byTypes: (types: Array<'webinar' | 'content'>) => ({ 'type[in]': types.join(',') }),
     byViewCount: (min?: number, max?: number) => {
-      const filters: any = {};
+      const filters: Record<string, number> = {};
       if (min !== undefined) filters['viewCount[gte]'] = min;
       if (max !== undefined) filters['viewCount[lte]'] = max;
       return filters;
     },
     byLikeCount: (min?: number, max?: number) => {
-      const filters: any = {};
+      const filters: Record<string, number> = {};
       if (min !== undefined) filters['likeCount[gte]'] = min;
       if (max !== undefined) filters['likeCount[lte]'] = max;
       return filters;
@@ -210,7 +197,7 @@ export const buildKnowledgeQueryParams = {
       startDate?: string,
       endDate?: string
     ) => {
-      const filters: any = {};
+      const filters: Record<string, string> = {};
       if (startDate) filters[`${field}[gte]`] = startDate;
       if (endDate) filters[`${field}[lte]`] = endDate;
       return filters;
@@ -252,7 +239,15 @@ export const fetchKnowledgeCenters = async (
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Failed to connect to knowledge center server');
+      // Network-level error (no response from server)
+      if (!error.response) {
+        throw new NetworkError('Failed to connect to knowledge center server');
+      }
+
+      const statusCode = error.response.status ?? 500;
+      const data = error.response.data as { message?: string } | undefined;
+      const message = data?.message ?? 'Failed to fetch knowledge centers';
+      throw new ApiError(message, statusCode);
     }
     throw error;
   }
@@ -272,7 +267,15 @@ export const fetchKnowledgeCenterById = async (id: string): Promise<KnowledgeCen
     return response.data.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Failed to connect to knowledge center server');
+      if (!error.response) {
+        throw new NetworkError('Failed to connect to knowledge center server');
+      }
+
+      const statusCode = error.response.status ?? 500;
+      const data = error.response.data as { message?: string } | undefined;
+      const message =
+        data?.message ?? 'Failed to fetch knowledge center detail';
+      throw new ApiError(message, statusCode);
     }
     throw error;
   }
@@ -280,10 +283,9 @@ export const fetchKnowledgeCenterById = async (id: string): Promise<KnowledgeCen
 
 export const getKnowledgeQueryOptions = (params: KnowledgeQueryParams = {}) =>
   queryOptions({
-    queryKey: getKnowledgeQueryKey(params),
+    queryKey: knowledgeKeys.list(params),
     queryFn: () => fetchKnowledgeCenters(params),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
+    ...CACHE_TIMES.knowledgeList,
   });
 
 const deleteKnowledgeCentersApi = async (ids: string[]): Promise<void> => {
@@ -302,7 +304,14 @@ const deleteKnowledgeCentersApi = async (ids: string[]): Promise<void> => {
   } catch (error) {
     console.error('Error deleting knowledge center(s):', error);
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Failed to delete knowledge center(s)');
+      if (!error.response) {
+        throw new NetworkError('Failed to connect to knowledge center server');
+      }
+
+      const statusCode = error.response.status ?? 500;
+      const message =
+        (error.response.data as any)?.message || 'Failed to delete knowledge center(s)';
+      throw new ApiError(message, statusCode);
     }
     throw error;
   }
@@ -310,10 +319,9 @@ const deleteKnowledgeCentersApi = async (ids: string[]): Promise<void> => {
 
 export const getKnowledgeDetailQueryOptions = (id: string) =>
   queryOptions({
-    queryKey: getKnowledgeDetailQueryKey(id),
+    queryKey: knowledgeKeys.detail(id),
     queryFn: () => fetchKnowledgeCenterById(id),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
+    ...CACHE_TIMES.knowledgeDetail,
   });
 
 // Knowledge CRUD operations
@@ -337,12 +345,24 @@ export const knowledgeCenterApi = {
       );
 
       if (response.data.status !== 200) {
-        throw new Error(response.data.message || 'Failed to fetch knowledge center stats');
+        const statusCode = response.data.status ?? 500;
+        const message = response.data.message || 'Failed to fetch knowledge center stats';
+        throw new ApiError(message, statusCode);
       }
 
       return response.data.data.stats;
     } catch (error) {
       console.error('Error fetching knowledge center stats:', error);
+      if (axios.isAxiosError(error)) {
+        if (!error.response) {
+          throw new NetworkError('Failed to connect to knowledge center server');
+        }
+
+        const statusCode = error.response.status ?? 500;
+        const data = error.response.data as { message?: string } | undefined;
+        const message = data?.message ?? 'Failed to fetch knowledge center stats';
+        throw new ApiError(message, statusCode);
+      }
       throw error;
     }
   },
@@ -355,12 +375,26 @@ export const knowledgeCenterApi = {
       );
 
       if (response.data.status !== 200) {
-        throw new Error(response.data.message || 'Failed to fetch knowledge center overview stats');
+        const statusCode = response.data.status ?? 500;
+        const message =
+          response.data.message || 'Failed to fetch knowledge center overview stats';
+        throw new ApiError(message, statusCode);
       }
 
       return response.data.data.stats;
     } catch (error) {
       console.error('Error fetching knowledge center overview stats:', error);
+      if (axios.isAxiosError(error)) {
+        if (!error.response) {
+          throw new NetworkError('Failed to connect to knowledge center server');
+        }
+
+        const statusCode = error.response.status ?? 500;
+        const data = error.response.data as { message?: string } | undefined;
+        const message =
+          data?.message ?? 'Failed to fetch knowledge center overview stats';
+        throw new ApiError(message, statusCode);
+      }
       throw error;
     }
   },
@@ -373,12 +407,26 @@ export const knowledgeCenterApi = {
       );
 
       if (response.data.status !== 200) {
-        throw new Error(response.data.message || 'Failed to fetch knowledge center last activities');
+        const statusCode = response.data.status ?? 500;
+        const message =
+          response.data.message || 'Failed to fetch knowledge center last activities';
+        throw new ApiError(message, statusCode);
       }
 
       return response.data.data;
     } catch (error) {
       console.error('Error fetching knowledge center last activities:', error);
+      if (axios.isAxiosError(error)) {
+        if (!error.response) {
+          throw new NetworkError('Failed to connect to knowledge center server');
+        }
+
+        const statusCode = error.response.status ?? 500;
+        const data = error.response.data as { message?: string } | undefined;
+        const message =
+          data?.message ?? 'Failed to fetch knowledge center last activities';
+        throw new ApiError(message, statusCode);
+      }
       throw error;
     }
   },

@@ -21,37 +21,31 @@ import type {
   ApiResponse,
 } from '@/types/api-response';
 import { API_BASE_URL, API_CONFIG } from '@/config/api';
+import { subjectKeys } from '@/lib/query-keys';
+import { CACHE_TIMES } from '@/constants/knowledge';
 
 // Base URL for Knowledge Subject API
-const KNOWLEDGE_SUBJECT_API_BASE = API_BASE_URL|| 'http://localhost:3001/api';
+const KNOWLEDGE_SUBJECT_API_BASE = API_BASE_URL || 'http://localhost:3001/api';
 const KNOWLEDGE_SUBJECT_BASE_URL = `${KNOWLEDGE_SUBJECT_API_BASE}/knowledge-subjects`;
 
-// Default cache settings
-const DEFAULT_STALE_TIME = 1000 * 60 * 10; // 10 minutes
-const DEFAULT_GC_TIME = 1000 * 60 * 15; // 15 minutes
-
-// Query keys
-export const KNOWLEDGE_SUBJECTS_QUERY_KEY = ['knowledge-subjects'] as const;
-export const KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY = (id: string) => ['knowledge-subjects', 'detail', id] as const;
+// Query keys - alias ke subjectKeys untuk backward compatibility
+export const KNOWLEDGE_SUBJECTS_QUERY_KEY = subjectKeys.all;
+export const KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY = (id: string) => subjectKeys.detail(id);
 
 // Query options for React Query
 export const getKnowledgeSubjectsQueryOptions = () =>
   queryOptions({
-    queryKey: KNOWLEDGE_SUBJECTS_QUERY_KEY,
+    queryKey: subjectKeys.all,
     queryFn: fetchKnowledgeSubjects,
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
+    ...CACHE_TIMES.subjects,
   });
 
 export const getKnowledgeSubjectDetailQueryOptions = (id: string) =>
   queryOptions({
-    queryKey: KNOWLEDGE_SUBJECT_DETAIL_QUERY_KEY(id),
+    queryKey: subjectKeys.detail(id),
     queryFn: () => fetchKnowledgeSubjectById(id),
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
+    ...CACHE_TIMES.subjects,
   });
-
-// API Functions
 
 /**
  * Fetch all knowledge subjects

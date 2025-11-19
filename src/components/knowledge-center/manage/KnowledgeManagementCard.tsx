@@ -180,6 +180,7 @@ export default function KnowledgeManagementCard({
             src={getThumbnailUrl(knowledge.thumbnail)}
             alt={knowledge.title}
             fill
+            priority
             className="object-cover"
             onError={() => setImageError(true)}
             unoptimized={knowledge.thumbnail.includes('youtube.com')}

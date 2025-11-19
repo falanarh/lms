@@ -11,8 +11,8 @@
 
 "use client";
 
-import React, { useState, useRef } from "react";
-import { User, X, Settings } from "lucide-react";
+import React, { useState } from "react";
+import { User, Settings } from "lucide-react";
 import type { UseKnowledgeWizardFormReturn } from "@/hooks/useKnowledgeWizardForm";
 import type { Penyelenggara } from "@/types/knowledge-center";
 import type { KnowledgeSubject } from "@/types/knowledge-subject";
@@ -47,7 +47,7 @@ export interface SubjectHandlers {
 export interface BasicInfoFormProps {
   wizard: UseKnowledgeWizardFormReturn;
   subjects: KnowledgeSubject[];
-  penyelenggara: Penyelenggara[];
+  penyelenggara: readonly Penyelenggara[];
   subjectHandlers?: SubjectHandlers;
 }
 
@@ -62,13 +62,11 @@ export default function BasicInfoForm({
   subjectHandlers,
 }: BasicInfoFormProps) {
   const [showSubjectManager, setShowSubjectManager] = useState(false);
-  const [localTagInput, setLocalTagInput] = useState("");
 
-  const { form, thumbnailPreview, formValues } = wizard;
+  const { form, thumbnailPreview } = wizard;
   const { handleThumbnailSelect, handleThumbnailRemove } = wizard;
 
   // Access tags directly from form values
-  const currentTags = formValues.tags || [];
 
   return (
     <div className="space-y-5">

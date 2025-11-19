@@ -159,6 +159,7 @@ export default function KnowledgeCard({
               src={getThumbnailUrl(knowledge.thumbnail)}
               alt={knowledge.title}
               fill
+              priority
               className="object-cover group-hover:scale-105 transition-transform duration-200"
               onError={() => setImageError(true)}
               unoptimized={knowledge.thumbnail.includes('youtube.com') || knowledge.thumbnail.includes('r2.dev')}
