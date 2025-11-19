@@ -571,7 +571,7 @@ export const useCreateKnowledgePage = ({
 
         // Clear uploading state and navigate to knowledge center on success
         setIsUploadingFiles(false);
-        router.push('/knowledge-center');
+        router.push('/knowledge-center/manage');
       } catch (error) {
         console.error('Failed to create knowledge:', error);
         
@@ -776,6 +776,7 @@ export const useEditKnowledgePage = ({
 }: UseEditKnowledgePageParams) => {
   const queryClient = useQueryClient();
   const [submittingAs, setSubmittingAs] = useState<'draft' | 'published' | null>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   // Fetch existing knowledge center data
   const {
@@ -915,16 +916,23 @@ export const useEditKnowledgePage = ({
   // Handle form submission
   const handleSubmit = useCallback(
     async (submitAs: 'draft' | 'published') => {
-      try {
-        // Get current form values
-        const formData = wizard.formValues as any;
+      // Get current form values
+      const formData = wizard.formValues as any;
 
-        // Shared validation helper (same dengan create)
-        const validationError = validateFormDataForSubmission(formData);
-        if (validationError) {
-          onError(validationError);
-          return;
-        }
+      // Set which button was clicked (sama seperti create)
+      setSubmittingAs(submitAs);
+
+      // Shared validation helper (same dengan create)
+      const validationError = validateFormDataForSubmission(formData);
+      if (validationError) {
+        onError(validationError);
+        setSubmittingAs(null);
+        return;
+      }
+
+      try {
+        // Set uploading state sebelum mulai upload thumbnail/file
+        setIsUploadingFiles(true);
 
         // Clone form values supaya aman dimodifikasi
         const updatedFormValues = { ...formData };
@@ -942,6 +950,8 @@ export const useEditKnowledgePage = ({
           } catch (uploadError: any) {
             console.error('Failed to upload thumbnail during update:', uploadError);
             parseApiErrors(uploadError, wizard.form, onError);
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
@@ -971,6 +981,8 @@ export const useEditKnowledgePage = ({
               ...prev,
               errors: ['Failed to upload media file. Please try again.'],
             }));
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
@@ -989,6 +1001,8 @@ export const useEditKnowledgePage = ({
               ...prev,
               errors: ['Failed to upload PDF notes. Please try again.'],
             }));
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
@@ -1005,6 +1019,9 @@ export const useEditKnowledgePage = ({
           id: knowledgeId,
           data: apiData,
         });
+
+        // Clear uploading state on success
+        setIsUploadingFiles(false);
       } catch (error: any) {
         onError(
           error.message ||
@@ -1012,6 +1029,8 @@ export const useEditKnowledgePage = ({
               submitAs === 'published' ? 'publish' : 'save'
             } knowledge center`,
         );
+        setIsUploadingFiles(false);
+        setSubmittingAs(null);
       }
     },
     [wizard, knowledgeId, updateMutation, onError],
@@ -1024,7 +1043,7 @@ export const useEditKnowledgePage = ({
 
     // Submission handler
     handleSubmit,
-    isUpdating: updateMutation.isPending,
+    isUpdating: isUploadingFiles || updateMutation.isPending,
     submittingAs,
 
     // Data loading
