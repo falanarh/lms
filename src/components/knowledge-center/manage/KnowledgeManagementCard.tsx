@@ -176,6 +176,10 @@ export default function KnowledgeManagementCard({
 
   const status: KnowledgeStatus = getKnowledgeStatus(knowledge);
 
+  const publishDate = knowledge.publishedAt ? new Date(knowledge.publishedAt) : null;
+  const isFuturePublishDate =
+    !!publishDate && !isNaN(publishDate.getTime()) && publishDate > new Date();
+
   const statusBadgeClasses =
     status === 'draft'
       ? 'bg-yellow-100/90 text-yellow-700 border-yellow-200/50'
@@ -185,6 +189,13 @@ export default function KnowledgeManagementCard({
 
   const statusLabel =
     status === 'draft' ? 'Draft' : status === 'scheduled' ? 'Scheduled' : 'Published';
+
+  const statusActionButtonClasses =
+    status === 'draft'
+      ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-sm'
+      : status === 'scheduled'
+      ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 shadow-sm'
+      : 'bg-yellow-500 hover:bg-yellow-600 text-gray-900 border-yellow-500 hover:border-yellow-600 shadow-sm';
 
   // Actions are handled by the bottom buttons instead of dropdown
 
@@ -344,22 +355,16 @@ export default function KnowledgeManagementCard({
           </Button>
           
           <Button
-            variant="outline"
+            variant="solid"
             size="sm"
             onClick={onToggleStatus}
             disabled={isDeleting || isUpdating}
-            className={`flex-1 ${
-              status === 'draft'
-                ? 'text-green-600 hover:text-green-700 border-green-200 hover:border-green-300'
-                : status === 'scheduled'
-                ? 'text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300'
-                : 'text-yellow-600 hover:text-yellow-700 border-yellow-200 hover:border-yellow-300'
-            }`}
+            className={`flex-1 ${statusActionButtonClasses}`}
           >
             {status === 'draft' && (
               <>
                 <CheckCircle className="w-3 h-3 mr-1" />
-                Publish
+                {isFuturePublishDate ? 'Schedule' : 'Publish'}
               </>
             )}
             {status === 'scheduled' && (
