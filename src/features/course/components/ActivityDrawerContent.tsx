@@ -232,13 +232,13 @@ export function ActivityDrawerContent({
 
   // Function to calculate the next sequence number
   const calculateNextSequence = (sectionId: string): number => {
-    if (!sectionsData?.data) return 1;
+    if (!sectionsData || sectionsData.length === 0) return 1;
 
-    const section = sectionsData.data.find(section => section.id === sectionId);
-    if (!section?.listContent || section.listContent.length === 0) return 1;
+    const section = sectionsData.find(section => section.id === sectionId);
+    if (!section?.listContents || section.listContents.length === 0) return 1;
 
     // Find the highest sequence number and add 1
-    const maxSequence = Math.max(...section.listContent.map(content => content.sequence || 0));
+    const maxSequence = Math.max(...section.listContents.map(content => content.sequence || 0));
     return maxSequence + 1;
   };
 
@@ -821,6 +821,7 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
+              size: "-",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -836,6 +837,7 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
+              size: "-",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -1903,7 +1905,6 @@ export function ActivityDrawerContent({
                   currentPage={bankContentPage}
                   totalPages={pageMeta.totalPageCount}
                   onPageChange={handleBankContentPageChange}
-                  showPerPageSelector={false}
                 />
               </div>
             )}
@@ -2085,12 +2086,6 @@ export function ActivityDrawerContent({
               )}
             />
 
-            {/* Only show completion sections for TASK and QUIZ */}
-            {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
-              <CompletionSection />
-            )}
-
-
             {showMaterialsList && (
               <div className="mt-6">
                 <Label className="mb-3 block">Materi Pembelajaran</Label>
@@ -2121,6 +2116,11 @@ export function ActivityDrawerContent({
               </div>
             )}
           </>
+        )}
+
+        {/* Only show completion sections for TASK and QUIZ */}
+        {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
+          <CompletionSection />
         )}
 
         {selectedActivityType === "VIDEO" && (
@@ -2965,7 +2965,7 @@ export function ActivityDrawerContent({
       <QuizQuestionsManager
         quizInfo={quizInfo}
         onBack={() => setShowQuizQuestionsManager(false)}
-        onSaveQuiz={(savedQuizInfo, questions, questionsToSave) => {
+        onSaveQuiz={(savedQuizInfo, questions) => {
           // Update form values with quiz info
           form.setFieldValue("name", savedQuizInfo.title);
           form.setFieldValue("description", savedQuizInfo.description || "");
@@ -2978,17 +2978,19 @@ export function ActivityDrawerContent({
           setQuizGradeToPass(savedQuizInfo.passingScore?.toString() || "60");
 
           // Store questions to save when quiz is created (for create mode)
-          if (questionsToSave && !contentId) {
+          if (questions && !contentId) {
             // Save questions to state for later use when quiz is created
-            (window as any).tempQuestionsToSave = questionsToSave;
-            console.log("Questions prepared for bulk creation:", questionsToSave);
+            (window as any).tempQuestionsToSave = questions;
+            console.log("Questions prepared for bulk creation:", questions);
           }
 
           setShowQuizQuestionsManager(false);
-          showToastMessage("Soal kuis berhasil disimpan!", "success");
+          setShowToast(true);
+          setToastMessage("Soal kuis berhasil disimpan!");
+          setToastVariant("success");
         }}
         initialQuestions={[]} // Will be populated from backend later
-        contentId={contentId} // Pass the contentId for API calls
+        quizId={contentId || "new"} // Pass the contentId as quizId, fallback to "new" for new quizzes
       />
     );
   }

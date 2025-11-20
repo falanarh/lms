@@ -126,9 +126,9 @@ export const useUpdateQuizWithContent = (
       await queryClient.invalidateQueries({ queryKey: ["quizzes"] });
       await queryClient.invalidateQueries({ queryKey: ["contents"] });
       // Also invalidate specific quiz by ID
-      if (args[0]?.quiz?.idContent) {
+      if (args[0]?.idContent) {
         await queryClient.invalidateQueries({
-          queryKey: getQuizByIdQueryKey(args[0].quiz.idContent),
+          queryKey: getQuizByIdQueryKey(args[0].idContent),
         });
       }
       await config.onSuccess?.(...args);

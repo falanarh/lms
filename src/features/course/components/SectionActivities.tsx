@@ -63,6 +63,8 @@ interface Section {
   description?: string;
   activities: Activity[];
   sequence: number;
+  idGroup?: string;
+  listContent?: Content[];
 }
 
 interface SectionActivitiesProps {
@@ -264,12 +266,12 @@ export function SectionActivities({
 
   // ✅ SIMPLIFIED: Transform sections data directly (no separate contents fetch needed)
   const sectionsFromMemo = useMemo<Section[]>(() => {
-    if (!sectionsData?.data) {
+    if (!sectionsData) {
       console.log("⚠️ No sections data available");
       return [];
     }
 
-    const sectionsArray = sectionsData.data.filter(Boolean);
+    const sectionsArray = sectionsData.filter(Boolean);
     
     console.log("📊 Processing sections:", {
       totalSections: sectionsArray.length,
@@ -277,7 +279,7 @@ export function SectionActivities({
     });
 
     const filteredSections = groupId
-      ? sectionsArray.filter((s) => s?.idGroup === groupId)
+      ? sectionsArray.filter((s) => (s as any)?.idGroup === groupId)
       : sectionsArray;
 
     const processedSections = filteredSections
@@ -285,7 +287,7 @@ export function SectionActivities({
       .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
       .map((section) => {
         // ✅ Use listContent directly from API response
-        const sectionActivities = (section.listContent || [])
+        const sectionActivities = (section.listContents || [])
           .filter((content) => content && content.id)
           .sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
           .map((content) => ({
@@ -311,7 +313,7 @@ export function SectionActivities({
 
     console.log("✅ Processed sections:", processedSections.length);
     return processedSections;
-  }, [sectionsData?.data, groupId]);
+  }, [sectionsData, groupId]);
 
   const displayedSections = useMemo(() => {
     const combined = [...sectionsFromMemo, ...localSections];
@@ -483,8 +485,8 @@ export function SectionActivities({
     console.log("✏️ Editing activity:", { sectionId, activityId });
     
     // ✅ Find activity from section's listContent
-    const section = sectionsData?.data.find(s => s.id === sectionId);
-    const activityData = section?.listContent?.find(content => content.id === activityId);
+    const section = sectionsData?.find(s => s.id === sectionId);
+    const activityData = section?.listContents?.find(content => content.id === activityId);
     
     if (activityData && onEditActivity) {
       onEditActivity(sectionId, activityId, activityData as Content);

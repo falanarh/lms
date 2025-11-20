@@ -226,14 +226,14 @@ export async function parseQuizExcel(file: File): Promise<{
 */
 export function excelRowToQuizQuestion(row: ExcelQuestionRow, order: number) {
   const tipeSoal = row['Tipe Soal'].toLowerCase().trim();
-  let questionType: 'multiple_choice' | 'short_answer' | 'true_false';
+  let questionType: 'multiple_choice' | 'essay' | 'true_false';
   
   if (tipeSoal === 'pilihan ganda') {
     questionType = 'multiple_choice';
   } else if (tipeSoal === 'benar/salah') {
     questionType = 'true_false';
   } else {
-    questionType = 'short_answer';
+    questionType = 'essay';
   }
 
   // Build options for multiple choice
@@ -245,7 +245,7 @@ export function excelRowToQuizQuestion(row: ExcelQuestionRow, order: number) {
   ].filter(opt => opt.text !== '') : undefined;
 
   // For essay questions, always provide a non-empty answer
-  const answer = questionType === 'short_answer' 
+  const answer = questionType === 'essay'
     ? { answer: (row['Jawaban Benar']?.toString().trim() || '1') } // Ensure answer is never empty
     : undefined;
 

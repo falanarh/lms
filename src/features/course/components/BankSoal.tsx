@@ -39,7 +39,7 @@ import { useMasterQuestions, useCreateMasterQuestion, useUpdateMasterQuestion, u
 import { Input } from "@/components/ui/Input";
 
 // Types for Bank Soal - matching QuizQuestionsManager structure
-interface BankQuestion {
+export interface BankQuestion {
   id: string;
   questionText: string;
   questionType: "multiple_choice" | "true_false" | "short_answer";
@@ -74,8 +74,6 @@ const QUESTION_TYPES = [
 ];
 
 
-// Type alias for question type
-type QuestionType = BankQuestion['questionType'];
 
 // Question Form Component - matching QuizQuestionsManager structure
 const QuestionForm = ({
@@ -401,10 +399,10 @@ const QuestionForm = ({
           Batal
         </Button>
         <Button
-          variant="primary"
+          variant="solid"
           onClick={handleSubmit}
           disabled={isLoading}
-          loading={isLoading ? "true" : undefined}
+          isLoading={isLoading}
         >
           {question ? "Perbarui" : "Simpan"} Pertanyaan
         </Button>
@@ -560,42 +558,36 @@ export function BankSoal() {
 
   // Add mutation hooks
   const createMasterQuestionMutation = useCreateMasterQuestion({
-    mutationConfig: {
-      onSuccess: () => {
-        showToastMessage("success", "✅ Soal berhasil ditambahkan!");
-        setIsCreateDrawerOpen(false);
-        refetch();
-      },
-      onError: (error: any) => {
-        showToastMessage("warning", `${error.message || "Gagal menambah soal"}`);
-      },
-    }
+    onSuccess: () => {
+      showToastMessage("success", "✅ Soal berhasil ditambahkan!");
+      setIsCreateDrawerOpen(false);
+      refetch();
+    },
+    onError: (error: any) => {
+      showToastMessage("warning", `${error.message || "Gagal menambah soal"}`);
+    },
   });
 
   const updateMasterQuestionMutation = useUpdateMasterQuestion({
-    mutationConfig: {
-      onSuccess: () => {
-        showToastMessage("success", "✅ Soal berhasil diperbarui!");
-        setIsEditDrawerOpen(false);
-        setEditingQuestion(null);
-        refetch();
-      },
-      onError: (error: any) => {
-        showToastMessage("warning", `${error.message || "Gagal memperbarui soal"}`);
-      },
-    }
+    onSuccess: () => {
+      showToastMessage("success", "✅ Soal berhasil diperbarui!");
+      setIsEditDrawerOpen(false);
+      setEditingQuestion(null);
+      refetch();
+    },
+    onError: (error: any) => {
+      showToastMessage("warning", `${error.message || "Gagal memperbarui soal"}`);
+    },
   });
 
   const deleteMasterQuestionMutation = useDeleteMasterQuestion({
-    mutationConfig: {
-      onSuccess: () => {
-        showToastMessage("success", "✅ Soal berhasil dihapus!");
-        refetch();
-      },
-      onError: (error: any) => {
-        showToastMessage("warning", `${error.message || "Gagal menghapus soal"}`);
-      },
-    }
+    onSuccess: () => {
+      showToastMessage("success", "✅ Soal berhasil dihapus!");
+      refetch();
+    },
+    onError: (error: any) => {
+      showToastMessage("warning", `${error.message || "Gagal menghapus soal"}`);
+    },
   });
 
   // Use API data directly (API handles search and pagination)
@@ -715,7 +707,7 @@ export function BankSoal() {
     setDeleteConfirm({
       isOpen: true,
       id: question.id,
-      title: question.title,
+      title: question.title || "Pertanyaan",
     });
   };
 

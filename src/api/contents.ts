@@ -10,6 +10,8 @@ export type Content = {
   description: string;
   contentStart: string;
   contentEnd: string;
+  // Optional deadline field used by TASK UI; often mirrors contentEnd
+  deadline?: string;
   sequence: number;
   createdAt?: string;
   updatedAt?: string;

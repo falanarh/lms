@@ -5,7 +5,7 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { QuizQuestionsManager, QuizInfo, QuizQuestion } from "@/features/course/components/QuizQuestionsManager";
 import { 
   useQuizById, 
-  useUpdateQuizWithContent,
+  useUpdateQuiz,
 } from "@/hooks/useQuiz";
 import { useQuestions } from "@/hooks/useQuestions";
 
@@ -34,7 +34,7 @@ export default function QuizPage({ params }: QuizPageProps) {
     isLoading: isLoadingQuestions,
   } = useQuestions(resolvedParams.quizId, currentPage, perPage);
 
-  const updateQuizMutation = useUpdateQuizWithContent();
+  const updateQuizMutation = useUpdateQuiz();
 
   const isLoading = isLoadingQuiz || isLoadingQuestions;
   const error = quizError ? "Failed to load quiz data" : null;
@@ -48,16 +48,11 @@ export default function QuizPage({ params }: QuizPageProps) {
       await updateQuizMutation.mutateAsync({
         id: resolvedParams.quizId,
         data: {
-          content: {
-            name: quizInfo.title,
-            description: quizInfo.description || "",
-          },
-          quiz: {
-            timeLimit: quizInfo.timeLimit,
-            shuffleQuestions: quizInfo.shuffleQuestions,
-            passingScore: quizInfo.passingScore,
-          }
-        }
+          // Map QuizInfo fields to QuizUpdateRequest shape
+          durationLimit: quizInfo.timeLimit,
+          shuffleQuestions: quizInfo.shuffleQuestions,
+          passingScore: quizInfo.passingScore,
+        },
       });
       router.push(`/course/manage`);
     } catch (err) {
@@ -245,8 +240,8 @@ export default function QuizPage({ params }: QuizPageProps) {
     let correctAnswer = undefined;
 
     if (questionType === "multiple_choice" && q.optionsText && q.optionsText.length > 0) {
-      // Fix: Use q.answer.answer instead of q.answers?.[0]?.answer
-      const correctAnswerText = q.answer?.answer || "";
+      // Extract correct answer from first entry in answers array
+      const correctAnswerText = q.answers?.[0]?.answer || "";
       correctAnswer = correctAnswerText; // Set correctAnswer for multiple choice too
       options = q.optionsText.map((text, idx) => ({
         id: String(idx),
@@ -255,12 +250,12 @@ export default function QuizPage({ params }: QuizPageProps) {
         order: idx,
       }));
     } else if (questionType === "true_false") {
-      // Fix: Use q.answer.answer instead of q.answers?.[0]?.answer
-      const answerValue = q.answer?.answer?.toLowerCase();
+      // Extract true/false value from first entry in answers array
+      const answerValue = q.answers?.[0]?.answer?.toLowerCase();
       correctAnswer = answerValue === "true" ? "true" : "false";
     } else if (questionType === "essay") {
       // For essay questions, the answer is the expected answer text
-      correctAnswer = q.answer?.answer || "";
+      correctAnswer = q.answers?.[0]?.answer || "";
     }
 
     return {
@@ -287,9 +282,9 @@ export default function QuizPage({ params }: QuizPageProps) {
           <div className="py-4">
             <Breadcrumb
               items={[
-                { key: "courses", label: "Courses", href: "/course" },
-                { key: "manage", label: "Manage Course", href: "/course/manage" },
-                { key: "quiz", label: quiz.content?.name || "Quiz", href: `/course/${resolvedParams.id}/quiz/${resolvedParams.quizId}` },
+                { label: "Courses", href: "/course" },
+                { label: "Manage Course", href: "/course/manage" },
+                { label: quiz.content?.name || "Quiz", href: `/course/${resolvedParams.id}/quiz/${resolvedParams.quizId}`, isActive: true },
               ]}
             />
           </div>
@@ -302,7 +297,7 @@ export default function QuizPage({ params }: QuizPageProps) {
           id: quiz.idContent,
           title: quiz.content?.name || 'Quiz',
           description: quiz.content?.description || '',
-          timeLimit: quiz.timeLimit,
+          timeLimit: quiz.timeLimit ?? quiz.durationLimit,
           shuffleQuestions: quiz.shuffleQuestions || false,
           passingScore: quiz.passingScore,
           totalQuestions: totalQuestions,

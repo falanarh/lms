@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 
 interface ModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   title?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
@@ -35,8 +35,10 @@ export function Modal({
   if (!isOpen) return null;
 
   const handleClose = () => {
-    onClose();
+    onClose?.();
   };
+
+  const showHeader = !!title || typeof onClose === "function";
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -53,7 +55,7 @@ export function Modal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          {(title || onClose) && (
+          {showHeader && (
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
               <div className="flex items-center justify-between">
                 {title && (
@@ -61,7 +63,7 @@ export function Modal({
                     {title}
                   </h2>
                 )}
-                {onClose && (
+                {typeof onClose === "function" && (
                   <button
                     type="button"
                     onClick={handleClose}

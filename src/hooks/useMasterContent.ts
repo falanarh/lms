@@ -1,7 +1,7 @@
 import {createContent, deleteContent, updateContent, updateContentsSequence} from "@/api/contents";
-import { createMasterContent, getMasterContents, updateMasterContent, deleteMasterContent } from "@/api/masterContent";
-import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { createMasterContent, getMasterContents, updateMasterContent, deleteMasterContent, type MasterContent } from "@/api/masterContent";
+import { MutationConfig, queryClient } from "@/lib/queryClient";
+import { queryOptions, useMutation, useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
 export const getMasterContentQueryKey = (page: number = 1, perPage: number = 10, searchQuery?: string, type?: string) => ["master-contents", page, perPage, searchQuery || "", type || ""]
 
@@ -19,7 +19,7 @@ type UseMasterContentParams = {
     perPage?: number;
     searchQuery?: string;
     type?: string;
-    queryConfig?: QueryConfig<ReturnType<typeof getMasterContentQueryOptions>>
+    queryConfig?: UseQueryOptions<ReturnType<typeof getMasterContentQueryOptions>>
 }
 
 export const useMasterContents = (params: UseMasterContentParams = {}) => {
@@ -46,7 +46,7 @@ export const useCreateMasterContent = (
 }
 
 export const useUpdateMasterContent = (
-  config: MutationConfig<typeof updateMasterContent> = {}
+  config: MutationConfig<({ id, updatedContent }: { id: string; updatedContent: Partial<Omit<MasterContent, "id" | "createdAt" | "updatedAt">> }) => Promise<MasterContent>> = {}
 ) => {
   return useMutation({
     mutationFn: ({ id, updatedContent }: { id: string; updatedContent: Partial<Omit<MasterContent, "id" | "createdAt" | "updatedAt">> }) =>

@@ -42,10 +42,7 @@ const pdfFileSchema = z.instanceof(File, {
 
 // Step 1: Content Type Selection
 const contentTypeStepSchema = z.object({
-  type: z.enum([KNOWLEDGE_TYPES.WEBINAR, KNOWLEDGE_TYPES.CONTENT], {
-    required_error: 'Please select a content type',
-    invalid_type_error: 'Invalid content type',
-  }),
+  type: z.enum([KNOWLEDGE_TYPES.WEBINAR, KNOWLEDGE_TYPES.CONTENT]),
 });
 
 // Step 2: Basic Information
@@ -59,9 +56,7 @@ const basicInfoStepSchema = z.object({
   thumbnail: z.union([
     imageFileSchema,
     z.string().min(1, 'Thumbnail is required'),
-  ], {
-    required_error: 'Thumbnail is required',
-  }),
+  ]).refine((val) => val !== null && val !== undefined, 'Thumbnail is required'),
   tags: z.array(z.string()).optional(),
 });
 
@@ -86,9 +81,7 @@ const contentDetailsStepSchema = z.object({
       CONTENT_TYPES.VIDEO,
       CONTENT_TYPES.PODCAST,
       CONTENT_TYPES.FILE,
-    ], {
-      required_error: 'Please select a content type',
-    }),
+    ]).refine((val) => val !== null && val !== undefined, 'Please select a content type'),
     mediaUrl: z.string().optional(),
     document: z.string().optional(),
   }).optional(),
@@ -147,9 +140,7 @@ export const fieldValidators = {
     CONTENT_TYPES.VIDEO,
     CONTENT_TYPES.PODCAST,
     CONTENT_TYPES.FILE,
-  ], {
-    required_error: 'Please select a content type',
-  }),
+  ]),
 } as const;
 
 // Knowledge Subject schemas
@@ -171,7 +162,7 @@ export type UpdateKnowledgeSubjectFormData = z.infer<typeof updateKnowledgeSubje
 export const formatZodError = (error: z.ZodError): Record<string, string> => {
   const errors: Record<string, string> = {};
 
-  error.errors.forEach((err) => {
+  error.issues.forEach((err) => {
     const path = err.path.join('.');
     errors[path] = err.message;
   });

@@ -12,13 +12,13 @@ export default function ButtonPreview() {
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <Button size="sm">Small</Button>
-        <Button size="md">Medium</Button>
+        <Button size="default">Medium</Button>
         <Button size="lg">Large</Button>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <Button disabled>Disabled</Button>
         <Button isLoading>Loading</Button>
-        <Button error>Error</Button>
+        <Button variant="destructive">Error</Button>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <Button leftIcon={<DotsIcon />}>Left Icon</Button>

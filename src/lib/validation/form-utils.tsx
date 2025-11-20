@@ -10,6 +10,7 @@ import { X, Upload, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { Dropdown } from "@/components/ui/Dropdown";
+import type { FormApi } from "@tanstack/react-form";
 
 // Type definitions for TanStack Form field
 interface FormField<T = unknown> {
@@ -39,7 +40,7 @@ export function getErrorMessage(error: any): string {
  * Displays field errors and validation state according to official docs
  * Standard error styling: text-red-600 text-xs mt-1.5
  */
-export function FieldInfo({ field }: { field: FormField }) {
+export function FieldInfo<T = unknown>({ field }: { field: FormField<T> }) {
   const errors = field.state.meta.errors.filter(Boolean).map(getErrorMessage);
 
   // Remove duplicate error messages
@@ -503,7 +504,7 @@ export function FormSubmitButton({
   className = "",
   ...props
 }: {
-  form: FormField;
+  form: any;
   children: React.ReactNode;
   isSubmitting?: boolean;
   className?: string;
@@ -539,7 +540,7 @@ export function FormResetButton({
   className = "",
   ...props
 }: {
-  form: FormField;
+  form: any;
   children: React.ReactNode;
   className?: string;
   [key: string]: unknown;
@@ -677,7 +678,7 @@ export const validateField = (
 ): string | undefined => {
   const result = validator.safeParse(value);
   if (!result.success) {
-    return result.error.errors[0]?.message;
+    return result.error.issues[0]?.message;
   }
   return undefined;
 };

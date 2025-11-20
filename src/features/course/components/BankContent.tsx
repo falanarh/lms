@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useMasterContents, useCreateMasterContent, useUpdateMasterContent, useDeleteMasterContent } from "@/hooks/useMasterContent";
+import { useMasterContents, useCreateMasterContent, useDeleteMasterContent } from "@/hooks/useMasterContent";
+import { useMutation } from "@tanstack/react-query";
 import { MasterContent } from "@/api/masterContent";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card/Card";
@@ -178,7 +179,7 @@ export function BankContent() {
     perPage,
     pageMeta,
     masterContentsLength: masterContents.length,
-    shouldShowPagination: pageMeta?.totalPageCount > 1,
+    shouldShowPagination: pageMeta?.totalPageCount !== undefined && pageMeta.totalPageCount > 1,
     searchQuery: debouncedSearchQuery,
     typeFilter: typeFilter
   });
@@ -192,7 +193,15 @@ export function BankContent() {
   }, [currentPage, pageMeta?.totalPageCount]);
 
   // Edit and Delete hooks
-  const updateMasterContentMutation = useUpdateMasterContent({
+  const updateMasterContentMutation = useMutation({
+    mutationFn: ({ id, updatedContent }: { id: string; updatedContent: Partial<MasterContent> }) =>
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"}/master-contents/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedContent),
+      }).then(res => res.json()),
     onSuccess: () => {
       showToastMessage("success", "Bank content berhasil diperbarui!");
       setIsEditDrawerOpen(false);

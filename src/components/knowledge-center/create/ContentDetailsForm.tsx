@@ -57,8 +57,6 @@ export default function ContentDetailsForm({
       <WebinarDetailsForm
         form={wizard.form}
         formValues={wizard.formValues}
-        onPDFUpload={uploadHandlers?.onPDF}
-        isUploadingPDF={uploadHandlers?.isUploadingPDF}
       />
     );
   }
@@ -68,8 +66,6 @@ export default function ContentDetailsForm({
     return (
       <GeneralContentForm
         wizard={wizard}
-        onMediaUpload={uploadHandlers?.onMedia}
-        isUploadingMedia={uploadHandlers?.isUploadingMedia}
       />
     );
   }

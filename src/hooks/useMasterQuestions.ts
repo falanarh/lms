@@ -8,8 +8,8 @@ import {
   MasterQuestionResponse,
   MasterQuestionsListResponse,
 } from "@/api/masterQuestions";
-import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { MutationConfig, queryClient } from "@/lib/queryClient";
+import { queryOptions, useMutation, useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
 // Query keys
 export const getMasterQuestionsQueryKey = (page?: number, perPage?: number, search?: string, type?: string) => {
@@ -104,12 +104,12 @@ export const useMasterQuestions = ({
   perPage?: number;
   searchQuery?: string;
   type?: string;
-  queryConfig?: QueryConfig<MasterQuestionsListResponse>;
+  queryConfig?: Omit<UseQueryOptions<MasterQuestionsListResponse>, 'queryKey' | 'queryFn'>;
 } = {}) => {
   return useQuery({
     ...getMasterQuestionsQueryOptions(page, perPage, searchQuery, type),
     ...queryConfig,
-  });
+  } as UseQueryOptions<MasterQuestionsListResponse>);
 };
 
 // Custom hook for getting a single master question by ID
@@ -118,65 +118,53 @@ export const useMasterQuestion = ({
   queryConfig
 }: {
   id: string;
-  queryConfig?: QueryConfig<MasterQuestionResponse>;
+  queryConfig?: Omit<UseQueryOptions<MasterQuestionResponse>, 'queryKey' | 'queryFn'>;
 }) => {
   return useQuery({
     ...getMasterQuestionByIdQueryOptions(id),
     ...queryConfig,
-  });
+  } as UseQueryOptions<MasterQuestionResponse>);
 };
 
 // Custom hook for creating a master question
-export const useCreateMasterQuestion = ({
-  mutationConfig
-}: {
-  mutationConfig?: MutationConfig<MasterQuestionResponse, Error, QuestionRequest>;
-} = {}) => {
+export const useCreateMasterQuestion = (
+  config: MutationConfig<typeof createMasterQuestion> = {}
+) => {
   return useMutation({
     mutationFn: createMasterQuestion,
-    onSuccess: (data, variables, context) => {
-      // Invalidate the master questions list queries
-      queryClient.invalidateQueries({ queryKey: ["master-questions"] });
-      // Call the custom onSuccess if provided
-      mutationConfig?.onSuccess?.(data, variables, context);
+    onSuccess: async (...args) => {
+      await queryClient.invalidateQueries({ queryKey: ["master-questions"] })
+      await config.onSuccess?.(...args)
     },
-    onError: mutationConfig?.onError,
-  });
+    ...config,
+  })
 };
 
 // Custom hook for updating a master question
-export const useUpdateMasterQuestion = ({
-  mutationConfig
-}: {
-  mutationConfig?: MutationConfig<MasterQuestionResponse, Error, { id: string; data: Partial<QuestionRequest> }>;
-} = {}) => {
+export const useUpdateMasterQuestion = (
+  config: MutationConfig<typeof updateMasterQuestion> = {}
+) => {
   return useMutation({
     mutationFn: updateMasterQuestion,
-    onSuccess: (data, variables, context) => {
-      // Invalidate the master questions list queries and detail queries
-      queryClient.invalidateQueries({ queryKey: ["master-questions"] });
-      // Call the custom onSuccess if provided
-      mutationConfig?.onSuccess?.(data, variables, context);
+    onSuccess: async (...args) => {
+      await queryClient.invalidateQueries({ queryKey: ["master-questions"] })
+      await config.onSuccess?.(...args)
     },
-    onError: mutationConfig?.onError,
-  });
+    ...config,
+  })
 };
 
 // Custom hook for deleting a master question
-export const useDeleteMasterQuestion = ({
-  mutationConfig
-}: {
-  mutationConfig?: MutationConfig<void, Error, string>;
-} = {}) => {
+export const useDeleteMasterQuestion = (
+  config: MutationConfig<typeof deleteMasterQuestion> = {}
+) => {
   return useMutation({
     mutationFn: deleteMasterQuestion,
-    onSuccess: (data, variables, context) => {
-      // Invalidate the master questions list queries
-      queryClient.invalidateQueries({ queryKey: ["master-questions"] });
-      // Call the custom onSuccess if provided
-      mutationConfig?.onSuccess?.(data, variables, context);
+    onSuccess: async (...args) => {
+      await queryClient.invalidateQueries({ queryKey: ["master-questions"] })
+      await config.onSuccess?.(...args)
     },
-    onError: mutationConfig?.onError,
-  });
+    ...config,
+  })
 };
   

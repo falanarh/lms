@@ -248,7 +248,7 @@ export function QuizQuestionsManager({
         maxScore: 10,
         optionsCode: generatedQ.question_type === 'multiple_choice' ? optionsCode : [],
         optionsText: generatedQ.question_type === 'multiple_choice' && generatedQ.options ?
-          generatedQ.options.map((opt: string) => opt).filter(text => text.trim()) :
+          generatedQ.options.map((opt: string) => opt).filter((text: string) => text.trim()) :
           generatedQ.question_type === 'true_false' ? ["True", "False"] : [],
         answer: generatedQ.question_type === 'true_false' ?
           { answer: generatedQ.answer_text, codeAnswer: null } :
@@ -269,7 +269,7 @@ export function QuizQuestionsManager({
       // Validate the create request before sending to API
       const requestValidation = validateCreateQuestionRequest(createRequest);
       if (!requestValidation.success) {
-        console.error('❌ AI Question API request validation failed:', requestValidation.errors);
+        console.error('❌ AI Question API request validation failed:', requestValidation.error);
         showToastMessage('warning', 'AI question data is invalid');
         return;
       }
@@ -446,7 +446,7 @@ export function QuizQuestionsManager({
         maxScore: 10,
         optionsCode: editedQ.question_type === 'multiple_choice' ? optionsCode : [],
         optionsText: editedQ.question_type === 'multiple_choice' && editedQ.options ?
-          editedQ.options.map((opt: string) => opt).filter(text => text.trim()) :
+          editedQ.options.map((opt: string) => opt).filter((text: string) => text.trim()) :
           editedQ.question_type === 'true_false' ? ["True", "False"] : [],
         answer: editedQ.question_type === 'true_false' ?
           { answer: editedQ.answer_text, codeAnswer: null } :
@@ -871,8 +871,8 @@ export function QuizQuestionsManager({
       setQuestions([...questions, ...createdQuestions]);
       
       showToastMessage(
-        `Berhasil mengimport ${createdQuestions.length} dari ${importedQuestions.length} soal!`, 
-        'success'
+        'success',
+        `Berhasil mengimport ${createdQuestions.length} dari ${importedQuestions.length} soal!`
       );
       
       setShowImportModal(false);
@@ -1949,7 +1949,7 @@ export function QuizQuestionsManager({
                   </Label>
                   <select
                     value={editingGeneratedQuestion.question_type || 'multiple_choice'}
-                    onChange={(e) => setEditingGeneratedQuestion(prev => ({
+                    onChange={(e) => setEditingGeneratedQuestion((prev: any) => ({
                       ...prev,
                       question_type: e.target.value,
                       answer_text: e.target.value === 'true_false' ? 'true' : prev.answer_text
@@ -1970,7 +1970,7 @@ export function QuizQuestionsManager({
                   <textarea
                     id="ai-question-text"
                     value={editingGeneratedQuestion.question_text || ''}
-                    onChange={(e) => setEditingGeneratedQuestion(prev => ({
+                    onChange={(e) => setEditingGeneratedQuestion((prev: any) => ({
                       ...prev,
                       question_text: e.target.value
                     }))}
@@ -1992,7 +1992,7 @@ export function QuizQuestionsManager({
                             type="radio"
                             name={`ai-correct-answer`}
                             checked={index.toString() === editingGeneratedQuestion.answer_text}
-                            onChange={() => setEditingGeneratedQuestion(prev => ({
+                            onChange={() => setEditingGeneratedQuestion((prev: any) => ({
                               ...prev,
                               answer_text: index.toString()
                             }))}
@@ -2006,7 +2006,7 @@ export function QuizQuestionsManager({
                             onChange={(e) => {
                               const newOptions = [...(editingGeneratedQuestion.options || [])];
                               newOptions[index] = e.target.value;
-                              setEditingGeneratedQuestion(prev => ({
+                              setEditingGeneratedQuestion((prev: any) => ({
                                 ...prev,
                                 options: newOptions
                               }));
@@ -2036,7 +2036,7 @@ export function QuizQuestionsManager({
                           type="radio"
                           name="ai-tf-answer"
                           checked={editingGeneratedQuestion.answer_text === 'true'}
-                          onChange={() => setEditingGeneratedQuestion(prev => ({
+                          onChange={() => setEditingGeneratedQuestion((prev: any) => ({
                             ...prev,
                             answer_text: 'true'
                           }))}
@@ -2054,7 +2054,7 @@ export function QuizQuestionsManager({
                           type="radio"
                           name="ai-tf-answer"
                           checked={editingGeneratedQuestion.answer_text === 'false'}
-                          onChange={() => setEditingGeneratedQuestion(prev => ({
+                          onChange={() => setEditingGeneratedQuestion((prev: any) => ({
                             ...prev,
                             answer_text: 'false'
                           }))}
@@ -2082,7 +2082,7 @@ export function QuizQuestionsManager({
                       id="ai-essay-answer"
                       type="text"
                       value={editingGeneratedQuestion.answer_text || ''}
-                      onChange={(e) => setEditingGeneratedQuestion(prev => ({
+                      onChange={(e) => setEditingGeneratedQuestion((prev: any) => ({
                         ...prev,
                         answer_text: e.target.value
                       }))}
@@ -2101,7 +2101,7 @@ export function QuizQuestionsManager({
                   <textarea
                     id="ai-explanation"
                     value={editingGeneratedQuestion.explanation || ''}
-                    onChange={(e) => setEditingGeneratedQuestion(prev => ({
+                    onChange={(e) => setEditingGeneratedQuestion((prev: any) => ({
                       ...prev,
                       explanation: e.target.value
                     }))}

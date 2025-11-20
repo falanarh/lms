@@ -21,20 +21,20 @@ export function useQuestionValidation<T>(
 ): UseQuestionValidationReturn<T> {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validate = useCallback((data: unknown) => {
+  const validate = useCallback((data: unknown): { success: true; data: T } | { success: false; errors: Record<string, string> } => {
     try {
       const result = schema.parse(data);
       setErrors({});
-      return { success: true, data: result };
+      return { success: true, data: result } as const;
     } catch (error) {
       if (error instanceof z.ZodError) {
         const formattedErrors = formatZodError(error);
         setErrors(formattedErrors);
-        return { success: false, errors: formattedErrors };
+        return { success: false, errors: formattedErrors } as const;
       } else {
         const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
         setErrors({ general: errorMessage });
-        return { success: false, errors: { general: errorMessage } };
+        return { success: false, errors: { general: errorMessage } } as const;
       }
     }
   }, [schema]);

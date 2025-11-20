@@ -218,6 +218,7 @@ export default function KnowledgePreviewModal({
                 {/* Action Bar */}
                 <KnowledgeDetailActionBar
                   knowledge={previewKnowledge}
+                  isLiked={false}
                   isLiking={false}
                   onLike={() => {}}
                 />

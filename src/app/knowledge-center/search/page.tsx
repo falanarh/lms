@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Search } from 'lucide-react';
 import { KnowledgeCard } from '@/components/knowledge-center';
@@ -38,7 +38,7 @@ const KnowledgeCardSkeleton = () => (
   </div>
 );
 
-export default function KnowledgeSearchPage() {
+function KnowledgeSearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get('q') || '';
@@ -407,5 +407,44 @@ export default function KnowledgeSearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function KnowledgeSearchPageLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
+            <div>
+              <div className="h-8 bg-gray-200 rounded w-96 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-80"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(12)].map((_, index) => (
+            <KnowledgeCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Export the wrapped component
+export default function KnowledgeSearchPageWrapper() {
+  return (
+    <Suspense fallback={<KnowledgeSearchPageLoading />}>
+      <KnowledgeSearchPage />
+    </Suspense>
   );
 }
