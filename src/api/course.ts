@@ -118,3 +118,27 @@ export const getCourseById = async (id: string): Promise<CourseDetail> => {
   return response.data.data as CourseDetail;
 };
 
+export type UpdateZoomUrlInput = {
+  zoomUrl: string;
+};
+
+export const updateCourseZoomUrl = async (
+  courseId: string,
+  data: UpdateZoomUrlInput
+) => {
+  const response = await axios.patch(
+    `${API_BASE_URL}/courses/${courseId}`,
+    data
+  );
+  return response.data.data ;
+};
+
+export const deleteCourseZoomUrl = async (
+  courseId: string
+) => {
+  const response = await axios.patch(
+    `${API_BASE_URL}/courses/${courseId}`,
+    { zoomUrl: null }
+  );
+  return response.data.data;
+};

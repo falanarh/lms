@@ -196,7 +196,7 @@ export function SectionActivities({
       try {
         if (editingSectionId.startsWith("local-")) {
           const createData: CreateSectionInput = {
-            idGroup: "b8d1607e-4edf-4f7a-8a0b-0552191bdd71",
+            idCourse: "4a74b0b4-c796-4a2d-8d86-e22c05f29f10",
             name: value.name,
             description: value.description || "",
             sequence: displayedSections.length,

@@ -1,30 +1,27 @@
 import axios from "axios";
 
-type GroupCourse = {
+type Course = {
   id: string;
-  idCourse: string;
-  idTeacher: string;
-  isOpen: boolean;
+  idGroupCourse: string;
   name: string;
   description: string;
   createdAt: Date;
   updatedAt: Date;
 };
 
-type MasterContent = {
-  id: string;
+type Content = {
   type: string;
   name: string;
-  description: string;
-  contentUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  sequence: number;
+  contentUrl: string;
 };
+
+
 
 export type CourseSchedule = {
   id: string;
-  idGroupCourse: string;
-  idMasterContent: string;
+  idCourse: string;
+  idContent: string;
   name: string;
   description: string;
   date: Date;
@@ -34,8 +31,8 @@ export type CourseSchedule = {
   isMooc: boolean;
   createdAt: Date;
   updatedAt: Date;
-  groupCourse: GroupCourse;
-  masterContent: MasterContent;
+  course: Course;
+  content: Content;
 };
 
 type PageMeta = {
@@ -56,7 +53,7 @@ type CourseSchedulesResponse = {
 };
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
 export const getCourseSchedules = async (
   idGroup: string,

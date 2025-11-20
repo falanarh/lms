@@ -88,7 +88,7 @@ type ContentSource = "new" | "curriculum" | "bank" | null;
 
 // Material type for session
 interface SessionMaterial {
-  type: "pdf" | "video" | "doc" | "ppt";
+  type: "pdf" | "video" | "doc" | "ppt" | "scorm" | "link";
   title: string;
   size: string;
 }
@@ -105,13 +105,13 @@ interface Session {
   description?: string;
   materials?: SessionMaterial[];
   jp?: number; // Jumlah Pertemuan
-  masterContent?: {
+  content?: {
     name: string;
     description: string;
     contentUrl: string | null;
     type: string;
   };
-  groupCourse?: {
+  course?: {
     name: string;
   };
 }
@@ -1651,24 +1651,24 @@ export function ActivityDrawerContent({
                   year: "numeric",
                 }),
                 status: "upcoming" as const,
-                topic: schedule.masterContent.name,
+                topic: schedule.content?.name || "belum ada topic",
                 duration: `${schedule.jp * 45} menit`, // Assuming JP = 45 minutes
-                instructor: schedule.groupCourse.name,
+                instructor: schedule.course.name,
                 jp: schedule.jp, // Add JP value
                 description: schedule.description, // Add description
-                masterContent: schedule.masterContent, // Add masterContent data
-                groupCourse: schedule.groupCourse, // Add groupCourse data
-                materials: schedule.masterContent.contentUrl
+                masterContent: schedule.course, // Add masterContent data
+                groupCourse: schedule.course,
+                materials: schedule.content?.contentUrl
                   ? [
                       {
                         type:
-                          schedule.masterContent.type.toLowerCase() === "pdf"
+                          schedule.content?.type?.toLowerCase() === "pdf"
                             ? ("pdf" as const)
-                            : schedule.masterContent.type.toLowerCase() ===
+                            : schedule?.content?.type?.toLowerCase() ===
                                 "video"
                               ? ("video" as const)
                               : ("doc" as const),
-                        title: schedule.masterContent.name,
+                        title: schedule?.content?.name,
                         size: "Unknown",
                       },
                     ]

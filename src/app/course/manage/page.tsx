@@ -11,6 +11,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { ActivityDrawerContent } from "@/features/course/components/ActivityDrawerContent";
 import { Content } from "@/api/contents";
 import { queryClient } from "@/lib/queryClient";
+import { ZoomManagement } from "@/features/course/components/ZoomManagement";
 
 export default function ManageCoursePage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function ManageCoursePage() {
     { key: "section_activities", label: "Section & Aktivitas" },
     { key: "bank_content", label: "Bank Content" },
     { key: "bank_soal", label: "Bank Soal" },
+    { key: "zoom_management", label: "Zoom Meeting" },
     { key: "peserta", label: "Peserta", counter: 12 },
     { key: "penilaian", label: "Penilaian" },
 
@@ -109,6 +111,7 @@ export default function ManageCoursePage() {
       <BankContent />,
     bank_soal:
       <BankSoal />,
+    zoom_management: <ZoomManagement courseId={"4a74b0b4-c796-4a2d-8d86-e22c05f29f10"} />,
     peserta: <div>Peserta Content</div>,
     penilaian: <div>Penilaian Content</div>,
   } as const;

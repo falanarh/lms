@@ -18,7 +18,7 @@ export type Section  = {
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://service-courses.vercel.app/api/v1"
 
 export const getSections = async (): Promise<Section[]> => {
-    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=12ecb1ea-e097-43af-9d6c-8f5a6e6098f0&orderBy[0][sequence]=asc`, {
+    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idCourse=4a74b0b4-c796-4a2d-8d86-e22c05f29f10&orderBy[0][sequence]=asc`, {
       withCredentials: false,
     })
     return response.data
@@ -29,7 +29,7 @@ export const getSectionsByGroupId = async (groupId: string): Promise<Section[]> 
   return response.data.data;
 };
 
-export const createSection = async (newSection: Omit<Section, "id" | "group" | "createdAt" | "updatedAt">): Promise<Section> => {
+export const createSection = async (newSection: Omit<Section, "id" | "createdAt" | "updatedAt">): Promise<Section> => {
   const response = await axios.post<Section>(
     `${BASE_URL}/sections`,
     newSection,
