@@ -29,7 +29,6 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
       'my-course': 'my-course',
       'course': 'course',
       'faq': 'faq',
-      'forum': 'forum',
       'knowledge-center': 'knowledge-center',
     };
 
@@ -44,7 +43,6 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
     { key: 'my-course', label: 'My Course', href: '/my-course' },
     { key: 'course', label: 'Kursus', href: '/course' },
     { key: 'faq', label: 'FAQ', href: '/faq' },
-    { key: 'forum', label: 'Forum', href: '/forum' },
     { key: 'knowledge-center', label: 'Knowledge Center', href: '/knowledge-center' },
   ];
 

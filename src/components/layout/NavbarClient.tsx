@@ -10,8 +10,6 @@ export function NavbarClient() {
   let activeKey = "home";
   if (pathname === "/course") {
     activeKey = "my-course";
-  } else if (pathname === "/forum") {
-    activeKey = "forum";
   } else if (pathname === "/management") {
     activeKey = "management";
   }
@@ -23,7 +21,6 @@ export function NavbarClient() {
       items={[
         { key: "home", label: "Home" },
         { key: "my-course", label: "My Course" },
-        { key: "forum", label: "Forum" },
         { key: "management", label: "Management" }
       ]}
       activeKey={activeKey}
