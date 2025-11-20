@@ -70,6 +70,24 @@
   }
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
 .animate-pulse-slow {
   animation: pulse-slow 3s ease-in-out infinite;
 }
@@ -84,6 +102,14 @@
 
 .animate-bounce-gentle-delay {
   animation: bounce-gentle-delay 2.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
 }
 
 /* Shimmer animation for skeleton loading */
