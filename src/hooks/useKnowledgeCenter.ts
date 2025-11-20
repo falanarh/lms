@@ -194,7 +194,7 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
   const relatedParams = useMemo<KnowledgeQueryParams>(
     () => ({
       page: 1,
-      limit: 4,
+      limit: 7,
       sort: SORT_OPTIONS.POPULAR,
       subject: detailQuery.data?.idSubject ? [detailQuery.data.idSubject] : undefined,
     }),

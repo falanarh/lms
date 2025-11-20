@@ -20,7 +20,7 @@ export default function KnowledgeDetailRelated({ knowledge, relatedKnowledge }: 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {relatedKnowledge
           .filter(item => item.id !== knowledge.id)
-          .slice(0, 4)
+          .slice(0, 6)
           .map((item) => (
             <div key={item.id} className="h-full min-h-[360px]">
               <KnowledgeCard
