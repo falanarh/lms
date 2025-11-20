@@ -105,7 +105,7 @@ export const CourseSectionItem = ({
     }
   }, [isExpanded, isLearningMode, index, selectedContentId, contents, onSelectContent]);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className={`bg-white rounded-xl overflow-hidden border border-gray-200`}>
       {/* Section Header */}
       <button
         onClick={() => onToggle(section.id)}
@@ -155,7 +155,7 @@ export const CourseSectionItem = ({
       {isExpanded && (
         <div className="border-gray-200">
           <div className={`
-            ${isTabVariant ? 'px-5 pb-3 space-y-3' : 'px-4 pb-2 space-y-2'}
+            ${isTabVariant ? 'px-5 pb-3 space-y-3' : 'px-0 pb-0 space-y-2'}
           `}>
             {contents && contents.length > 0 ? (
               contents.map((content) => {
@@ -168,15 +168,15 @@ export const CourseSectionItem = ({
                   onClick={() => isLearningMode ? onSelectContent?.(content) : undefined}
                   disabled={isPreviewMode}
                   className={`
-                    w-full flex items-center gap-3 rounded-lg transition-all border
-                    ${isTabVariant ? 'p-4' : 'p-3'}
+                    w-full flex items-center gap-3 transition-all ${isTabVariant ? 'rounded-lg border' : 'rounded-none'}
+                    ${isTabVariant ? 'p-4' : 'pr-4 pl-8 py-3'}
                     ${isLearningMode 
-                      ? 'hover:bg-gray-100 hover:border-gray-300 cursor-pointer' 
+                      ? (isTabVariant ? 'hover:bg-gray-100 hover:border-gray-300 cursor-pointer' : 'hover:bg-gray-100 cursor-pointer')
                       : 'cursor-default opacity-75'
                     }
                     ${isSelected && isLearningMode
-                      ? 'bg-blue-50 border-blue-500' 
-                      : 'border-gray-200'
+                      ? (isTabVariant ? 'bg-blue-50 border-blue-500' : 'bg-blue-50') 
+                      : (isTabVariant ? 'border-gray-200' : '')
                     }
                   `}
                 >

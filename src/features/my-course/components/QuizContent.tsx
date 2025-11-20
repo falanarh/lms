@@ -563,15 +563,14 @@ export const QuizContent = ({ content, isSidebarOpen }: QuizContentProps) => {
                 "border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50";
 
               if (isReviewMode) {
-                if (isCorrect) {
+                if (isCurrent) {
+                  baseClass = "border-blue-600 bg-blue-500 text-white";
+                } else if (isCorrect) {
                   baseClass = "border-emerald-500 bg-emerald-50 text-emerald-700";
                 } else if (isWrong) {
                   baseClass = "border-rose-500 bg-rose-50 text-rose-700";
                 } else {
                   baseClass = "border-gray-300 bg-white text-gray-700";
-                }
-                if (isCurrent) {
-                  baseClass += " ring-2 ring-blue-500";
                 }
               } else if (isCurrent) {
                 baseClass = "border-blue-600 bg-blue-50 text-blue-700";
@@ -595,9 +594,13 @@ export const QuizContent = ({ content, isSidebarOpen }: QuizContentProps) => {
           </div>
         </div>
 
-        <div className="mt-auto pt-1 text-[11px] text-gray-500 space-y-1">
+        <div className="mt-auto pt-1 text-xs text-gray-500 space-y-1">
           {isReviewMode ? (
             <>
+              <p>
+                <span className="inline-block h-2 w-3 rounded-sm bg-blue-500 align-middle mr-1" />
+                <span>Jawaban aktif</span>
+              </p>
               <p>
                 <span className="inline-block h-2 w-3 rounded-sm bg-emerald-500 align-middle mr-1" />
                 <span>Jawaban benar</span>
