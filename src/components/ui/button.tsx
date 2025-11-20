@@ -42,12 +42,14 @@ function Button({
   size,
   asChild = false,
   leftIcon,
+  rightIcon,
   children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
     leftIcon?: React.ReactNode
+    rightIcon?: React.ReactNode
   }) {
   const Comp = asChild ? Slot : "button"
 
@@ -59,6 +61,7 @@ function Button({
     >
       {leftIcon}
       {children}
+      {rightIcon}
     </Comp>
   )
 }
