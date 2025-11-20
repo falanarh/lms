@@ -14,6 +14,7 @@ interface CourseSectionItemProps {
   completedContentIds?: string[];
   mode?: 'preview' | 'learning'; // preview = detail-course, learning = my-course
   onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
+  lockedContentIds?: string[];
 }
 
 const getContentIcon = (type: string, isTabVariant: boolean = false) => {
@@ -77,6 +78,7 @@ export const CourseSectionItem = ({
   completedContentIds = [],
   mode = 'learning',
   onSectionDataUpdate,
+  lockedContentIds = [],
 }: CourseSectionItemProps) => {
   const isTabVariant = variant === 'tab';
   const isPreviewMode = mode === 'preview';
@@ -161,17 +163,20 @@ export const CourseSectionItem = ({
               contents.map((content) => {
               const isSelected = selectedContentId === content.id;
               const isCompleted = completedContentIds.includes(content.id);
+              const isLocked = lockedContentIds.includes(content.id);
               
               return (
                 <button
                   key={content.id}
-                  onClick={() => isLearningMode ? onSelectContent?.(content) : undefined}
-                  disabled={isPreviewMode}
+                  onClick={() => (isLearningMode && !isLocked) ? onSelectContent?.(content) : undefined}
+                  disabled={isPreviewMode || isLocked}
                   className={`
                     w-full flex items-center gap-3 transition-all ${isTabVariant ? 'rounded-lg border' : 'rounded-none'}
                     ${isTabVariant ? 'p-4' : 'pr-4 pl-8 py-3'}
                     ${isLearningMode 
-                      ? (isTabVariant ? 'hover:bg-gray-100 hover:border-gray-300 cursor-pointer' : 'hover:bg-gray-100 cursor-pointer')
+                      ? (isLocked 
+                        ? (isTabVariant ? 'cursor-not-allowed opacity-60' : 'cursor-not-allowed opacity-60')
+                        : (isTabVariant ? 'hover:bg-gray-100 hover:border-gray-300 cursor-pointer' : 'hover:bg-gray-100 cursor-pointer')) 
                       : 'cursor-default opacity-75'
                     }
                     ${isSelected && isLearningMode
@@ -183,9 +188,7 @@ export const CourseSectionItem = ({
                   {/* Icon */}
                   <div className="flex-shrink-0">
                     {isPreviewMode ? (
-                      <div className={`${isTabVariant ? 'w-10 h-10' : 'w-6 h-6'} rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0`}>
-                        <Lock className={`${isTabVariant ? 'w-5 h-5' : 'w-4 h-4'} text-gray-400`} />
-                      </div>
+                      <Lock className={`${isTabVariant ? 'w-4 h-5' : 'w-3 h-3'} text-gray-500`} />
                     ) : (
                       getContentIcon(content.type, isTabVariant)
                     )}
@@ -212,14 +215,14 @@ export const CourseSectionItem = ({
 
                   {/* Status Indicator */}
                   <div className="flex-shrink-0">
-                    {isPreviewMode ? (
-                      <span className="text-xs text-gray-400">Preview</span>
-                    ) : isCompleted ? (
-                      <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center">
-                        <Check className="w-3 h-3 text-green-600" strokeWidth={3} />
+                    {isCompleted ? (
+                      <div className={`${isTabVariant ? 'w-6 h-6' : 'w-4 h-4'} rounded-full bg-green-200 flex items-center justify-center`}>
+                        <Check className={`${isTabVariant ? 'w-4 h-4' : 'w-3 h-3'} text-green-600`} strokeWidth={3} />
                       </div>
+                    ) : isLocked ? (
+                      <Lock className={`${isTabVariant ? 'w-5 h-5' : 'w-4 h-4'} text-gray-500`} strokeWidth={3} />
                     ) : (
-                      <div className="w-5 h-5" />
+                      <div className={`${isTabVariant ? 'w-6 h-6' : 'w-4 h-4'}`} />
                     )}
                   </div>
                 </button>

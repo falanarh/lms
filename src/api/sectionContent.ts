@@ -3,7 +3,6 @@ import { API_BASE_URL } from "@/config/api";
 
 export type SectionContentUserStatus = {
   isFinished: boolean;
-  hasAccess: boolean;
 };
 
 export type SectionContentActivity = {

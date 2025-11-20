@@ -16,9 +16,13 @@ import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
 import { useCreateReview } from "@/hooks/useReviews";
 import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton, SummaryTab } from "@/features/my-course/components";
 import { Sparkles } from "lucide-react";
+import { Toast } from "@/components/ui/Toast/Toast";
+import { createToastState } from "@/utils/toastUtils";
 import type { Content } from "@/api/contents";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { useCourse } from "@/hooks/useCourse";
+import { useStartActivityContent, useFinishActivityContent } from "@/hooks/useActivityContents";
+import { DUMMY_USER_ID } from "@/config/api";
 
 interface MyCoursePageProps {
   params: Promise<{ id: string }>;
@@ -36,8 +40,33 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
+  const [startedContentIds, setStartedContentIds] = useState<string[]>([]);
   const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [lockedContentIds, setLockedContentIds] = useState<string[]>([]);
+  const toastState = createToastState();
+  const orderedContents = useMemo(() => {
+    const secList: any[] = Array.isArray(sections) ? [...sections] : [];
+    secList.sort((a, b) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+    const flattened: Content[] = [];
+    secList.forEach((sec: any) => {
+      const contents = ((expandedSectionsData[sec.id] || sec.listContents || sec.listContent || []) as Content[]).slice();
+      contents.sort((a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+      contents.forEach((c) => flattened.push(c));
+    });
+    return flattened;
+  }, [sections, expandedSectionsData]);
+
+  const unlockedContentId = useMemo(() => {
+    for (const c of orderedContents) {
+      const finished = Boolean((c as any)?.userStatus?.isFinished);
+      if (!finished) return c.id;
+    }
+    return null;
+  }, [orderedContents]);
+
+  const startContentMutation = useStartActivityContent();
+  const finishContentMutation = useFinishActivityContent();
 
   const course = courseDetail!;
 
@@ -70,6 +99,16 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       setCompletedContentIds(ids);
     }
   }, [sections]);
+
+  useEffect(() => {
+    const locked: string[] = [];
+    orderedContents.forEach((c: any) => {
+      const finished = Boolean(c?.userStatus?.isFinished);
+      const isUnlocked = unlockedContentId && c.id === unlockedContentId;
+      if (!finished && !isUnlocked) locked.push(c.id);
+    });
+    setLockedContentIds(locked);
+  }, [orderedContents, unlockedContentId]);
 
   useEffect(() => {
     if (isSidebarOpen && activeTab === 'course_contents') {
@@ -113,12 +152,27 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
   // Auto-select first content if no content is selected and no URL content ID
   useEffect(() => {
-    if (!selectedContent && !activeContentId && firstSectionContents && firstSectionContents.length > 0) {
-      const contentToSelect = firstSectionContents[0];
-      setSelectedContent(contentToSelect);
-      updateContentInUrl(contentToSelect);
+    if (!selectedContent && !activeContentId) {
+      let contentToSelect: Content | null = null;
+      if (unlockedContentId) {
+        contentToSelect = orderedContents.find((c) => c.id === unlockedContentId) || null;
+      } else if (orderedContents.length > 0) {
+        contentToSelect = orderedContents[0] || null;
+      }
+      if (contentToSelect) {
+        setSelectedContent(contentToSelect);
+        updateContentInUrl(contentToSelect);
+      }
     }
-  }, [firstSectionContents, selectedContent, activeContentId, updateContentInUrl]);
+  }, [orderedContents, unlockedContentId, selectedContent, activeContentId, updateContentInUrl]);
+
+  useEffect(() => {
+    if (!selectedContent) return;
+    if (completedContentIds.includes(selectedContent.id)) return;
+    if (startedContentIds.includes(selectedContent.id)) return;
+    startContentMutation.mutate({ idCourse: id, idUser: DUMMY_USER_ID, idContent: selectedContent.id });
+    setStartedContentIds((prev) => [...prev, selectedContent.id]);
+  }, [selectedContent?.id, completedContentIds, startedContentIds, id]);
 
   // Handle expand/collapse section
   const handleToggleSection = (sectionId: string) => {
@@ -139,9 +193,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
   // Enhanced content selection handler that syncs with URL
   const handleContentSelect = useCallback((content: Content) => {
+    const isCompleted = completedContentIds.includes(content.id);
+    const isUnlocked = unlockedContentId ? content.id === unlockedContentId : false;
+    if (!isCompleted && !isUnlocked) return;
     setSelectedContent(content);
     updateContentInUrl(content);
-  }, [updateContentInUrl]);
+  }, [updateContentInUrl, completedContentIds, unlockedContentId]);
 
   // Navigation system
   const handleSectionDataUpdate = useCallback((sectionId: string, contents: Content[]) => {
@@ -169,12 +226,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
   const handleMarkContentDone = () => {
     if (!selectedContent) return;
-    setCompletedContentIds((prev) => {
-      if (prev.includes(selectedContent.id)) {
-        return prev.filter((id) => id !== selectedContent.id);
-      }
-      return [...prev, selectedContent.id];
-    });
+    finishContentMutation.mutate({ idCourse: id, idUser: DUMMY_USER_ID, idContent: selectedContent.id, isFinished: true });
   };
 
   const handleWriteReview = () => {
@@ -188,7 +240,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         comment: review,
       });
       setIsReviewModalOpen(false);
-      alert('Ulasan berhasil dikirim!');
+      toastState.showSuccess('Ulasan berhasil dikirim!');
     } catch (error) {
       console.error('Error submitting review:', error);
       alert('Gagal mengirim ulasan. Silakan coba lagi.');
@@ -287,6 +339,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               onSelectContent={handleContentSelect}
               completedContentIds={completedContentIds}
               onSectionDataUpdate={handleSectionDataUpdate}
+              lockedContentIds={lockedContentIds}
             />
           )}
 
@@ -320,6 +373,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           onClose={handleCloseSidebar}
           completedContentIds={completedContentIds}
           onSectionDataUpdate={handleSectionDataUpdate}
+          lockedContentIds={lockedContentIds}
         />
       )}
 
@@ -355,6 +409,19 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           <span className="ml-2 text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Lihat Summary</span>
         </div>
       </button>
+
+      {toastState.toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+          <Toast
+            variant={toastState.toast.variant}
+            message={toastState.toast.message}
+            onClose={toastState.dismissToast}
+            autoDismiss
+            duration={4000}
+            dismissible
+          />
+        </div>
+      )}
     </>
   );
 }

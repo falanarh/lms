@@ -56,18 +56,30 @@ const findNextContent = (
   const currentPosition = findCurrentPosition(currentContent, sections, expandedSectionsData);
   if (!currentPosition) return null;
 
-  const { sectionIndex, contentIndex, currentSectionContents } = currentPosition;
+  // Build ordered list (sections by sequence, contents by sequence)
+  const ordered: Content[] = [];
+  const orderedSections = [...sections].sort((a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+  orderedSections.forEach((sec: any) => {
+    const contents = ((expandedSectionsData[sec.id] || []) as Content[]).slice().sort((a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+    contents.forEach((c) => ordered.push(c));
+  });
 
-  if (contentIndex < currentSectionContents.length - 1) {
-    return currentSectionContents[contentIndex + 1] || null;
+  const unlockedId = (() => {
+    for (const c of ordered) {
+      const finished = Boolean((c as any)?.userStatus?.isFinished);
+      if (!finished) return c.id;
+    }
+    return null;
+  })();
+
+  const currIndex = ordered.findIndex((c) => c.id === currentContent.id);
+  for (let i = currIndex + 1; i < ordered.length; i++) {
+    const candidate = ordered[i];
+    const finished = Boolean((candidate as any)?.userStatus?.isFinished);
+    const isUnlocked = unlockedId ? candidate.id === unlockedId : false;
+    if (finished || isUnlocked) return candidate || null;
   }
-
-  const nextSectionIndex = sectionIndex + 1;
-  if (nextSectionIndex >= sections.length) return null;
-
-  const nextSection = sections[nextSectionIndex];
-  const nextSectionContents = expandedSectionsData[nextSection.id] || [];
-  return nextSectionContents[0] || null;
+  return null;
 };
 
 const findPreviousContent = (
@@ -75,20 +87,21 @@ const findPreviousContent = (
   sections: Section[],
   expandedSectionsData: Record<string, Content[]>
 ): Content | null => {
-  const currentPosition = findCurrentPosition(currentContent, sections, expandedSectionsData);
-  if (!currentPosition) return null;
+  // Build ordered list
+  const ordered: Content[] = [];
+  const orderedSections = [...sections].sort((a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+  orderedSections.forEach((sec: any) => {
+    const contents = ((expandedSectionsData[sec.id] || []) as Content[]).slice().sort((a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+    contents.forEach((c) => ordered.push(c));
+  });
 
-  const { sectionIndex, contentIndex, currentSectionContents } = currentPosition;
-  if (contentIndex > 0) {
-    return currentSectionContents[contentIndex - 1] || null;
+  const currIndex = ordered.findIndex((c) => c.id === currentContent.id);
+  for (let i = currIndex - 1; i >= 0; i--) {
+    const candidate = ordered[i];
+    const finished = Boolean((candidate as any)?.userStatus?.isFinished);
+    if (finished) return candidate || null;
   }
-
-  const prevSectionIndex = sectionIndex - 1;
-  if (prevSectionIndex < 0) return null;
-
-  const prevSection = sections[prevSectionIndex];
-  const prevSectionContents = expandedSectionsData[prevSection.id] || [];
-  return prevSectionContents[prevSectionContents.length - 1] || null;
+  return null;
 };
 
 const getNavigationState = (
@@ -99,15 +112,9 @@ const getNavigationState = (
   if (!currentContent || !sections.length) {
     return { hasPrevious: false, hasNext: false };
   }
-  const currentPosition = findCurrentPosition(currentContent, sections, expandedSectionsData);
-  if (!currentPosition) {
-    return { hasPrevious: false, hasNext: false };
-  }
-  const { sectionIndex, contentIndex, currentSectionContents } = currentPosition;
-  const hasPrevious = !(sectionIndex === 0 && contentIndex === 0);
-  const hasNextInSection = contentIndex < currentSectionContents.length - 1;
-  const hasNextSection = sectionIndex < sections.length - 1;
-  return { hasPrevious, hasNext: hasNextInSection || hasNextSection };
+  const next = findNextContent(currentContent, sections, expandedSectionsData);
+  const prev = findPreviousContent(currentContent, sections, expandedSectionsData);
+  return { hasPrevious: Boolean(prev), hasNext: Boolean(next) };
 };
 
 export const useContentNavigation = ({

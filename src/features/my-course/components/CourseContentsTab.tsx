@@ -12,6 +12,7 @@ interface CourseContentsTabProps {
   completedContentIds?: string[];
   mode?: 'preview' | 'learning';
   onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
+  lockedContentIds?: string[];
 }
 
 export const CourseContentsTab = ({
@@ -23,6 +24,7 @@ export const CourseContentsTab = ({
   completedContentIds = [],
   mode = 'learning',
   onSectionDataUpdate,
+  lockedContentIds = [],
 }: CourseContentsTabProps) => {
 
   return (
@@ -57,6 +59,7 @@ export const CourseContentsTab = ({
             completedContentIds={completedContentIds}
             mode={mode}
             onSectionDataUpdate={onSectionDataUpdate}
+            lockedContentIds={lockedContentIds}
           />
         ))}
       </div>

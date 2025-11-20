@@ -72,7 +72,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
   const handleEnrollToggle = () => {
     if (isEnrolling) return;
-    const enrolled = justEnrolled || Boolean(enrollStatus?.data);
+    const enrolledData = enrollStatus?.data as any;
+    const enrolledFlag = typeof enrolledData === 'object' ? Boolean(enrolledData?.isEnroll) : Boolean(enrolledData);
+    const enrolled = justEnrolled || enrolledFlag;
     if (!enrolled) {
       enroll(undefined, {
         onSuccess: () => {
@@ -122,13 +124,12 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             isEnrolled={isEnrolled}
             onToggle={handleEnrollToggle}
             courseId={course.id}
-            buttonLabel={
-              justEnrolled
-                ? "Start Learning"
-                : enrollStatus?.data !== undefined && enrollStatus?.data !== null
-                ? "Continue Learning"
-                : "Enroll Now"
-            }
+            buttonLabel={(() => {
+              if (justEnrolled) return "Start Learning";
+              const d: any = enrollStatus?.data;
+              const isEnrolledFlag = typeof d === 'object' ? d?.isEnroll === true : Boolean(d);
+              return isEnrolledFlag ? "Continue Learning" : "Enroll Now";
+            })()}
             isProcessing={isEnrolling}
           />
           </div>
