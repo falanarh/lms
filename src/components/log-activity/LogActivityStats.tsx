@@ -64,7 +64,6 @@ export default function LogActivityStats() {
     const skeletonCards = [
       { bgColor: 'bg-blue-50' },
       { bgColor: 'bg-green-50' },
-      { bgColor: 'bg-purple-50' },
       { bgColor: 'bg-orange-50' },
       { bgColor: 'bg-cyan-50' },
       { bgColor: 'bg-pink-50' },

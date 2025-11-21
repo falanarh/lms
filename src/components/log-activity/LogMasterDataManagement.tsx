@@ -12,7 +12,12 @@ import { useCategoryLogTypes, useLogTypes, useCreateCategoryLogType, useCreateLo
 import { createCategoryLogTypeSchema, createLogTypeSchema, formatZodError } from '@/lib/validation/schemas';
 import { ErrorMessage } from '@/lib/validation/form-utils';
 
+import { Toast } from '@/components/ui/Toast/Toast';
+import { useToast } from '@/hooks/useToast';
+
 export default function LogMasterDataManagement() {
+  const toastState = useToast();
+
   const {
     data: categories,
     isLoading: isLoadingCategories,
@@ -186,9 +191,10 @@ export default function LogMasterDataManagement() {
       setCategoryDescription('');
       setIsCreatingCategory(false);
       setCategoryPage(1);
+      toastState.showSuccess('Berhasil membuat Category Log Type');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal membuat Category Log Type';
-      window.alert(message);
+      toastState.showError(message);
     }
   };
 
@@ -220,9 +226,10 @@ export default function LogMasterDataManagement() {
       setLogTypeCategoryId('');
       setIsCreatingLogType(false);
       setLogTypePage(1);
+      toastState.showSuccess('Berhasil membuat Log Type');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal membuat Log Type';
-      window.alert(message);
+      toastState.showError(message);
     }
   };
 
@@ -680,6 +687,7 @@ export default function LogMasterDataManagement() {
               type="submit"
               size="sm"
               disabled={createCategoryMutation.isPending}
+              isLoading={createCategoryMutation.isPending}
               className="flex items-center gap-1"
             >
               Simpan
@@ -790,6 +798,7 @@ export default function LogMasterDataManagement() {
               type="submit"
               size="sm"
               disabled={createLogTypeMutation.isPending}
+              isLoading={createLogTypeMutation.isPending}
               className="flex items-center gap-1"
             >
               Simpan
@@ -797,6 +806,19 @@ export default function LogMasterDataManagement() {
           </div>
         </form>
       </Modal>
+
+      {/* Toast Notifications */}
+      {toastState.toast && (
+        <div className="fixed top-4 right-4 z-50">
+          <Toast
+            variant={toastState.toast.variant}
+            message={toastState.toast.message}
+            onClose={toastState.dismissToast}
+            autoDismiss
+            duration={5000}
+          />
+        </div>
+      )}
     </div>
   );
 }
