@@ -158,6 +158,37 @@ export const updateKnowledgeSubjectSchema = z.object({
 export type CreateKnowledgeSubjectFormData = z.infer<typeof createKnowledgeSubjectSchema>;
 export type UpdateKnowledgeSubjectFormData = z.infer<typeof updateKnowledgeSubjectSchema>;
 
+// Log Master Data schemas (Category Log Type & Log Type)
+export const createCategoryLogTypeSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Nama kategori wajib diisi')
+    .min(2, 'Nama kategori minimal 2 karakter')
+    .max(100, 'Nama kategori maksimal 100 karakter'),
+  description: z
+    .string()
+    .max(255, 'Deskripsi maksimal 255 karakter')
+    .optional()
+    .or(z.literal('')),
+});
+
+export const createLogTypeSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Nama log type wajib diisi')
+    .min(2, 'Nama log type minimal 2 karakter')
+    .max(100, 'Nama log type maksimal 100 karakter'),
+  description: z
+    .string()
+    .max(255, 'Deskripsi maksimal 255 karakter')
+    .optional()
+    .or(z.literal('')),
+  idCategoryLogType: z.string().optional().or(z.literal('')),
+});
+
+export type CreateCategoryLogTypeFormData = z.infer<typeof createCategoryLogTypeSchema>;
+export type CreateLogTypeFormData = z.infer<typeof createLogTypeSchema>;
+
 // Error message formatter
 export const formatZodError = (error: z.ZodError): Record<string, string> => {
   const errors: Record<string, string> = {};
