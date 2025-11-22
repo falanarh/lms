@@ -8,7 +8,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Pagination } from '@/components/shared/Pagination/Pagination';
 import { Modal } from '@/components/ui/Modal/Modal';
-import { useCategoryLogTypes, useLogTypes, useCreateCategoryLogType, useCreateLogType } from '@/hooks/useLogActivity';
+import {
+  useCategoryLogTypes,
+  useLogTypes,
+  useCreateCategoryLogType,
+  useCreateLogType,
+  useUpdateCategoryLogType,
+  useDeleteCategoryLogType,
+  useUpdateLogType,
+  useDeleteLogType,
+} from '@/hooks/useLogActivity';
+import { CategoryLogType, LogType } from '@/types/log-activity';
 import { createCategoryLogTypeSchema, createLogTypeSchema, formatZodError } from '@/lib/validation/schemas';
 import { ErrorMessage } from '@/lib/validation/form-utils';
 
@@ -39,7 +49,12 @@ export default function LogMasterDataManagement() {
   const [logTypeFormErrors, setLogTypeFormErrors] = useState<Record<string, string>>({});
 
   const createCategoryMutation = useCreateCategoryLogType();
+  const updateCategoryMutation = useUpdateCategoryLogType();
+  const deleteCategoryMutation = useDeleteCategoryLogType();
+
   const createLogTypeMutation = useCreateLogType();
+  const updateLogTypeMutation = useUpdateLogType();
+  const deleteLogTypeMutation = useDeleteLogType();
 
   // Shared items-per-page options (matching main log table style)
   const itemsPerPageOptions = [
@@ -55,6 +70,8 @@ export default function LogMasterDataManagement() {
   const [categoryItemsPerPage, setCategoryItemsPerPage] = useState(5);
 
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryLogType | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
 
@@ -63,6 +80,8 @@ export default function LogMasterDataManagement() {
   const [logTypeItemsPerPage, setLogTypeItemsPerPage] = useState(5);
 
   const [isCreatingLogType, setIsCreatingLogType] = useState(false);
+  const [isEditingLogType, setIsEditingLogType] = useState(false);
+  const [editingLogType, setEditingLogType] = useState<LogType | null>(null);
   const [logTypeName, setLogTypeName] = useState('');
   const [logTypeDescription, setLogTypeDescription] = useState('');
   const [logTypeCategoryId, setLogTypeCategoryId] = useState('');
@@ -150,20 +169,45 @@ export default function LogMasterDataManagement() {
     setIsCreatingLogType(true);
   };
 
-  const handleEditCategory = () => {
-    window.alert('Edit Category Log Type belum terhubung ke API.');
+  const handleEditCategory = (category: CategoryLogType) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryDescription(category.description || '');
+    setCategoryFormErrors({});
+    setIsEditingCategory(true);
   };
 
-  const handleEditLogType = () => {
-    window.alert('Edit Log Type belum terhubung ke API.');
+  const handleEditLogType = (logType: LogType) => {
+    setEditingLogType(logType);
+    setLogTypeName(logType.name);
+    setLogTypeDescription(logType.description || '');
+    setLogTypeCategoryId(logType.idCategoryLogType || '');
+    setLogTypeFormErrors({});
+    setIsEditingLogType(true);
   };
 
-  const handleDeleteCategory = () => {
-    window.alert('Delete Category Log Type belum terhubung ke API.');
+  const handleDeleteCategory = async (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus Category Log Type ini?')) {
+      try {
+        await deleteCategoryMutation.mutateAsync(id);
+        toastState.showSuccess('Berhasil menghapus Category Log Type');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Gagal menghapus Category Log Type';
+        toastState.showError(message);
+      }
+    }
   };
 
-  const handleDeleteLogType = () => {
-    window.alert('Delete Log Type belum terhubung ke API.');
+  const handleDeleteLogType = async (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus Log Type ini?')) {
+      try {
+        await deleteLogTypeMutation.mutateAsync(id);
+        toastState.showSuccess('Berhasil menghapus Log Type');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Gagal menghapus Log Type';
+        toastState.showError(message);
+      }
+    }
   };
 
   const handleSubmitCreateCategory = async (event: React.FormEvent) => {
@@ -229,6 +273,83 @@ export default function LogMasterDataManagement() {
       toastState.showSuccess('Berhasil membuat Log Type');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal membuat Log Type';
+      toastState.showError(message);
+    }
+  };
+
+  const handleSubmitEditCategory = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!editingCategory) return;
+
+    const validationResult = createCategoryLogTypeSchema.safeParse({
+      name: categoryName,
+      description: categoryDescription,
+    });
+
+    if (!validationResult.success) {
+      setCategoryFormErrors(formatZodError(validationResult.error));
+      return;
+    }
+
+    setCategoryFormErrors({});
+
+    try {
+      await updateCategoryMutation.mutateAsync({
+        id: editingCategory.id,
+        payload: {
+          name: categoryName.trim(),
+          description: categoryDescription.trim() || undefined,
+        },
+      });
+
+      setCategoryName('');
+      setCategoryDescription('');
+      setEditingCategory(null);
+      setIsEditingCategory(false);
+      toastState.showSuccess('Berhasil memperbarui Category Log Type');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal memperbarui Category Log Type';
+      toastState.showError(message);
+    }
+  };
+
+  const handleSubmitEditLogType = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!editingLogType) return;
+
+    const validationResult = createLogTypeSchema.safeParse({
+      name: logTypeName,
+      description: logTypeDescription,
+      idCategoryLogType: logTypeCategoryId,
+    });
+
+    if (!validationResult.success) {
+      setLogTypeFormErrors(formatZodError(validationResult.error));
+      return;
+    }
+
+    setLogTypeFormErrors({});
+
+    try {
+      await updateLogTypeMutation.mutateAsync({
+        id: editingLogType.id,
+        payload: {
+          name: logTypeName.trim(),
+          description: logTypeDescription.trim() || undefined,
+          idCategoryLogType: logTypeCategoryId || undefined,
+        },
+      });
+
+      setLogTypeName('');
+      setLogTypeDescription('');
+      setLogTypeCategoryId('');
+      setEditingLogType(null);
+      setIsEditingLogType(false);
+      toastState.showSuccess('Berhasil memperbarui Log Type');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal memperbarui Log Type';
       toastState.showError(message);
     }
   };
@@ -356,7 +477,7 @@ export default function LogMasterDataManagement() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleEditCategory}
+                        onClick={() => handleEditCategory(item)}
                         className="flex items-center gap-1"
                       >
                         <Edit className="w-4 h-4" />
@@ -365,7 +486,7 @@ export default function LogMasterDataManagement() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleDeleteCategory}
+                        onClick={() => handleDeleteCategory(item.id)}
                         className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50 flex items-center gap-1"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -542,7 +663,7 @@ export default function LogMasterDataManagement() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleEditLogType}
+                        onClick={() => handleEditLogType(item)}
                         className="flex items-center gap-1"
                       >
                         <Edit className="w-4 h-4" />
@@ -551,7 +672,7 @@ export default function LogMasterDataManagement() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleDeleteLogType}
+                        onClick={() => handleDeleteLogType(item.id)}
                         className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300 hover:bg-red-50 flex items-center gap-1"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -802,6 +923,207 @@ export default function LogMasterDataManagement() {
               className="flex items-center gap-1"
             >
               Simpan
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Edit Category Log Type */}
+      <Modal
+        isOpen={isEditingCategory}
+        onClose={() => {
+          if (!updateCategoryMutation.isPending) {
+            setIsEditingCategory(false);
+            setEditingCategory(null);
+            setCategoryName('');
+            setCategoryDescription('');
+            setCategoryFormErrors({});
+          }
+        }}
+        title="Edit Category Log Type"
+        size="sm"
+      >
+        <form onSubmit={handleSubmitEditCategory} className="space-y-4">
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Nama kategori *"
+              value={categoryName}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCategoryName(value);
+                if (categoryFormErrors.name) {
+                  setCategoryFormErrors((prev) => {
+                    const { name, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
+              size="sm"
+              isInvalid={!!categoryFormErrors.name}
+            />
+            <ErrorMessage
+              errors={categoryFormErrors.name ? [categoryFormErrors.name] : undefined}
+            />
+            <Input
+              type="text"
+              placeholder="Deskripsi (opsional)"
+              value={categoryDescription}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCategoryDescription(value);
+                if (categoryFormErrors.description) {
+                  setCategoryFormErrors((prev) => {
+                    const { description, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
+              size="sm"
+              isInvalid={!!categoryFormErrors.description}
+            />
+            <ErrorMessage
+              errors={categoryFormErrors.description ? [categoryFormErrors.description] : undefined}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!updateCategoryMutation.isPending) {
+                  setIsEditingCategory(false);
+                  setEditingCategory(null);
+                  setCategoryName('');
+                  setCategoryDescription('');
+                  setCategoryFormErrors({});
+                }
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={updateCategoryMutation.isPending}
+              isLoading={updateCategoryMutation.isPending}
+              className="flex items-center gap-1"
+            >
+              Simpan Perubahan
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Edit Log Type */}
+      <Modal
+        isOpen={isEditingLogType}
+        onClose={() => {
+          if (!updateLogTypeMutation.isPending) {
+            setIsEditingLogType(false);
+            setEditingLogType(null);
+            setLogTypeName('');
+            setLogTypeDescription('');
+            setLogTypeCategoryId('');
+            setLogTypeFormErrors({});
+          }
+        }}
+        title="Edit Log Type"
+        size="sm"
+      >
+        <form onSubmit={handleSubmitEditLogType} className="space-y-4">
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Nama log type *"
+              value={logTypeName}
+              onChange={(e) => {
+                const value = e.target.value;
+                setLogTypeName(value);
+                if (logTypeFormErrors.name) {
+                  setLogTypeFormErrors((prev) => {
+                    const { name, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
+              size="sm"
+              isInvalid={!!logTypeFormErrors.name}
+            />
+            <ErrorMessage
+              errors={logTypeFormErrors.name ? [logTypeFormErrors.name] : undefined}
+            />
+            <Input
+              type="text"
+              placeholder="Deskripsi (opsional)"
+              value={logTypeDescription}
+              onChange={(e) => {
+                const value = e.target.value;
+                setLogTypeDescription(value);
+                if (logTypeFormErrors.description) {
+                  setLogTypeFormErrors((prev) => {
+                    const { description, ...rest } = prev;
+                    return rest;
+                  });
+                }
+              }}
+              size="sm"
+              isInvalid={!!logTypeFormErrors.description}
+            />
+            <ErrorMessage
+              errors={logTypeFormErrors.description ? [logTypeFormErrors.description] : undefined}
+            />
+            <div>
+              <Dropdown
+                value={logTypeCategoryId}
+                onChange={(value: string) => {
+                  setLogTypeCategoryId(value);
+                  if (logTypeFormErrors.idCategoryLogType) {
+                    setLogTypeFormErrors((prev) => {
+                      const { idCategoryLogType, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+                }}
+                items={[
+                  { value: '', label: 'Tanpa kategori' },
+                  ...categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+                className="w-full"
+                searchable={false}
+              />
+              <ErrorMessage
+                errors={logTypeFormErrors.idCategoryLogType ? [logTypeFormErrors.idCategoryLogType] : undefined}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!updateLogTypeMutation.isPending) {
+                  setIsEditingLogType(false);
+                  setEditingLogType(null);
+                  setLogTypeName('');
+                  setLogTypeDescription('');
+                  setLogTypeCategoryId('');
+                  setLogTypeFormErrors({});
+                }
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={updateLogTypeMutation.isPending}
+              isLoading={updateLogTypeMutation.isPending}
+              className="flex items-center gap-1"
+            >
+              Simpan Perubahan
             </Button>
           </div>
         </form>

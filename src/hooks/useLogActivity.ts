@@ -20,6 +20,10 @@ import {
   getLogTypesQueryOptions,
   createCategoryLogType,
   createLogType,
+  updateCategoryLogType,
+  deleteCategoryLogType,
+  updateLogType,
+  deleteLogType,
 } from '@/api/logActivity';
 import {
   LogActivity,
@@ -120,6 +124,52 @@ export const useCreateLogType = () => {
 
   return useMutation({
     mutationFn: createLogType,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['log-types'] });
+    },
+  });
+};
+
+export const useUpdateCategoryLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { name: string; description?: string } }) =>
+      updateCategoryLogType(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['category-log-types'] });
+    },
+  });
+};
+
+export const useDeleteCategoryLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteCategoryLogType,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['category-log-types'] });
+    },
+  });
+};
+
+export const useUpdateLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { name: string; description?: string; idCategoryLogType?: string | null } }) =>
+      updateLogType(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['log-types'] });
+    },
+  });
+};
+
+export const useDeleteLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteLogType,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['log-types'] });
     },

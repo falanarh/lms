@@ -262,6 +262,90 @@ export const createLogType = async (
   }
 };
 
+export const updateCategoryLogType = async (
+  id: string,
+  payload: CreateCategoryLogTypePayload,
+): Promise<CategoryLogType> => {
+  try {
+    const response = await axios.patch<ApiResponse<CategoryLogType>>(
+      `${LOG_MASTER_ENDPOINTS.CATEGORY_LIST}/${id}`,
+      payload,
+      API_CONFIG,
+    );
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message || 'Failed to update category log type');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to update category log type');
+    }
+    throw error;
+  }
+};
+
+export const deleteCategoryLogType = async (id: string): Promise<void> => {
+  try {
+    const response = await axios.delete<ApiResponse<null>>(
+      `${LOG_MASTER_ENDPOINTS.CATEGORY_LIST}/${id}`,
+      API_CONFIG,
+    );
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message || 'Failed to delete category log type');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to delete category log type');
+    }
+    throw error;
+  }
+};
+
+export const updateLogType = async (
+  id: string,
+  payload: CreateLogTypePayload,
+): Promise<LogType> => {
+  try {
+    const response = await axios.patch<ApiResponse<LogType>>(
+      `${LOG_MASTER_ENDPOINTS.LOG_TYPE_LIST}/${id}`,
+      payload,
+      API_CONFIG,
+    );
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message || 'Failed to update log type');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to update log type');
+    }
+    throw error;
+  }
+};
+
+export const deleteLogType = async (id: string): Promise<void> => {
+  try {
+    const response = await axios.delete<ApiResponse<null>>(
+      `${LOG_MASTER_ENDPOINTS.LOG_TYPE_LIST}/${id}`,
+      API_CONFIG,
+    );
+
+    if (response.data.status !== 200) {
+      throw new Error(response.data.message || 'Failed to delete log type');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || 'Failed to delete log type');
+    }
+    throw error;
+  }
+};
+
 /**
  * Fetch all log types
  */
