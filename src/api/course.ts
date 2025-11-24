@@ -13,10 +13,10 @@ export type PageMeta = {
   totalResultCount: number;
 };
 
-// Tipe item untuk list /courses, mengikuti response backend (memiliki properti groupCourse)
 export type Course = {
   id: string;
   idTeacher: string;
+  teacherName: string; 
   zoomUrl?: string | null;
   rating: number;
   totalUserRating: number;
@@ -91,6 +91,7 @@ export const getCourses = async (
 export type CourseDetail = {
   id: string;
   idTeacher: string;
+  teacherName: string; 
   zoomUrl?: string | null;
   rating: number;
   totalUserRating: number;

@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { GraduationCap, Users } from "lucide-react";
 import { Badge } from "@/components/ui/Badge/Badge";
 import { Course, ViewModeValue } from "../types";
 import { ArrowRight } from "lucide-react";
@@ -57,12 +57,8 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
 
               {/* //TODO: PERBAIKI KETIKA SUDAH ADA TEACHER */}
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <TeacherAvatar
-                  teacherName="Dr. John Smith"
-                  avatarUrl="https://i.pravatar.cc/150?img=12"
-                  size="sm"
-                />
-                <span>Dr. John Smith</span>
+                <GraduationCap className="w-4 h-4" />
+                <span>{course.teacherName}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -119,14 +115,9 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
                 </span>
               </div>
 
-              {/* //TODO: PERBAIKI KETIKA SUDAH ADA TEACHER */}
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <TeacherAvatar
-                  teacherName="Dr. John Smith"
-                  avatarUrl="https://i.pravatar.cc/150?img=12"
-                  size="sm"
-                />
-                <span>Dr. John Smith</span>
+                <GraduationCap className="w-4 h-4" />
+                <span>{course.teacherName}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
@@ -186,14 +177,9 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
                 </span>
               </div>
 
-              {/* //TODO: PERBAIKI KETIKA SUDAH ADA TEACHER */}
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <TeacherAvatar
-                  teacherName="Dr. John Smith"
-                  avatarUrl="https://i.pravatar.cc/150?img=12"
-                  size="sm"
-                />
-                <span>Dr. John Smith</span>
+                <GraduationCap className="w-4 h-4" />
+                <span>{course.teacherName}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
