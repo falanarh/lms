@@ -525,7 +525,7 @@ export default function KnowledgeManagementList({
           {/* Main Search and Filter Row */}
           <div className="flex flex-col py-8 space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
             {/* Search Section */}
-            <div className="flex-1 max-w-md">
+            <div className="flex-1">
               <Input
                 type="text"
                 placeholder="Search knowledge centers..."
