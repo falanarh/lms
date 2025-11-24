@@ -15,7 +15,7 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Check if current route is /course or its sub-routes
-  const isCourseRoute = pathname.startsWith('/course');
+  const isCourseRoute = pathname?.startsWith('/course');
 
   // Map pathname to navbar key
   const getActiveKey = (path: string): string => {
@@ -35,7 +35,7 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
     return pathMap[cleanPath] || ''; // Return empty string for 404 or unknown routes
   };
 
-  const activeKey = getActiveKey(pathname);
+  const activeKey = pathname ? getActiveKey(pathname) : '';
 
   // Navigation items dengan href
   const navItems = [
@@ -94,6 +94,14 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
       {unreadCount}
     </span>
   ) : null;
+
+  // Hide Navbar on /tutor-ai route
+  // This check is placed after hooks to avoid "Rendered more hooks than during the previous render" error
+  // if the condition changes, although pathname change triggers re-render anyway.
+  // But to be safe and follow rules, we place it before return.
+  if (pathname?.startsWith('/tutor-ai')) {
+    return null;
+  }
 
   return (
     <>
@@ -159,9 +167,8 @@ export function NavbarWrapper({ user }: NavbarWrapperProps) {
                   {notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer ${
-                        notif.unread ? 'bg-blue-50/50' : ''
-                      }`}
+                      className={`px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer ${notif.unread ? 'bg-blue-50/50' : ''
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         {notif.unread && (
