@@ -16,6 +16,8 @@ import {
   toggleKnowledgeCenterLike,
 } from '@/api/knowledge-center';
 import { knowledgeApi } from '@/api';
+import { knowledgeKeys } from '@/lib/query-keys';
+import { CACHE_TIMES } from '@/constants/knowledge';
 import {
   transformFormDataToAPI,
   validateFormDataForSubmission,
@@ -108,13 +110,13 @@ export const useToggleLike = () => {
       toggleKnowledgeCenterLike(id, like),
     onMutate: async ({ id, like }) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['knowledge-centers', 'detail', id] });
+      await queryClient.cancelQueries({ queryKey: knowledgeKeys.detail(id) });
       
       // Snapshot the previous value
-      const previousData = queryClient.getQueryData(['knowledge-centers', 'detail', id]);
+      const previousData = queryClient.getQueryData(knowledgeKeys.detail(id));
       
       // Optimistically update the cache
-      queryClient.setQueryData(['knowledge-centers', 'detail', id], (old: any) => {
+      queryClient.setQueryData(knowledgeKeys.detail(id), (old: any) => {
         if (!old) return old;
         return {
           ...old,
@@ -128,19 +130,22 @@ export const useToggleLike = () => {
     onError: (err, variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousData) {
-        queryClient.setQueryData(['knowledge-centers', 'detail', variables.id], context.previousData);
+        queryClient.setQueryData(knowledgeKeys.detail(variables.id), context.previousData);
       }
       console.error('Failed to toggle like:', err);
     },
     onSettled: (data, error, variables) => {
       // Always refetch after error or success to ensure we have the latest data
       queryClient.invalidateQueries({ 
-        queryKey: ['knowledge-centers', 'detail', variables.id] 
+        queryKey: knowledgeKeys.detail(variables.id),
+        exact: true,
       });
       
-      // Optionally invalidate knowledge list queries to update like counts in lists
+      // Invalidate knowledge list queries to update like counts in lists
       queryClient.invalidateQueries({ 
-        queryKey: ['knowledge-centers'] 
+        queryKey: knowledgeKeys.lists(),
+        exact: false,
+        refetchType: 'active',
       });
     },
   });
@@ -164,7 +169,7 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
     if (detailQuery.data && !viewCountIncrementedRef.current) {
       viewCountIncrementedRef.current = true;
       // Optimistically update view count in React Query cache so UI updates immediately
-      queryClient.setQueryData(['knowledge-centers', 'detail', id], (old: any) => {
+      queryClient.setQueryData(knowledgeKeys.detail(id), (old: any) => {
         if (!old) return old;
         return {
           ...old,
@@ -189,7 +194,7 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
   const relatedParams = useMemo<KnowledgeQueryParams>(
     () => ({
       page: 1,
-      limit: 4,
+      limit: 7,
       sort: SORT_OPTIONS.POPULAR,
       subject: detailQuery.data?.idSubject ? [detailQuery.data.idSubject] : undefined,
     }),
@@ -275,11 +280,24 @@ export const useCreateKnowledgeCenter = (
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationKey: ['knowledge-centers', 'create'],
+    mutationKey: [...knowledgeKeys.all, 'create'],
     mutationFn: (payload: CreateKnowledgeCenterRequest) => knowledgeCenterApi.createKnowledgeCenter(payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers', 'detail', data.id] });
+      // Targeted invalidation for all list queries (with any filters)
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        exact: false,
+        refetchType: 'active',
+      });
+
+      // Seed detail cache optimistically
+      queryClient.setQueryData(knowledgeKeys.detail(data.id), data);
+
+      // Invalidate stats if they exist
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.stats(),
+        exact: true,
+      });
       onSuccess?.('Knowledge center berhasil dibuat');
     },
     onError: (error) => {
@@ -374,72 +392,11 @@ export const useCreateKnowledgePage = ({
   // Mutations
   const createKnowledgeMutation = useCreateKnowledgeCenter(onSuccess, onError);
 
-  // Upload states
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
-  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-  
   // Track which button was clicked for loading state
   const [submittingAs, setSubmittingAs] = useState<'draft' | 'published' | null>(null);
   
   // Track if we're currently uploading any files
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
-
-  // ============================================================================
-  // Media Upload Handlers
-  // ============================================================================
-
-  const handleMediaUpload = useCallback(
-    async (file: File, type: 'video' | 'audio' | 'pdf') => {
-      setIsUploadingMedia(true);
-      try {
-        // Use upload function map for cleaner code
-        const uploadFn = {
-          video: knowledgeApi.uploadVideo,
-          audio: knowledgeApi.uploadAudio,
-          pdf: knowledgeApi.uploadPDF,
-        }[type];
-
-        const uploadedUrl = await uploadFn(file);
-        
-        // Sanitize URL to handle special characters like spaces
-        const sanitizedUrl = encodeMediaUrl(uploadedUrl);
-
-        // Update form using nested field path
-        wizard.form.setFieldValue('knowledgeContent.mediaUrl' as any, sanitizedUrl as any);
-
-        onSuccess('Media uploaded successfully');
-      } catch (error) {
-        console.error('Media upload failed:', error);
-        onError('Failed to upload media. Please try again.');
-      } finally {
-        setIsUploadingMedia(false);
-      }
-    },
-    [wizard.form, onSuccess, onError]
-  );
-
-  const handleNotesUpload = useCallback(
-    async (file: File) => {
-      setIsUploadingPDF(true);
-      try {
-        const uploadedUrl = await knowledgeApi.uploadPDF(file);
-        
-        // Sanitize URL to handle special characters like spaces
-        const sanitizedUrl = encodeMediaUrl(uploadedUrl);
-
-        // Update form using nested field path
-        wizard.form.setFieldValue('webinar.contentText' as any, sanitizedUrl as any);
-
-        onSuccess('PDF uploaded successfully');
-      } catch (error) {
-        console.error('PDF upload failed:', error);
-        onError('Failed to upload PDF. Please try again.');
-      } finally {
-        setIsUploadingPDF(false);
-      }
-    },
-    [wizard.form, onSuccess, onError]
-  );
 
   // ============================================================================
   // Step Navigation with Validation
@@ -571,7 +528,7 @@ export const useCreateKnowledgePage = ({
 
         // Clear uploading state and navigate to knowledge center on success
         setIsUploadingFiles(false);
-        router.push('/knowledge-center');
+        router.push('/knowledge-center/manage');
       } catch (error) {
         console.error('Failed to create knowledge:', error);
         
@@ -628,7 +585,11 @@ export const useKnowledgeManagementPage = ({
       setIsDeleting(true);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        exact: false,
+        refetchType: 'active',
+      });
       onSuccess('Knowledge center deleted successfully');
     },
     onError: (error: any) => {
@@ -643,18 +604,86 @@ export const useKnowledgeManagementPage = ({
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, isFinal }: { id: string; isFinal: boolean }) =>
       knowledgeCenterApi.updateKnowledgeCenterStatus(id, isFinal),
-    onMutate: () => {
+    onMutate: async ({ id, isFinal }) => {
       setIsUpdating(true);
+
+      // Cancel outgoing refetches for all knowledge lists
+      await queryClient.cancelQueries({ queryKey: knowledgeKeys.lists() });
+
+      // Snapshot previous list data for rollback
+      const previousQueries = queryClient.getQueriesData({
+        queryKey: knowledgeKeys.lists(),
+      });
+
+      // Optimistically update all list caches
+      queryClient.setQueriesData(
+        { queryKey: knowledgeKeys.lists() },
+        (old: any) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((item: KnowledgeCenter) =>
+              item.id === id
+                ? {
+                    ...item,
+                    isFinal,
+                    publishedAt: isFinal ? new Date().toISOString() : item.publishedAt,
+                  }
+                : item,
+            ),
+          };
+        },
+      );
+
+      // Optimistically update detail cache if exists
+      queryClient.setQueryData(
+        knowledgeKeys.detail(id),
+        (old: KnowledgeCenter | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            isFinal,
+            publishedAt: isFinal ? new Date().toISOString() : old.publishedAt,
+          };
+        },
+      );
+
+      return { previousQueries };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
-      onSuccess('Knowledge center updated successfully');
-    },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      // Rollback list caches on error
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+
       onError(error.message || 'Failed to update knowledge center');
     },
-    onSettled: () => {
+    onSuccess: (_data, variables) => {
+      // Keep success message behavior, but include publish/draft context
+      const statusMessage = variables.isFinal
+        ? 'Knowledge center updated and published successfully'
+        : 'Knowledge center updated as draft successfully';
+      onSuccess(statusMessage);
+    },
+    onSettled: (_data, _error, variables) => {
       setIsUpdating(false);
+
+      // Ensure we are back in sync with server
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        refetchType: 'active',
+      });
+
+      if (variables?.id) {
+        queryClient.invalidateQueries({
+          queryKey: knowledgeKeys.detail(variables.id),
+          exact: true,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: knowledgeKeys.stats() });
     },
   });
 
@@ -668,7 +697,7 @@ export const useKnowledgeManagementPage = ({
     if (window.confirm('Are you sure you want to delete this knowledge center? This action cannot be undone.')) {
       try {
         await deleteMutation.mutateAsync(id);
-      } catch (error) {
+      } catch {
         // Error handled by mutation
       }
     }
@@ -696,7 +725,7 @@ export const useKnowledgeManagementPage = ({
   const handleToggleStatus = useCallback(async (id: string, isFinal: boolean) => {
     try {
       await updateStatusMutation.mutateAsync({ id, isFinal });
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   }, [updateStatusMutation]);
@@ -710,7 +739,11 @@ export const useKnowledgeManagementPage = ({
       try {
         setIsDeleting(true);
         await knowledgeCenterApi.deleteKnowledgeCenters(ids);
-        queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+        queryClient.invalidateQueries({
+          queryKey: knowledgeKeys.lists(),
+          exact: false,
+          refetchType: 'active',
+        });
         onSuccess(`${count} knowledge center${count > 1 ? 's' : ''} deleted successfully`);
       } catch (error: any) {
         onError(error.message || 'Failed to delete knowledge centers');
@@ -724,7 +757,7 @@ export const useKnowledgeManagementPage = ({
   const deleteKnowledge = useCallback(async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   }, [deleteMutation]);
@@ -733,7 +766,11 @@ export const useKnowledgeManagementPage = ({
     try {
       setIsDeleting(true);
       await knowledgeCenterApi.deleteKnowledgeCenters(ids);
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        exact: false,
+        refetchType: 'active',
+      });
       onSuccess(`${ids.length} knowledge center${ids.length > 1 ? 's' : ''} deleted successfully`);
     } catch (error: any) {
       onError(error.message || 'Failed to delete knowledge centers');
@@ -776,6 +813,7 @@ export const useEditKnowledgePage = ({
 }: UseEditKnowledgePageParams) => {
   const queryClient = useQueryClient();
   const [submittingAs, setSubmittingAs] = useState<'draft' | 'published' | null>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   // Fetch existing knowledge center data
   const {
@@ -865,8 +903,14 @@ export const useEditKnowledgePage = ({
     },
     onSuccess: (data, variables) => {
       const status = variables.data.isFinal ? 'published' : 'draft';
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-center', knowledgeId] });
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.detail(knowledgeId),
+        exact: true,
+      });
       
       const message = status === 'published' 
         ? 'Knowledge center updated and published successfully!' 
@@ -899,7 +943,7 @@ export const useEditKnowledgePage = ({
       } else {
         onError(`Please fill in all required fields for step ${currentStepNumber}`);
       }
-    } catch (error) {
+    } catch {
       onError(`Please fill in all required fields for step ${currentStepNumber}`);
     }
   }, [wizard, onError]);
@@ -915,16 +959,23 @@ export const useEditKnowledgePage = ({
   // Handle form submission
   const handleSubmit = useCallback(
     async (submitAs: 'draft' | 'published') => {
-      try {
-        // Get current form values
-        const formData = wizard.formValues as any;
+      // Get current form values
+      const formData = wizard.formValues as any;
 
-        // Shared validation helper (same dengan create)
-        const validationError = validateFormDataForSubmission(formData);
-        if (validationError) {
-          onError(validationError);
-          return;
-        }
+      // Set which button was clicked (sama seperti create)
+      setSubmittingAs(submitAs);
+
+      // Shared validation helper (same dengan create)
+      const validationError = validateFormDataForSubmission(formData);
+      if (validationError) {
+        onError(validationError);
+        setSubmittingAs(null);
+        return;
+      }
+
+      try {
+        // Set uploading state sebelum mulai upload thumbnail/file
+        setIsUploadingFiles(true);
 
         // Clone form values supaya aman dimodifikasi
         const updatedFormValues = { ...formData };
@@ -942,6 +993,8 @@ export const useEditKnowledgePage = ({
           } catch (uploadError: any) {
             console.error('Failed to upload thumbnail during update:', uploadError);
             parseApiErrors(uploadError, wizard.form, onError);
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
@@ -971,6 +1024,8 @@ export const useEditKnowledgePage = ({
               ...prev,
               errors: ['Failed to upload media file. Please try again.'],
             }));
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
@@ -989,6 +1044,8 @@ export const useEditKnowledgePage = ({
               ...prev,
               errors: ['Failed to upload PDF notes. Please try again.'],
             }));
+            setIsUploadingFiles(false);
+            setSubmittingAs(null);
             return;
           }
         }
@@ -1005,6 +1062,9 @@ export const useEditKnowledgePage = ({
           id: knowledgeId,
           data: apiData,
         });
+
+        // Clear uploading state on success
+        setIsUploadingFiles(false);
       } catch (error: any) {
         onError(
           error.message ||
@@ -1012,6 +1072,8 @@ export const useEditKnowledgePage = ({
               submitAs === 'published' ? 'publish' : 'save'
             } knowledge center`,
         );
+        setIsUploadingFiles(false);
+        setSubmittingAs(null);
       }
     },
     [wizard, knowledgeId, updateMutation, onError],
@@ -1024,7 +1086,7 @@ export const useEditKnowledgePage = ({
 
     // Submission handler
     handleSubmit,
-    isUpdating: updateMutation.isPending,
+    isUpdating: isUploadingFiles || updateMutation.isPending,
     submittingAs,
 
     // Data loading
@@ -1041,10 +1103,14 @@ export const useDeleteKnowledgeCenter = (
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationKey: ['knowledge-centers', 'delete'],
+    mutationKey: [...knowledgeKeys.all, 'delete'],
     mutationFn: (id: string) => knowledgeCenterApi.deleteKnowledgeCenter(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        exact: false,
+        refetchType: 'active',
+      });
       onSuccess?.('Knowledge center deleted successfully');
     },
     onError: (error) => {
@@ -1067,10 +1133,14 @@ export const useBulkDeleteKnowledgeCenter = (
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationKey: ['knowledge-centers', 'bulk-delete'],
+    mutationKey: [...knowledgeKeys.all, 'bulk-delete'],
     mutationFn: (ids: string[]) => knowledgeCenterApi.deleteKnowledgeCenters(ids),
     onSuccess: (_, ids) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-centers'] });
+      queryClient.invalidateQueries({
+        queryKey: knowledgeKeys.lists(),
+        exact: false,
+        refetchType: 'active',
+      });
       const count = ids.length;
       onSuccess?.(`${count} knowledge center${count > 1 ? 's' : ''} deleted successfully`);
     },
@@ -1089,11 +1159,10 @@ export const useBulkDeleteKnowledgeCenter = (
 // Hook for live search functionality
 export const useKnowledgeCenterSearch = (query: string, enabled: boolean = true) => {
   return useQuery({
-    queryKey: ['knowledge-centers', 'search', query],
+    queryKey: knowledgeKeys.search(query),
     queryFn: () => knowledgeCenterApi.searchKnowledgeCenters(query),
     enabled: enabled && query.length >= 2, // Only search when query is at least 2 characters
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 10, // 10 minutes
+    ...CACHE_TIMES.searchResults,
     refetchOnWindowFocus: false,
   });
 };

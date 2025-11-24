@@ -85,21 +85,21 @@ const statusConfig: Record<
 > = {
   upcoming: {
     label: "Akan Datang",
-    badge: "bg-blue-50 border-blue-200",
-    text: "text-blue-600",
-    iconBg: "bg-blue-100",
+    badge: "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800",
+    text: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-blue-100 dark:bg-blue-900/30",
   },
   ongoing: {
     label: "Berlangsung",
-    badge: "bg-green-50 border-green-200",
-    text: "text-green-600",
-    iconBg: "bg-green-100",
+    badge: "bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800",
+    text: "text-green-600 dark:text-green-400",
+    iconBg: "bg-green-100 dark:bg-green-900/30",
   },
   completed: {
     label: "Selesai",
-    badge: "bg-gray-50 border-gray-200",
-    text: "text-gray-600",
-    iconBg: "bg-gray-100",
+    badge: "bg-gray-50 dark:bg-zinc-700 border-gray-200 dark:border-zinc-600",
+    text: "text-gray-600 dark:text-zinc-400 dark:text-zinc-400",
+    iconBg: "bg-gray-100 dark:bg-zinc-700/50",
   },
 };
 
@@ -114,27 +114,27 @@ const materialConfig: Record<
 > = {
   pdf: {
     icon: FileText,
-    color: "text-red-600",
-    bg: "bg-red-50",
-    border: "border-red-200",
+    color: "text-red-600 dark:text-red-400",
+    bg: "bg-red-50 dark:bg-red-900/30",
+    border: "border-red-200 dark:border-red-800",
   },
   video: {
     icon: Video,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-900/30",
+    border: "border-blue-200 dark:border-blue-800",
   },
   doc: {
     icon: FileText,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-900/30",
+    border: "border-blue-200 dark:border-blue-800",
   },
   ppt: {
     icon: FileText,
-    color: "text-orange-600",
-    bg: "bg-orange-50",
-    border: "border-orange-200",
+    color: "text-orange-600 dark:text-orange-400",
+    bg: "bg-orange-50 dark:bg-orange-900/30",
+    border: "border-orange-200 dark:border-orange-800",
   },
 };
 
@@ -166,11 +166,11 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
         onClick={onClick}
         className={[
           "relative p-6",
-          "bg-white",
-          "border border-gray-200",
+          "bg-white dark:bg-zinc-800",
+          "border border-gray-200 dark:border-zinc-700",
           "rounded-xl",
           "transition-all duration-200",
-          "hover:shadow-md hover:border-gray-300",
+          "hover:shadow-md hover:border-gray-300 dark:hover:border-zinc-600",
           "group",
           onClick ? "cursor-pointer" : "",
           className,
@@ -196,14 +196,14 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
               <div className="flex-1 min-w-0">
                 <h5
                   className={[
-                    "mb-1 font-semibold text-gray-900 truncate",
+                    "mb-1 font-semibold text-gray-900 dark:text-zinc-100 truncate",
                     "transition-colors",
                     onClick ? "group-hover:text-purple-600" : "",
                   ].join(" ")}
                 >
                   {title}
                 </h5>
-                <p className="text-sm text-gray-500 truncate">{topic}</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-400 truncate">{topic}</p>
               </div>
             </div>
           </div>
@@ -221,28 +221,28 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
           </span>
 
           {jp && (
-            <span className="text-purple-700 font-medium px-3 py-1 rounded-lg text-xs font-medium border capitalize flex-shrink-0 ml-3">
+            <span className="text-purple-700 dark:text-purple-400 font-medium px-3 py-1 rounded-lg text-xs font-medium border capitalize flex-shrink-0 ml-3">
               {jp} JP
             </span>
           )}
         </div>
 
         {(date || duration || instructor || jp) && (
-          <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-100">
+          <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-gray-100 dark:border-zinc-700">
             {date && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-zinc-400">
                 <Calendar className="size-4 flex-shrink-0" />
                 <span className="truncate">{date}</span>
               </div>
             )}
             {duration && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-zinc-400">
                 <Clock className="size-4 flex-shrink-0" />
                 <span className="truncate">{duration}</span>
               </div>
             )}
             {instructor && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-zinc-400">
                 <GraduationCap className="size-4 flex-shrink-0" />
                 <span className="truncate">{instructor}</span>
               </div>
@@ -253,7 +253,7 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
         {/* Materials */}
         {materials.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">
+            <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
               Materi Tersedia:
             </p>
             <div className="flex flex-wrap gap-2">
@@ -272,10 +272,10 @@ export const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(
                     ].join(" ")}
                   >
                     <Icon className={`size-4 flex-shrink-0 ${config.color}`} />
-                    <span className="text-xs font-medium text-gray-700">
+                    <span className="text-xs font-medium text-gray-700 dark:text-zinc-300">
                       {material.title}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-zinc-400">
                       ({material.size})
                     </span>
                   </div>

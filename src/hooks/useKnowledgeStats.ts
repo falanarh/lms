@@ -8,6 +8,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { knowledgeCenterApi } from '@/api/knowledge-center';
 import type { KnowledgeCenterStats, KnowledgeOverviewStats, KnowledgeLastActivity } from '@/types/knowledge-center';
+import { knowledgeKeys } from '@/lib/query-keys';
+import { CACHE_TIMES } from '@/constants/knowledge';
 
 /**
  * Data type for knowledge stats
@@ -30,10 +32,9 @@ export interface KnowledgeStatsData extends KnowledgeCenterStats {
  */
 export const useKnowledgeStats = () => {
   const { data: statsData, isLoading, error } = useQuery({
-    queryKey: ['knowledge-centers', 'stats'],
+    queryKey: knowledgeKeys.stats(),
     queryFn: knowledgeCenterApi.fetchKnowledgeCenterStats,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
-    gcTime: 1000 * 60 * 10, // 10 minutes garbage collection
+    ...CACHE_TIMES.stats,
   });
 
   // Transform API response to match component expectations
@@ -63,10 +64,9 @@ export const useKnowledgeStats = () => {
  */
 export const useKnowledgeLastActivities = () => {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['knowledge-centers', 'last-activities'],
+    queryKey: knowledgeKeys.lastActivities(),
     queryFn: knowledgeCenterApi.fetchKnowledgeLastActivities,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
+    ...CACHE_TIMES.stats,
   });
 
   return {
@@ -81,10 +81,9 @@ export const useKnowledgeLastActivities = () => {
  */
 export const useKnowledgeOverviewStats = () => {
   const { data: overviewData, isLoading, error } = useQuery({
-    queryKey: ['knowledge-centers', 'overview-stats'],
+    queryKey: knowledgeKeys.overviewStats(),
     queryFn: knowledgeCenterApi.fetchKnowledgeOverviewStats,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
+    ...CACHE_TIMES.stats,
   });
 
   const stats: KnowledgeOverviewStats = {

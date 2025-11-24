@@ -30,7 +30,7 @@ import {
   useUpdateKnowledgeSubject,
   useDeleteKnowledgeSubject,
 } from '@/hooks/useKnowledgeSubject';
-import { PENYELENGGARA_DATA } from '@/api/knowledge-center';
+import { PENYELENGGARA_OPTIONS } from '@/constants/knowledge';
 import type { KnowledgeSubject } from '@/types';
 
 // ============================================================================
@@ -38,11 +38,6 @@ import type { KnowledgeSubject } from '@/types';
 // ============================================================================
 
 // Transform static data once at module level
-const PENYELENGGARA_OPTIONS = PENYELENGGARA_DATA.map((item) => ({
-  id: item.value,
-  name: item.value,
-  description: '',
-}));
 
 export const dynamic = 'force-dynamic';
 

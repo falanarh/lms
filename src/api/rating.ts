@@ -19,11 +19,11 @@ export type RatingSummaryResponse = {
   data: RatingSummary;
 };
 
-export const getRatingSummaryByGroupCourse = async (
-  groupCourseId: string
+export const getRatingSummaryByCourseId = async (
+  courseId: string
 ): Promise<RatingSummaryResponse> => {
   const response = await axios.get(
-    `${API_BASE_URL}/activities/group-course/${groupCourseId}/rating-summary`
+    `${API_BASE_URL}/activities/course/${courseId}/rating-summary`
   );
   return response.data;
 };

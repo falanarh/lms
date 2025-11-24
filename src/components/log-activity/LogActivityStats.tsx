@@ -10,25 +10,16 @@
 'use client';
 
 import React from 'react';
-import { Activity, Users, Clock, TrendingUp, BarChart3, Calendar } from 'lucide-react';
+import { Activity, Users, TrendingUp, BarChart3, Calendar } from 'lucide-react';
 import { useLogActivityStats } from '@/hooks/useLogActivity';
-import { LOG_TYPE_LABELS } from '@/types/log-activity';
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-};
+const formatNumber = (raw?: number | null): string => {
+  const num = typeof raw === 'number' && !Number.isNaN(raw) ? raw : 0;
 
-const formatNumber = (num: number): string => {
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   }
@@ -73,7 +64,6 @@ export default function LogActivityStats() {
     const skeletonCards = [
       { bgColor: 'bg-blue-50' },
       { bgColor: 'bg-green-50' },
-      { bgColor: 'bg-purple-50' },
       { bgColor: 'bg-orange-50' },
       { bgColor: 'bg-cyan-50' },
       { bgColor: 'bg-pink-50' },
@@ -91,7 +81,7 @@ export default function LogActivityStats() {
         </div>
 
         {/* Skeleton Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {skeletonCards.map((card, index) => (
             <StatCardSkeleton key={index} bgColor={card.bgColor} />
           ))}
@@ -125,7 +115,7 @@ export default function LogActivityStats() {
   const statCards = [
     {
       title: 'Total Logs',
-      value: formatNumber(stats.totalLogs),
+      value: formatNumber(stats.totalLogs ?? 0),
       icon: BarChart3,
       color: 'blue',
       bgColor: 'bg-blue-50',
@@ -133,35 +123,8 @@ export default function LogActivityStats() {
       textColor: 'text-blue-600',
     },
     {
-      title: 'Active Users',
-      value: formatNumber(stats.totalUsers),
-      icon: Users,
-      color: 'green',
-      bgColor: 'bg-green-50',
-      iconBg: 'bg-green-500',
-      textColor: 'text-green-600',
-    },
-    {
-      title: 'Avg Session',
-      value: formatDuration(stats.averageSessionDuration),
-      icon: Clock,
-      color: 'purple',
-      bgColor: 'bg-purple-50',
-      iconBg: 'bg-purple-500',
-      textColor: 'text-purple-600',
-    },
-    {
-      title: 'Most Active',
-      value: LOG_TYPE_LABELS[stats.mostActiveLogType]?.split(' ')[0] || 'N/A',
-      icon: TrendingUp,
-      color: 'orange',
-      bgColor: 'bg-orange-50',
-      iconBg: 'bg-orange-500',
-      textColor: 'text-orange-600',
-    },
-    {
       title: 'Today',
-      value: formatNumber(stats.dailyActivityCount),
+      value: formatNumber(stats.dailyActivityCount ?? 0),
       icon: Calendar,
       color: 'cyan',
       bgColor: 'bg-cyan-50',
@@ -169,13 +132,31 @@ export default function LogActivityStats() {
       textColor: 'text-cyan-600',
     },
     {
-      title: 'This Month',
-      value: formatNumber(stats.monthlyActivityCount),
+      title: 'This Week',
+      value: formatNumber(stats.weeklyActivityCount ?? 0),
       icon: Activity,
       color: 'pink',
       bgColor: 'bg-pink-50',
       iconBg: 'bg-pink-500',
       textColor: 'text-pink-600',
+    },
+    {
+      title: 'Active Users',
+      value: formatNumber(stats.totalUsers ?? 0),
+      icon: Users,
+      color: 'green',
+      bgColor: 'bg-green-50',
+      iconBg: 'bg-green-500',
+      textColor: 'text-green-600',
+    },
+    {
+      title: 'Most Active',
+      value: stats.mostActiveLogType || 'N/A',
+      icon: TrendingUp,
+      color: 'orange',
+      bgColor: 'bg-orange-50',
+      iconBg: 'bg-orange-500',
+      textColor: 'text-orange-600',
     },
   ];
 
@@ -196,7 +177,7 @@ export default function LogActivityStats() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           

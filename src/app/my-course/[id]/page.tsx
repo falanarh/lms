@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect, useMemo } from "react";
+import { use, useState, useEffect, useMemo, useCallback } from "react";
 import {
   CourseBreadcrumb,
   CourseTitle,
@@ -11,129 +11,202 @@ import {
   PageContainer,
 } from "@/features/detail-course/components";
 import { CourseTabType } from "@/features/detail-course/types/tab";
-import { useGroupCourse } from "@/hooks/useGroupCourse";
-import { useSectionsByGroupId } from "@/hooks/useSectionsByGroupId";
-import { useContentsBySectionId } from "@/hooks/useContentsBySectionId";
-import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton } from "@/features/my-course/components";
-import { Content } from "@/api/contents";
+import { useContentNavigation } from "@/hooks/useContentNavigation";
+import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
+import { useCreateReview } from "@/hooks/useReviews";
+import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton, SummaryTab } from "@/features/my-course/components";
+import { Sparkles } from "lucide-react";
+import type { Content } from "@/api/contents";
+import { useSectionContent } from "@/hooks/useSectionContent";
+import { useCourse } from "@/hooks/useCourse";
 
 interface MyCoursePageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
 export default function MyCoursePage({ params }: MyCoursePageProps) {
   const { id } = use(params);
-  const { data: course, isLoading, error } = useGroupCourse(id);
-  const { data: sections, isLoading: isSectionsLoading } = useSectionsByGroupId({ groupId: id });
+  const { data: courseDetail, isLoading: isCourseLoading, error } = useCourse(id);
+  const { data: sectionContent } = useSectionContent({ courseId: id });
+  const sections = useMemo(() => (sectionContent?.data?.listSection as any) || [], [sectionContent]);
+  const { activeContentId, updateContentInUrl } = useContentUrl(id);
+  const createReviewMutation = useCreateReview(id);
   const [activeTab, setActiveTab] = useState<CourseTabType>('information');
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
+  const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [isBootingContent, setIsBootingContent] = useState(false);
 
-  // TODO: Remove activities logic since contents are now fetched per section
-  // Auto-expand first section on mount
-  useEffect(() => {
-    const firstSection = sections?.[0];
-    if (firstSection && expandedSections.length === 0) {
-      setExpandedSections([firstSection.id]);
-    }
-  }, [sections]);
+  const course = courseDetail!;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
     setIsSidebarOpen(mq.matches);
   }, []);
 
-  // Auto-switch tab ketika sidebar toggle
+  useEffect(() => {
+    const firstSection = sections?.[0];
+    if (firstSection && expandedSections.length === 0) {
+      setExpandedSections([firstSection.id]);
+      const contents = (firstSection as any).listContents || (firstSection as any).listContent || [];
+      if (contents.length > 0) {
+        setExpandedSectionsData((prev) => ({ ...prev, [firstSection.id]: contents }));
+      }
+    }
+  }, [sections]);
+
+  useEffect(() => {
+    if (sections && sections.length > 0) {
+      const ids: string[] = [];
+      sections.forEach((sec: any) => {
+        const contents = (sec.listContents || sec.listContent || []) as any[];
+        contents.forEach((c: any) => {
+          const hasFinished = Boolean(c?.userStatus?.isFinished);
+          if (hasFinished) ids.push(c.id);
+        });
+      });
+      setCompletedContentIds(ids);
+    }
+  }, [sections]);
+
   useEffect(() => {
     if (isSidebarOpen && activeTab === 'course_contents') {
       setActiveTab('information');
     }
   }, [isSidebarOpen]);
 
-  // Prefetch contents for first section and auto-select first content
-  const firstSectionId = useMemo(() => sections?.[0]?.id ?? undefined, [sections]);
-
-  const { data: firstSectionContents, isLoading: isLoadingFirstContents } = useContentsBySectionId({
-    sectionId: firstSectionId || "",
-    enabled: Boolean(firstSectionId) && !selectedContent,
-  });
+  const firstSectionContents = useMemo(() => {
+    const s0 = sections?.[0] as any;
+    return s0?.listContents || s0?.listContent || [];
+  }, [sections]);
 
   useEffect(() => {
-    // Start booting when we intend to prefetch first section contents
-    if (firstSectionId && !selectedContent) {
-      setIsBootingContent(true);
+    const allData: Record<string, Content[]> = {};
+    if (Array.isArray(sections)) {
+      sections.forEach((sec: any) => {
+        const contents = (sec.listContents || sec.listContent || []) as Content[];
+        if (contents.length > 0) {
+          allData[sec.id] = contents;
+        }
+      });
+      if (Object.keys(allData).length > 0) {
+        setExpandedSectionsData(allData);
+      }
     }
-  }, [firstSectionId, selectedContent]);
+  }, [sections]);
 
+  // Restore content from URL on page load
   useEffect(() => {
-    if (!selectedContent && firstSectionContents && firstSectionContents.length > 0) {
-      setSelectedContent(firstSectionContents[0]);
-      setIsBootingContent(false);
+    if (activeContentId && expandedSectionsData) {
+      // Find content by ID across all sections
+      for (const sectionContents of Object.values(expandedSectionsData)) {
+        const foundContent = sectionContents.find(content => content.id === activeContentId);
+        if (foundContent && foundContent.id !== selectedContent?.id) {
+          setSelectedContent(foundContent);
+          return;
+        }
+      }
     }
-    if (firstSectionContents && firstSectionContents.length === 0) {
-      setIsBootingContent(false);
+  }, [activeContentId, expandedSectionsData, selectedContent?.id]);
+
+  // Auto-select first content if no content is selected and no URL content ID
+  useEffect(() => {
+    if (!selectedContent && !activeContentId && firstSectionContents && firstSectionContents.length > 0) {
+      const contentToSelect = firstSectionContents[0];
+      setSelectedContent(contentToSelect);
+      updateContentInUrl(contentToSelect);
     }
-  }, [firstSectionContents, selectedContent]);
+  }, [firstSectionContents, selectedContent, activeContentId, updateContentInUrl]);
 
   // Handle expand/collapse section
   const handleToggleSection = (sectionId: string) => {
-    setExpandedSections(prev =>
-      prev.includes(sectionId)
+    setExpandedSections(prev => {
+      const next = prev.includes(sectionId)
         ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
+        : [...prev, sectionId];
+      if (!prev.includes(sectionId)) {
+        const section = sections.find((s: any) => s.id === sectionId);
+        const contents = (section as any)?.listContents || (section as any)?.listContent || [];
+        if (contents.length > 0) {
+          setExpandedSectionsData(prevData => ({ ...prevData, [sectionId]: contents }));
+        }
+      }
+      return next;
+    });
   };
 
-  // Navigation handlers - simplified for now
-  const handlePrevious = () => {
-    // TODO: Implement navigation when content structure is finalized
-  };
+  // Enhanced content selection handler that syncs with URL
+  const handleContentSelect = useCallback((content: Content) => {
+    setSelectedContent(content);
+    updateContentInUrl(content);
+  }, [updateContentInUrl]);
 
-  const handleNext = () => {
-    // TODO: Implement navigation when content structure is finalized
-  };
+  // Navigation system
+  const handleSectionDataUpdate = useCallback((sectionId: string, contents: Content[]) => {
+    setExpandedSectionsData(prev => {
+      // Prevent unnecessary updates if data is the same
+      if (prev[sectionId] && prev[sectionId].length === contents.length) {
+        const isSame = prev[sectionId].every((content, index) => content.id === contents[index]?.id);
+        if (isSame) return prev;
+      }
+      
+      return {
+        ...prev,
+        [sectionId]: contents,
+      };
+    });
+  }, []);
 
-  const handleMarkAsDone = () => {
+  const { handleNext, handlePrevious, isNavigating, navigationState } = useContentNavigation({
+    sections: (sections as any) || [],
+    selectedContent,
+    expandedSectionsData,
+    onContentSelect: handleContentSelect,
+    onSectionDataUpdate: handleSectionDataUpdate,
+  });
+
+  const handleMarkContentDone = () => {
     if (!selectedContent) return;
-    setCompletedContentIds(prev =>
-      prev.includes(selectedContent.id)
-        ? prev.filter(id => id !== selectedContent.id)
-        : [...prev, selectedContent.id]
-    );
+    setCompletedContentIds((prev) => {
+      if (prev.includes(selectedContent.id)) {
+        return prev.filter((id) => id !== selectedContent.id);
+      }
+      return [...prev, selectedContent.id];
+    });
   };
 
-  // Check navigation availability - simplified
-  const hasPrevious = false; // TODO: Implement when navigation is ready
-  const hasNext = false; // TODO: Implement when navigation is ready
-  const isCompleted = selectedContent ? completedContentIds.includes(selectedContent.id) : false;
-
-  // Handle write review
   const handleWriteReview = () => {
     setIsReviewModalOpen(true);
   };
 
-  const handleSubmitReview = (rating: number, review: string) => {
+  const handleSubmitReview = async (rating: number, review: string) => {
+    try {
+      await createReviewMutation.mutateAsync({
+        rating,
+        comment: review,
+      });
+      setIsReviewModalOpen(false);
+      alert('Ulasan berhasil dikirim!');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Gagal mengirim ulasan. Silakan coba lagi.');
+    }
   };
 
-  // Loading state: tunda render penuh sampai konten awal siap (jika ada section pertama)
-  const isInitialContentRequired = Boolean(firstSectionId);
-  const isInitialContentPending = isInitialContentRequired && !selectedContent && (isLoadingFirstContents || isBootingContent);
-
-  if (isLoading || isSectionsLoading || !course || isInitialContentPending) {
-    return <MyCoursePageSkeleton />;
+    if (isCourseLoading || !courseDetail) {
+    return (
+      <PageContainer>
+        <MyCoursePageSkeleton />
+      </PageContainer>
+    );
   }
 
-  // Error state
   if (error) {
     return (
       <PageContainer>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
@@ -147,7 +220,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "My Courses", href: "/my-course" },
-    { label: course.course.title, isActive: true },
+    { label: course.groupCourse.title, isActive: true },
   ];
 
   const handleCloseSidebar = () => {
@@ -171,22 +244,22 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           <ContentPlayer content={selectedContent} isSidebarOpen={isSidebarOpen} />
 
-          {/* Navigation Buttons */}
           {selectedContent && (
             <ContentNavigation
               onPrevious={handlePrevious}
               onNext={handleNext}
-              onMarkAsDone={handleMarkAsDone}
-              hasPrevious={hasPrevious}
-              hasNext={hasNext}
-              isCompleted={isCompleted}
+              hasPrevious={navigationState.hasPrevious}
+              hasNext={navigationState.hasNext}
+              isNavigating={isNavigating}
+              onMarkAsDone={handleMarkContentDone}
+              isCompleted={completedContentIds.includes(selectedContent.id)}
             />
           )}
 
-          <CourseTitle title={course.course.title} />
+          <CourseTitle title={course.groupCourse.title} />
 
           {/* Tabs & Content */}
-          <div className="space-y-6 pb-8 mt-8">
+          <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
           <CourseTabNavigation 
             activeTab={activeTab} 
             onTabChange={setActiveTab}
@@ -195,51 +268,58 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.course.description.method}
-              syllabusFile={course.course.description.silabus}
-              totalJP={course.course.description.totalJp}
-              quota={course.course.description.quota}
-              description={course.course.description.description}
+              method={course.groupCourse.description.method}
+              syllabusFile={course.groupCourse.description.silabus}
+              totalJP={course.groupCourse.description.totalJp}
+              quota={course.groupCourse.description.quota}
+              description={course.groupCourse.description.description}
+              zoomUrl={course.zoomUrl || undefined}
+              isEnrolled={true}
             />
           )}
 
           {activeTab === "course_contents" && (
             <CourseContentsTab
-              sections={sections || []}
+              sections={(sections as any) || []}
               expandedSections={expandedSections}
               onToggleSection={handleToggleSection}
               selectedContentId={selectedContent?.id}
-              onSelectContent={setSelectedContent}
+              onSelectContent={handleContentSelect}
               completedContentIds={completedContentIds}
-              disableFetchFirstForIndexZero={isBootingContent || Boolean(selectedContent)}
+              onSectionDataUpdate={handleSectionDataUpdate}
             />
+          )}
+
+          {activeTab === "summary" && (
+              <SummaryTab text={course.groupCourse.description.description} />
           )}
 
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
 
-            {activeTab === "ratings_reviews" && (
+          {activeTab === "ratings_reviews" && (
               <>
                 <RatingsReviewsHeader onWriteReview={handleWriteReview} />
                 
                 <RatingsReviewsTab
-                  groupCourseId={id}
+                  courseId={id}
                 />
               </>
-            )}
+          )}
+            
           </div>
         </PageContainer>
       </div>
 
       {isSidebarOpen && (
         <CourseContentsSidebar
-          sections={sections || []}
+          sections={(sections as any) || []}
           expandedSections={expandedSections}
           onToggleSection={handleToggleSection}
           selectedContentId={selectedContent?.id}
-          onSelectContent={setSelectedContent}
+          onSelectContent={handleContentSelect}
           onClose={handleCloseSidebar}
           completedContentIds={completedContentIds}
-          disableFetchFirstForIndexZero={isBootingContent || Boolean(selectedContent)}
+          onSectionDataUpdate={handleSectionDataUpdate}
         />
       )}
 
@@ -253,8 +333,28 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         onSubmit={handleSubmitReview}
-        courseName={course.course.title}
+        courseName={course.groupCourse.title}
+        isLoading={createReviewMutation.isPending}
       />
+
+      <button
+        type="button"
+        aria-label="Lihat Summary"
+        title="Lihat Summary"
+        onClick={() => {
+          setActiveTab('summary');
+          setTimeout(() => {
+            const el = document.getElementById('course-tabs-top');
+            el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 0);
+        }}
+        className="fixed right-6 bottom-24 md:right-8 md:bottom-24 z-50 group"
+      >
+        <div className="inline-flex items-center rounded-full bg-blue-600 text-white shadow-lg overflow-hidden transition-all duration-300 w-12 group-hover:w-40 h-12 px-3 hover:bg-blue-700">
+          <Sparkles className="w-6 h-6 flex-shrink-0" />
+          <span className="ml-2 text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Lihat Summary</span>
+        </div>
+      </button>
     </>
   );
 }

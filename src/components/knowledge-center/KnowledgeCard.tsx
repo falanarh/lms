@@ -147,18 +147,19 @@ export default function KnowledgeCard({
   return (
     <Link href={`/knowledge-center/${knowledge.id}`} className="block group h-full">
       <article
-        className={`bg-white border border-gray-200 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-300 hover:shadow-md flex flex-col h-full ${className}`}
+        className={`bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md dark:hover:shadow-lg flex flex-col h-full ${className}`}
         onClick={() => {
           // View count will be incremented when navigating to detail page
         }}
       >
         {/* Thumbnail */}
-        <div className="relative aspect-video bg-gray-100 overflow-hidden">
+        <div className="relative aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden">
           {!imageError && knowledge.thumbnail ? (
             <Image
               src={getThumbnailUrl(knowledge.thumbnail)}
               alt={knowledge.title}
               fill
+              priority
               className="object-cover group-hover:scale-105 transition-transform duration-200"
               onError={() => setImageError(true)}
               unoptimized={knowledge.thumbnail.includes('youtube.com') || knowledge.thumbnail.includes('r2.dev')}
@@ -193,7 +194,7 @@ export default function KnowledgeCard({
           {/* Subject badge */}
           {knowledge.subject && (
             <div className="absolute top-2 right-2">
-              <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-gray-700 border border-white/50">
+              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 border border-white/50 dark:border-gray-700/50">
                 {knowledge.subject}
               </div>
             </div>
@@ -249,7 +250,7 @@ export default function KnowledgeCard({
                 <span>{knowledge.likeCount}</span>
               </div>
             </div>
-            <span className="text-gray-400 truncate max-w-[200px]">{knowledge.penyelenggara}</span>
+            <span className="text-gray-400 dark:text-gray-500 truncate max-w-[200px]">{knowledge.penyelenggara}</span>
           </div>
         </div>
       </article>

@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "@/config/api";
 import axios from "axios";
 import { Content } from "./contents";
 
@@ -16,23 +15,23 @@ export type Section  = {
 }
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000"
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://service-courses.vercel.app/api/v1"
 
 export const getSections = async (): Promise<Section[]> => {
-    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=b8d1607e-4edf-4f7a-8a0b-0552191bdd71&orderBy[0][sequence]=asc`, {
+    const response = await axios.get<Section[]>(`${BASE_URL}/sections?idGroup=12ecb1ea-e097-43af-9d6c-8f5a6e6098f0&orderBy[0][sequence]=asc`, {
       withCredentials: false,
     })
     return response.data
 }
 
 export const getSectionsByGroupId = async (groupId: string): Promise<Section[]> => {
-  const response = await axios.get(`${API_BASE_URL}/group-courses/${groupId}/section`);
+  const response = await axios.get(`${BASE_URL}/group-courses/${groupId}/section`);
   return response.data.data;
 };
 
 export const createSection = async (newSection: Omit<Section, "id" | "group" | "createdAt" | "updatedAt">): Promise<Section> => {
   const response = await axios.post<Section>(
-    `${API_BASE_URL}/sections`,
+    `${BASE_URL}/sections`,
     newSection,
     {
       headers: {
@@ -48,7 +47,7 @@ export const updateSection = async (
   updatedData: Partial<Omit<Section, "id" | "group" | "createdAt" | "updatedAt">>
 ): Promise<Section> => {
   const response = await axios.patch<Section>(
-    `${API_BASE_URL}/sections/${id}`,
+    `${BASE_URL}/sections/${id}`,
     updatedData,
     {
       headers: {
@@ -60,5 +59,5 @@ export const updateSection = async (
 };
 
 export const deleteSection = async (id: string): Promise<void> => {
-  await axios.delete(`${API_BASE_URL}/sections/${id}`)
+  await axios.delete(`${BASE_URL}/sections/${id}`)
 }

@@ -36,20 +36,17 @@ export const pdfFileValidator = z
   .refine((file) => file.size <= 10 * 1024 * 1024, 'PDF file size must be less than 10MB')
   .refine((file) => file.type === 'application/pdf', 'Only PDF format is allowed');
 
-export const thumbnailValidator = z.union(
-  [imageFileValidator, z.string().url().min(1, 'Please upload a thumbnail image')],
-  { required_error: 'Please upload a thumbnail image' }
-);
+export const thumbnailValidator = z.union([
+  imageFileValidator,
+  z.string().url().min(1, 'Please upload a thumbnail image')
+]).refine((val) => val !== null && val !== undefined, 'Please upload a thumbnail image');
 
 // ============================================================================
 // Step 1: Content Type Selection Schema
 // ============================================================================
 
 export const contentTypeSchema = z.object({
-  type: z.enum([KNOWLEDGE_TYPES.WEBINAR, KNOWLEDGE_TYPES.CONTENT], {
-    required_error: 'Please select whether you want to create a Webinar or Content',
-    invalid_type_error: 'Invalid content type selected',
-  }),
+  type: z.enum([KNOWLEDGE_TYPES.WEBINAR, KNOWLEDGE_TYPES.CONTENT]).refine((val) => val !== null && val !== undefined, 'Please select whether you want to create a Webinar or Content'),
 });
 
 // ============================================================================
@@ -78,33 +75,27 @@ export const basicInfoSchema = z.object({
 // ============================================================================
 
 export const webinarDetailsSchema = z.object({
-  zoomDate: z.string({
-    required_error: 'Please select webinar date and time',
-    invalid_type_error: 'Invalid date format',
-  }).min(1, 'Please select webinar date and time'),
-  zoomLink: z.string({
-    required_error: 'Please enter the Zoom meeting link',
-    invalid_type_error: 'Invalid URL format',
-  }).url('Please enter a valid Zoom meeting URL').min(1, 'Zoom link is required for participants to join the webinar'),
+  zoomDate: z.string().min(1, 'Please select webinar date and time'),
+  zoomLink: z.string().url('Please enter a valid Zoom meeting URL').min(1, 'Zoom link is required for participants to join the webinar'),
   recordLink: optionalUrl,
   youtubeLink: optionalUrl,
   vbLink: optionalUrl,
   contentText: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
   noteFile: z.union([z.instanceof(File), z.string(), z.null()]).optional(), // For form state (will be transformed to contentText)
-  jpCount: z.number({
-    required_error: 'Please enter JP credits',
-    invalid_type_error: 'JP credits must be a number'
-  }).int('JP credits must be a whole number').min(0, 'JP credits cannot be negative').default(0),
+  jpCount: z
+    .number()
+    .int('JP credits must be a whole number')
+    .min(1, 'JP credits must be greater than 0')
+    .default(0),
 });
 
 // ============================================================================
 // Step 3B: Content Details Schema
 // ============================================================================
 
-export const contentTypeEnumSchema = z.enum(
-  [CONTENT_TYPES.ARTICLE, CONTENT_TYPES.VIDEO, CONTENT_TYPES.PODCAST, CONTENT_TYPES.FILE],
-  { required_error: 'Please select a content type (Article, Video, Podcast, or PDF)' }
-);
+export const contentTypeEnumSchema = z.enum([
+  CONTENT_TYPES.ARTICLE, CONTENT_TYPES.VIDEO, CONTENT_TYPES.PODCAST, CONTENT_TYPES.FILE
+]).refine((val) => val !== null && val !== undefined, 'Please select a content type (Article, Video, Podcast, or PDF)');
 
 export const contentDetailsSchema = z.object({
   contentType: contentTypeEnumSchema,
@@ -116,11 +107,6 @@ export const contentDetailsSchema = z.object({
 // Custom validator function for JP Count (compatible with TanStack Form)
 export const jpCountValidator = {
   validate: (value: any) => {
-    // Allow 0 as valid value
-    if (value === 0) {
-      return undefined;
-    }
-
     // Handle empty string (user cleared the input)
     if (value === '') {
       return 'Please enter JP credits';
@@ -139,9 +125,9 @@ export const jpCountValidator = {
       return 'Please enter a valid number for JP credits';
     }
 
-    // Check if negative
-    if (num < 0) {
-      return 'JP credits cannot be negative';
+    // Disallow 0 and negative values
+    if (num <= 0) {
+      return 'JP credits must be greater than 0';
     }
 
     // Check if integer
@@ -151,7 +137,7 @@ export const jpCountValidator = {
 
     // Valid
     return undefined;
-  }
+  },
 };
 
 // Field-level validators for content details

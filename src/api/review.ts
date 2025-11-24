@@ -30,13 +30,23 @@ export type ReviewResponse = {
   pageMeta: PageMeta;
 };
 
-export const getReviewsByGroupCourse = async (
-  groupCourseId: string,
+export type CreateReviewRequest = {
+  rating: number;
+  comment: string;
+};
+
+export type CreateReviewResponse = {
+  data: Review;
+  message: string;
+};
+
+export const getReviewsByCourseId = async (
+  courseId: string,
   page: number = 1,
   perPage: number = 20
 ): Promise<ReviewResponse> => {
   const response = await axios.get(
-    `${API_BASE_URL}/activities/group-course/${groupCourseId}/rating-reviews`,
+    `${API_BASE_URL}/activities/course/${courseId}/rating-reviews`,
     {
       params: {
         page,
@@ -50,4 +60,22 @@ export const getReviewsByGroupCourse = async (
 export const getReviewById = async (id: string): Promise<Review> => {
   const response = await axios.get(`${API_BASE_URL}/reviews/${id}`);
   return response.data.data;
+};
+
+export const createReview = async (
+  courseId: string,
+  reviewData: CreateReviewRequest
+): Promise<CreateReviewResponse> => {
+  const dummyActivityId = "dummy-activity-id";
+  
+  const response = await axios.post(
+    `${API_BASE_URL}/activities/${dummyActivityId}/rating`,
+    reviewData,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  return response.data;
 };

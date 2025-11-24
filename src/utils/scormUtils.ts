@@ -87,44 +87,6 @@ export async function fetchScormManifest(scormUrl: string): Promise<(ScormManife
   }
 }
 
-/**
- * @deprecated This function is no longer needed as the backend handles parsing.
- * It is kept for reference but should not be used.
- */
-function parseImaManifest(xmlText: string): ScormManifest {
-  console.warn('parseImaManifest is deprecated. Parsing is now handled by the backend.');
-  // This function is now obsolete.
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-  const titleElement = xmlDoc.querySelector('title');
-  return {
-    title: titleElement?.textContent || 'SCORM Content',
-    entryUrl: '',
-    resources: [],
-  };
-}
-
-/**
- * @deprecated This function is no longer needed as the backend handles finding the entry point.
- */
-function findEntryResource(resources: ScormResource[]): string {
-  console.warn('findEntryResource is deprecated. Entry point is now determined by the backend.');
-  return '';
-}
-
-/**
- * @deprecated This function is no longer needed as the backend provides a full manifest.
- */
-function createFallbackManifest(scormUrl: string, isZipFile: boolean = false): ScormManifest {
-  console.warn('createFallbackManifest is deprecated. The backend should always return a valid manifest.');
-  const fileName = scormUrl.split('/').pop() || 'SCORM Package';
-  const nameWithoutExt = fileName.replace(/\.(zip|scorm)$/i, '');
-  return {
-    title: nameWithoutExt,
-    entryUrl: '', // Empty as it requires backend extraction
-    resources: [{ identifier: 'default', type: 'webcontent', href: '', scormType: 'asset' }]
-  };
-}
 
 /**
  * Constructs the SCORM launch URL.

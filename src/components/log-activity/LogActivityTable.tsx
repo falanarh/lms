@@ -19,27 +19,22 @@ import {
   User,
   Activity,
   Clock,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button/Button";
 import { Input } from "@/components/ui/Input/Input";
 import { Dropdown } from "@/components/ui/Dropdown/Dropdown";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/shared/Pagination/Pagination";
 import {
   useLogActivities,
   useLogActivityTableState,
+  useLogTypes,
 } from "@/hooks/useLogActivity";
 import {
-  LOG_TYPE_LABELS,
-  LOG_TYPE_COLORS,
-  LOG_TYPES,
   SORT_OPTIONS,
   LogActivityQueryParams,
-  LogType,
+  LogActivity,
 } from "@/types/log-activity";
 
 interface LogActivityTableProps {
@@ -68,24 +63,13 @@ const formatTimestamp = (timestamp: string): string => {
   });
 };
 
-// Helper function to determine if log type should show duration
-const shouldShowDuration = (logType: LogType): boolean => {
-  const endSessionTypes: LogType[] = [
-    LOG_TYPES.LOGIN, // logout session
-    LOG_TYPES.END_COURSE,
-    LOG_TYPES.END_SECTION,
-    LOG_TYPES.END_CONTENT,
-    LOG_TYPES.END_QUIZ,
-  ];
-  return endSessionTypes.includes(logType);
-};
+const formatDuration = (durationMs?: number | null): string => {
+  if (durationMs === null || durationMs === undefined) return "-";
 
-const formatDuration = (seconds?: number): string => {
-  if (!seconds) return "-";
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
 
   if (hours > 0) {
     return `${hours}h ${minutes}m ${secs}s`;
@@ -144,6 +128,16 @@ export default function LogActivityTable({
   const router = useRouter();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
+  const { data: logTypes } = useLogTypes();
+
+  const logTypeMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    logTypes.forEach((lt) => {
+      map[lt.id] = lt.name;
+    });
+    return map;
+  }, [logTypes]);
+
   // Use shared filter state from props
   const {
     searchQuery,
@@ -162,12 +156,15 @@ export default function LogActivityTable({
   // Fetch data
   const {
     data: logActivities,
+    page,
+    limit,
     isLoading,
     isFetching,
     error,
     refetch,
     total,
     totalPages,
+    pageMeta,
   } = useLogActivities(queryParams);
 
   // Sort options for dropdown
@@ -181,10 +178,10 @@ export default function LogActivityTable({
 
   // Items per page options
   const itemsPerPageOptions = [
-    { value: "10", label: "10 per page" },
-    { value: "25", label: "25 per page" },
-    { value: "50", label: "50 per page" },
-    { value: "100", label: "100 per page" },
+    { value: "10", label: "10" },
+    { value: "25", label: "25" },
+    { value: "50", label: "50" },
+    { value: "100", label: "100" },
   ];
 
   // Handle row selection
@@ -217,39 +214,6 @@ export default function LogActivityTable({
     refetch();
     onRefresh();
   };
-
-  // Generate pagination numbers
-  const paginationNumbers = useMemo(() => {
-    const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
-
-    for (
-      let i = Math.max(2, currentPage - delta);
-      i <= Math.min(totalPages - 1, currentPage + delta);
-      i++
-    ) {
-      range.push(i);
-    }
-
-    if (currentPage - delta > 2) {
-      rangeWithDots.push(1, "...");
-    } else {
-      rangeWithDots.push(1);
-    }
-
-    rangeWithDots.push(...range);
-
-    if (currentPage + delta < totalPages - 1) {
-      rangeWithDots.push("...", totalPages);
-    } else {
-      rangeWithDots.push(totalPages);
-    }
-
-    return rangeWithDots.filter(
-      (item, index, arr) => arr.indexOf(item) === index
-    );
-  }, [currentPage, totalPages]);
 
   return (
     <div className="space-y-6">
@@ -467,7 +431,7 @@ export default function LogActivityTable({
               {!isLoading &&
                 !isFetching &&
                 !error &&
-                logActivities.map((log) => (
+                logActivities.map((log: LogActivity) => (
                   <tr
                     key={log.id}
                     className={`hover:bg-blue-50/50 transition-all duration-200 ${
@@ -490,32 +454,27 @@ export default function LogActivityTable({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          LOG_TYPE_COLORS[log.logType] ||
-                          "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {LOG_TYPE_LABELS[log.logType] || log.logType}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {logTypeMap[log.idLogType] || log.idLogType}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       <div className="flex flex-col">
                         <span className="font-medium">
-                          {log.userName || "Unknown User"}
+                          {log.nameUser || "Unknown User"}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {log.userId}
+                          {log.idUser}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       <div className="max-w-xs">
-                        {truncateText(log.detail || "No details available")}
+                        {truncateText(log.details || "No details available")}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {shouldShowDuration(log.logType) ? formatDuration(log.duration) : "-"}
+                      {formatDuration(log.duration)}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <Button
@@ -566,82 +525,55 @@ export default function LogActivityTable({
         </div>
       </div>
 
-      {/* Pagination */}
-      {!isLoading && !error && logActivities.length > 0 && (
-        <div className="flex items-center justify-between py-4 mt-4">
-          {/* Results Info */}
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-700">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-              {Math.min(currentPage * itemsPerPage, total)} of {total} results
-            </span>
-
-            <Dropdown
-              items={itemsPerPageOptions}
-              value={itemsPerPage.toString()}
-              onChange={handleItemsPerPageChange}
-              size="sm"
-              variant="outline"
-              className="w-32"
-            />
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronsLeft className="w-4 h-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-
-            <div className="flex items-center gap-1">
-              {paginationNumbers.map((page, index) => (
-                <React.Fragment key={index}>
-                  {page === "..." ? (
-                    <span className="px-3 py-1 text-gray-500">...</span>
-                  ) : (
-                    <Button
-                      variant={currentPage === page ? "solid" : "ghost"}
-                      size="sm"
-                      onClick={() => handlePageChange(page as number)}
-                      className="min-w-[2.5rem]"
-                    >
-                      {page}
-                    </Button>
-                  )}
-                </React.Fragment>
-              ))}
+      {/* Pagination with Showing Info (Knowledge Center style) */}
+      {!isLoading && !isFetching && !error && logActivities.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between">
+            {/* Showing X to Y from Z Logs - Left (using backend pageMeta) */}
+            <div className="flex-1">
+              <p className="text-sm text-gray-600">
+                Showing{" "}
+                <span className="font-semibold text-gray-900">
+                  {pageMeta?.showingFrom ?? (page - 1) * limit + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold text-gray-900">
+                  {pageMeta?.showingTo ?? (page - 1) * limit + logActivities.length}
+                </span>{" "}
+                from{" "}
+                <span className="font-semibold text-gray-900">
+                  {pageMeta?.totalResultCount ?? total ?? logActivities.length}
+                </span>{" "}
+                Logs
+              </p>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+            {/* Pagination - Center */}
+            <div className="flex-1 flex justify-center">
+              {totalPages > 1 && (
+                <Pagination
+                  alignment="center"
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  className="max-w-xl"
+                />
+              )}
+            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronsRight className="w-4 h-4" />
-            </Button>
+            {/* Items Per Page Selector - Right */}
+            <div className="flex-1 flex justify-end">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show:</span>
+                <Dropdown
+                  value={limit.toString()}
+                  onChange={handleItemsPerPageChange}
+                  items={itemsPerPageOptions}
+                  className="w-24"
+                  searchable={false}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

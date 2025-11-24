@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/useToast';
 import LogActivityStats from '@/components/log-activity/LogActivityStats';
 import LogActivityFilters from '@/components/log-activity/LogActivityFilters';
 import LogActivityTable from '@/components/log-activity/LogActivityTable';
+import LogMasterDataManagement from '@/components/log-activity/LogMasterDataManagement';
 import { Toast } from '@/components/ui/Toast/Toast';
 
 export const dynamic = 'force-dynamic';
@@ -63,7 +64,7 @@ export default function LogActivityManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30">
       <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
         <div className="py-6 space-y-8">
           {/* Breadcrumb */}
@@ -125,6 +126,8 @@ export default function LogActivityManagementPage() {
             onExport={handleExport}
             isExporting={isExporting}
           />
+
+          <LogMasterDataManagement />
         </div>
       </div>
 

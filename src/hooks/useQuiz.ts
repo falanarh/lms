@@ -6,10 +6,6 @@ import {
   deleteQuiz,
   createQuizWithContent,
   updateQuizWithContent,
-  type Quiz,
-  type QuizCreateRequest,
-  type QuizUpdateRequest,
-  type QuizWithContent,
 } from "@/api/quizzes";
 import {
   createQuestion,
@@ -18,10 +14,6 @@ import {
   updateQuestion,
   deleteQuestion,
   createBulkQuestions,
-  type QuestionRequest,
-  type QuestionResponse,
-  type QuestionType,
-  type Answer,
 } from "@/api/questions";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
@@ -134,9 +126,9 @@ export const useUpdateQuizWithContent = (
       await queryClient.invalidateQueries({ queryKey: ["quizzes"] });
       await queryClient.invalidateQueries({ queryKey: ["contents"] });
       // Also invalidate specific quiz by ID
-      if (args[0]?.quiz?.idContent) {
+      if (args[0]?.idContent) {
         await queryClient.invalidateQueries({
-          queryKey: getQuizByIdQueryKey(args[0].quiz.idContent),
+          queryKey: getQuizByIdQueryKey(args[0].idContent),
         });
       }
       await config.onSuccess?.(...args);
@@ -240,9 +232,6 @@ export const useDeleteQuestion = (
   return useMutation({
     mutationFn: deleteQuestion,
     onSuccess: async (...args) => {
-      // The deleted question ID is the first argument
-      const deletedQuestionId = args[0];
-
       // We don't know the contentId from the delete response, so invalidate all question queries
       await queryClient.invalidateQueries({ queryKey: ["questions"] });
       await config.onSuccess?.(...args);

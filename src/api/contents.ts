@@ -1,15 +1,17 @@
-import { API_BASE_URL } from "@/config/api";
+import { API_COURSE_BASE_URL } from "@/config/api";
 import axios from "axios";
 
 export type Content = {
   id: string;
-  idSection: string;
+  idSection?: string; // Optional since API response doesn't include this
   type: string;
   contentUrl: string;
   name: string;
   description: string;
   contentStart: string;
   contentEnd: string;
+  // Optional deadline field used by TASK UI; often mirrors contentEnd
+  deadline?: string;
   sequence: number;
   createdAt?: string;
   updatedAt?: string;
@@ -18,10 +20,28 @@ export type Content = {
   scheduleName?: string;
   jp?: number;
   scheduleDate?: string;
+   // ✅ NEW: Task data fields
+  taskData?: {
+    maxPoint: number;
+    isRequired?: boolean;
+    dueDate?: string;
+    createdBy: string;
+  };
+  // ✅ Quiz data fields (already exists)
+  quizData?: {
+    idCurriculum?: string;
+    curriculum?: string;
+    durationLimit: number;
+    totalQuestions?: number;
+    maxPoint: number;
+    passingScore: number;
+    attemptLimit?: number;
+    shuffleQuestions: boolean;
+  };
 };
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
 export const getContents = async (): Promise<Content[]> => {
   const response = await axios.get<Content[]>(`${BASE_URL}/contents`, {
@@ -31,11 +51,20 @@ export const getContents = async (): Promise<Content[]> => {
   return response.data;
 };
 
+export const getContentsBySectionId = async (sectionId: string): Promise<Content[]> => {
+  const response = await axios.get(`${API_COURSE_BASE_URL}/sections/${sectionId}/content`, {
+    withCredentials: false,
+  });
+  
+  return response.data.data.listContent;
+};
+
 export const createContent = async (
   newContent: Omit<Content, "id" | "createdAt" | "updatedAt">,
 ): Promise<Content> => {
+  console.log("📡 Creating content with data:", newContent);
   const response = await axios.post<Content>(
-    `${API_BASE_URL}/contents`,
+    `${BASE_URL}/contents`,
     newContent,
     {
       headers: {

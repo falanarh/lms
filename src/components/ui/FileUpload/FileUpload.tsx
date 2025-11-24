@@ -20,7 +20,7 @@
  * - defaultValue?: File | null (opsional, uncontrolled)
  * - onChange?: (file: File | null) => void
  * - disabled?: boolean
- * - variant?: "dropzone" | "compact" (default: "dropzone")
+ * - variant?: "dropzone" | "compact" | "slim" (default: "dropzone")
  * - className?: string
  */
 import React from "react";
@@ -36,7 +36,7 @@ export interface FileUploadProps {
   defaultValue?: File | null;
   onChange?: (file: File | null) => void;
   disabled?: boolean;
-  variant?: "dropzone" | "compact";
+  variant?: "dropzone" | "compact" | "slim";
   multiple?: boolean;
   className?: string;
 }
@@ -363,7 +363,7 @@ export function FileUpload({
             </div>
           )}
         </>
-      ) : (
+      ) : variant === "compact" ? (
         <div>
           {!hasFile ? (
             <button
@@ -409,6 +409,53 @@ export function FileUpload({
             </div>
           )}
         </div>
+      ) : (
+        <>
+          {(!hasFile || multiple) ? (
+            <button
+              type="button"
+              onClick={() => !disabled && inputRef.current?.click()}
+              onDragEnter={onDragEnter}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              aria-disabled={disabled || undefined}
+              className={[
+                "relative w-full border-2 border-dashed rounded-[var(--radius-lg,12px)] p-3 md:p-4 transition",
+                "bg-[var(--surface,white)]",
+                "text-[var(--color-foreground,#111827)]",
+                "hover:bg-[var(--color-primary-50,rgba(37,99,235,0.08))]",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
+                isDragging
+                  ? "border-[var(--color-primary,#2563eb)] bg-[var(--color-primary-50,rgba(37,99,235,0.08))]"
+                  : "border-[var(--border,rgba(0,0,0,0.12))]",
+                disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+              ].join(" ")}
+            >
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <div className={["size-10 md:size-12 rounded-full flex items-center justify-center transition", isDragging ? "bg-[color-mix(in_oklab,white_70%,var(--color-primary,#2563eb))]" : "bg-[var(--surface-elevated,#f3f4f6)]"].join(" ")}
+                >
+                  <UploadIcon className={["size-5 md:size-6", isDragging ? "text-[var(--color-primary,#2563eb)]" : "text-[var(--color-foreground-muted,#6b7280)]"].join(" ")} />
+                </div>
+                <p className="font-[var(--font-body-bold,600)] text-[var(--color-foreground,#111827)]">
+                  {ctaText}
+                </p>
+                <p className="text-[var(--font-xs,0.75rem)] text-[var(--color-foreground-muted,#6b7280)]">
+                  {extSummary} (max {maxFileSizeMB}MB)
+                </p>
+              </div>
+
+              {error && (
+                <div className="mt-3 p-2 bg-[color-mix(in_oklab,white_88%,var(--danger,#dc2626))] border border-[var(--danger,#dc2626)] rounded-[var(--radius-md,8px)] flex items-start gap-2">
+                  <AlertIcon className="size-4 text-[var(--danger,#dc2626)]" />
+                  <p className="text-[var(--font-xs,0.75rem)] text-[var(--danger,#dc2626)]">{error}</p>
+                </div>
+              )}
+            </button>
+          ) : (
+            <UploadedRow item={state!} onRemove={removeFile} />
+          )}
+        </>
       )}
     </div>
   );

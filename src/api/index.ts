@@ -14,7 +14,6 @@ export {
   getKnowledgeDetailQueryKey,
   getKnowledgeQueryOptions,
   getKnowledgeDetailQueryOptions,
-  PENYELENGGARA_DATA,
 } from './knowledge-center';
 
 // Knowledge Subject API

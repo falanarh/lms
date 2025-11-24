@@ -25,6 +25,8 @@ import {
   AlertCircle,
   ClipboardList,
   Edit3,
+  Database,
+  Link2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -47,6 +49,7 @@ import { Toast } from "@/components/ui/Toast/Toast";
 import { queryClient } from "@/lib/queryClient";
 import { getSectionQueryKey } from "@/hooks/useSections";
 import { Content } from "@/api/contents";
+import { Pagination } from "@/components/shared/Pagination/Pagination";
 import { useForm } from "@tanstack/react-form";
 import {
   createLinkContentSchema,
@@ -66,6 +69,8 @@ import {
   createContentSchema,
   updateContentSchema,
 } from "@/schemas/content.schema";
+import { useMasterContents } from "@/hooks/useMasterContent";
+import { MasterContent } from "@/api/masterContent";
 import { create } from "sortablejs";
 import { ZodError } from "zod";
 import { uploadFileToR2, validateFile } from "@/lib/uploadToR2";
@@ -79,7 +84,7 @@ type ActivityType =
   | "TASK"
   | "jadwal_kurikulum"
   | null;
-type ContentSource = "new" | "curriculum" | null;
+type ContentSource = "new" | "curriculum" | "bank" | null;
 
 // Material type for session
 interface SessionMaterial {
@@ -203,6 +208,13 @@ const CONTENT_SOURCE_OPTIONS = [
     icon: Plus,
     color: "green",
   },
+  {
+    value: "bank",
+    label: "Bank Konten",
+    description: "Pilih dari konten yang tersimpan di bank",
+    icon: Database,
+    color: "purple",
+  },
 ];
 
 export function ActivityDrawerContent({
@@ -220,13 +232,13 @@ export function ActivityDrawerContent({
 
   // Function to calculate the next sequence number
   const calculateNextSequence = (sectionId: string): number => {
-    if (!sectionsData?.data) return 1;
+    if (!sectionsData || sectionsData.length === 0) return 1;
 
-    const section = sectionsData.data.find(section => section.id === sectionId);
-    if (!section?.listContent || section.listContent.length === 0) return 1;
+    const section = sectionsData.find(section => section.id === sectionId);
+    if (!section?.listContents || section.listContents.length === 0) return 1;
 
     // Find the highest sequence number and add 1
-    const maxSequence = Math.max(...section.listContent.map(content => content.sequence || 0));
+    const maxSequence = Math.max(...section.listContents.map(content => content.sequence || 0));
     return maxSequence + 1;
   };
 
@@ -343,9 +355,9 @@ export function ActivityDrawerContent({
       scormFile: undefined as File | undefined,
       contentStart: "",
       contentEnd: "",
-      deadline: "", // ✅ NEW: Add deadline field for TASK type
-      videoSource: "upload" as "upload" | "link", // ✅ NEW: Video source selection
-      videoUrl: "", // ✅ NEW: Video URL for link option
+      deadline: "",
+      videoSource: "upload" as "upload" | "link",
+      videoUrl: "",
     },
     onSubmit: async ({ value }) => {
       console.log("🚀 Form submission started:", {
@@ -358,7 +370,7 @@ export function ActivityDrawerContent({
         restrictionEnabled,
         timeEnabled: restrictions.timeEnabled,
       });
-
+  
       if (!sectionId && !isEditMode) {
         console.log("❌ No section ID found");
         setShowToast(true);
@@ -366,7 +378,7 @@ export function ActivityDrawerContent({
         setToastVariant("warning");
         return;
       }
-
+  
       if (!selectedActivityType) {
         console.log("❌ No activity type selected");
         setShowToast(true);
@@ -374,13 +386,14 @@ export function ActivityDrawerContent({
         setToastVariant("warning");
         return;
       }
-
+  
       try {
         console.log("✅ Form validation passed, proceeding with submission...");
-        // ✅ UPDATED: Prepare dates - z.coerce.date() akan otomatis convert string ke Date object
+  
+        // ✅ Prepare dates - z.coerce.date() will automatically convert string to Date object
         let contentStart: Date | null = null;
         let contentEnd: Date | null = null;
-
+  
         // Set dates if form values exist (from form fields)
         if (value.contentStart) {
           contentStart = new Date(value.contentStart);
@@ -388,71 +401,193 @@ export function ActivityDrawerContent({
           contentStart.setHours(contentStart.getHours() - 7);
           console.log("✅ Set contentStart (-7h UTC):", contentStart);
         }
+  
         if (value.contentEnd) {
           contentEnd = new Date(value.contentEnd);
           // ✅ Subtract 7 hours to convert from WIB to UTC for backend
           contentEnd.setHours(contentEnd.getHours() - 7);
           console.log("✅ Set contentEnd (-7h UTC):", contentEnd);
         }
-        console.log("📅 Final dates (UTC for backend):", { contentStart, contentEnd });
-
+  
+        // ✅ Get current user ID - REPLACE WITH YOUR AUTH CONTEXT
+        // For example: const { user } = useAuth(); const currentUserId = user.id;
+        const currentUserId = "93f4cbda-f755-4bb9-a44c-928f8270659b"; // ⚠️ TODO: Replace with actual user ID
+        
+  
         if (selectedActivityType === "QUIZ") {
-          // ========== QUIZ CREATION/UPDATE ==========
-          const contentData = {
-            idSection: sectionId!,
-            name: value.name,
-            description: value.description || "",
-            type: "QUIZ",
-            contentUrl: "", // Quiz doesn't need contentUrl
-            sequence: isEditMode && initialData?.sequence
-              ? initialData.sequence
-              : calculateNextSequence(sectionId!),
-          };
+          const sequence = isEditMode && initialData?.sequence
+        ? initialData.sequence
+        : calculateNextSequence(sectionId!);
 
-          const quizData = {
-            durationLimit: quizTimeLimitEnabled
-              ? parseInt(quizTimeLimit) || 60
-              : 60, // Minimum 1 required by DTO validation, set to 60 as default
-            totalQuestions: 1, // DTO requires positive number
-            maxPoint: 100, // Default, can be calculated from questions
-            passingScore: passingGradeEnabled
-              ? parseFloat(quizGradeToPass) || 60
-              : 60,
-            attemptLimit: parseInt(quizAttemptsAllowed) || 1,
-            shuffleQuestions: quizShuffleQuestions,
-          };
+      const contentData = {
+        idSection: sectionId!,
+        name: value.name,
+        description: value.description || "",
+        type: "QUIZ",
+        contentUrl: "",
+        sequence,
+        contentStart,
+        contentEnd,
+      };
 
+      const quizData = {
+        durationLimit: quizTimeLimitEnabled
+          ? parseInt(quizTimeLimit) || 60
+          : 60,
+        totalQuestions: 1, // Will be calculated from questions
+        maxPoint: 100, // Will be calculated from questions
+        passingScore: passingGradeEnabled
+          ? parseFloat(quizGradeToPass) || 60
+          : 60,
+        attemptLimit: parseInt(quizAttemptsAllowed) || 1,
+        shuffleQuestions: quizShuffleQuestions,
+      };
+
+      if (isEditMode && contentId) {
+        // ========== UPDATE EXISTING QUIZ ==========
+        const updateData = {
+          type: "QUIZ" as const,
+          name: value.name,
+          description: value.description || "",
+          contentStart,
+          contentEnd,
+          quizData,
+        };
+
+        console.log("🚀 Updating QUIZ with data:", updateData);
+
+        const validatedData = updateContentSchema.parse(updateData);
+
+        const apiData = {
+          ...validatedData,
+          contentStart: validatedData.contentStart?.toISOString() ?? null,
+          contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+          quizData: updateData.quizData,
+        };
+
+        console.log("🚀 Final API data for UPDATE:", apiData);
+        updateContent({ id: contentId, data: apiData as any });
+      } else {
+        // ========== CREATE NEW QUIZ ==========
+        const createData = {
+          idSection: sectionId!,
+          type: "QUIZ" as const,
+          name: value.name,
+          description: value.description || "",
+          contentUrl: "",
+          sequence,
+          contentStart,
+          contentEnd,
+          quizData,
+        };
+
+        console.log("🚀 Creating QUIZ with data:", createData);
+
+        const validatedData = createContentSchema.parse(createData);
+
+        const apiData = {
+          ...validatedData,
+          contentStart: validatedData.contentStart?.toISOString() ?? null,
+          contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+          quizData: createData.quizData,
+        };
+
+        console.log("🚀 Final API data for CREATE:", apiData);
+        createContent(apiData as any);
+      }
+        } else if (selectedActivityType === "TASK") {
+          // ========== TASK CREATION/UPDATE ==========
+          
+          // Prepare task deadline from form
+          let taskDeadline: Date | null = null;
+          if (deadlineEnabled && value.deadline) {
+            taskDeadline = new Date(value.deadline);
+            // ✅ Subtract 7 hours to convert from WIB to UTC for backend
+            taskDeadline.setHours(taskDeadline.getHours() - 7);
+            console.log("✅ TASK deadline (-7h UTC):", taskDeadline);
+          }
+  
           if (isEditMode && contentId) {
-            // UPDATE existing quiz
-            updateQuizWithContent({
-              id: contentId,
-              data: {
-                content: contentData,
-                quiz: quizData,
+            // ========== UPDATE EXISTING TASK ==========
+            let updateData = {
+              type: selectedActivityType,
+              name: value.name,
+              description: value.description || "",
+              contentUrl: uploadedFileUrl || value.contentUrl || "",
+              contentStart,
+              contentEnd: taskDeadline || contentEnd, // Use task deadline if available
+              ...(value.documentFile && { documentFile: value.documentFile }),
+              // ✅ Include taskData for update
+              taskData: {
+                maxPoint: 100, // Default value
+                isRequired: taskSubmissionRequired,
+                dueDate: taskDeadline?.toISOString(),
+                createdBy: currentUserId,
               },
-            });
+            };
+  
+            console.log("🚀 Final updateData for TASK:", updateData);
+  
+            const validatedData = updateContentSchema.parse(updateData);
+  
+            // ✅ Convert Date objects back to ISO strings for API
+            const apiData = {
+              ...validatedData,
+              contentStart: validatedData.contentStart?.toISOString() ?? null,
+              contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+            };
+  
+            updateContent({ id: contentId, data: apiData as any });
           } else {
-            // CREATE new quiz
-            createQuizWithContent({
-              content: contentData,
-              quiz: quizData,
-            });
+            // ========== CREATE NEW TASK ==========
+            const sequence = calculateNextSequence(sectionId!);
+  
+            let createData = {
+              idSection: sectionId!,
+              type: selectedActivityType,
+              name: value.name,
+              description: value.description || "",
+              contentUrl: uploadedFileUrl || value.contentUrl || "",
+              sequence,
+              contentStart,
+              contentEnd: taskDeadline || contentEnd, // Use task deadline if available
+              ...(value.documentFile && { documentFile: value.documentFile }),
+              // ✅ Include taskData for creation
+              taskData: {
+                maxPoint: 100, // Default value
+                isRequired: taskSubmissionRequired,
+                dueDate: taskDeadline?.toISOString(),
+                createdBy: currentUserId,
+              },
+            };
+  
+            console.log("🚀 Final createData for TASK:", createData);
+  
+            const validatedData = createContentSchema.parse(createData);
+  
+            // ✅ Convert Date objects back to ISO strings for API
+            const apiData = {
+              ...validatedData,
+              contentStart: validatedData.contentStart?.toISOString() ?? null,
+              contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+            };
+  
+            createContent(apiData as any);
           }
         } else {
-          // ========== OTHER ACTIVITY TYPES ==========
+          // ========== OTHER ACTIVITY TYPES (VIDEO, PDF, LINK, SCORM) ==========
           if (isEditMode && contentId) {
-            // ========== MODE UPDATE ==========
+            // ========== UPDATE OTHER TYPES ==========
             let updateData = {
               type: selectedActivityType,
               name: value.name,
               description: value.description || "",
               contentUrl: value.contentUrl || "",
-              contentStart, // ✅ Date object or null - z.coerce.date() will handle it
-              contentEnd, // ✅ Date object or null - z.coerce.date() will handle it
+              contentStart,
+              contentEnd,
               ...(value.videoFile && { videoFile: value.videoFile }),
               ...(value.documentFile && { documentFile: value.documentFile }),
               ...(value.scormFile && { scormFile: value.scormFile }),
-              // Add schedule data for jadwal_kurikulum
               ...(selectedActivityType === "jadwal_kurikulum" &&
                 selectedSession && {
                   idSchedule: selectedSession.id,
@@ -461,44 +596,30 @@ export function ActivityDrawerContent({
                   scheduleDate: selectedSession.date,
                 }),
             };
-
-            // ✅ NEW: Add deadline for TASK type - store in contentEnd for consistency
-            if (selectedActivityType === "TASK" && deadlineEnabled && value.deadline) {
-              const taskDeadline = new Date(value.deadline);
-              // ✅ Subtract 7 hours to convert from WIB to UTC for backend
-              taskDeadline.setHours(taskDeadline.getHours());
-              updateData.contentEnd = taskDeadline;
-              console.log("✅ TASK deadline saved (-7h UTC):", taskDeadline);
-            }
-
-            // ✅ NEW: Handle video source selection for VIDEO type
+  
+            // ✅ Handle video source selection for VIDEO type
             if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
-              // If user selected link option, change type to LINK and use videoUrl
               updateData.type = "LINK";
               updateData.contentUrl = value.videoUrl;
-              // Remove videoFile if exists
               delete (updateData as any).videoFile;
               console.log("✅ VIDEO link mode UPDATE - converted to LINK type:", updateData);
             }
-
+  
             console.log("🚀 Final updateData:", updateData);
-
+  
             const validatedData = updateContentSchema.parse(updateData);
-
-            // ✅ Convert Date objects back to ISO strings for API
+  
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-
+  
             updateContent({ id: contentId, data: apiData as any });
           } else {
-            // ========== MODE CREATE ==========
+            // ========== CREATE OTHER TYPES ==========
             const sequence = calculateNextSequence(sectionId!);
-
-            // Use union schema instead of individual schema selection
-
+  
             let createData = {
               idSection: sectionId!,
               type:
@@ -509,12 +630,11 @@ export function ActivityDrawerContent({
               description: value.description || "",
               contentUrl: value.contentUrl || "",
               sequence,
-              contentStart, // ✅ Date object or null - z.coerce.date() will handle it
-              contentEnd, // ✅ Date object or null - z.coerce.date() will handle it
+              contentStart,
+              contentEnd,
               ...(value.videoFile && { videoFile: value.videoFile }),
               ...(value.documentFile && { documentFile: value.documentFile }),
               ...(value.scormFile && { scormFile: value.scormFile }),
-              // Add schedule data for jadwal_kurikulum
               ...(selectedActivityType === "jadwal_kurikulum" &&
                 selectedSession && {
                   idSchedule: selectedSession.id,
@@ -523,52 +643,38 @@ export function ActivityDrawerContent({
                   scheduleDate: selectedSession.date,
                 }),
             };
-
-            // ✅ NEW: Add deadline for TASK type - store in contentEnd for consistency
-            if (selectedActivityType === "TASK" && deadlineEnabled && value.deadline) {
-              const taskDeadline = new Date(value.deadline);
-              // ✅ Subtract 7 hours to convert from WIB to UTC for backend
-              taskDeadline.setHours(taskDeadline.getHours() - 7);
-              createData.contentEnd = taskDeadline;
-              console.log("✅ TASK deadline created (-7h UTC):", taskDeadline);
-            }
-
-            // ✅ NEW: Handle video source selection for VIDEO type
+  
+            // ✅ Handle video source selection for VIDEO type
             if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
-              // If user selected link option, change type to LINK and use videoUrl
               createData.type = "LINK";
               createData.contentUrl = value.videoUrl;
-              // Remove videoFile if exists
               delete (createData as any).videoFile;
               console.log("✅ VIDEO link mode - converted to LINK type:", createData);
             }
-
-            // Debug: Log complete createData object
+  
             console.log("🚀 Final createData:", createData);
-
+  
             const validatedData = createContentSchema.parse(createData);
-
-            // ✅ Convert Date objects back to ISO strings for API
+  
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-
+  
             createContent(apiData as any);
           }
         }
       } catch (error) {
         console.log("❌ Form submission error:", {
           error,
-          errorType:
-            error instanceof Error ? error.constructor.name : "Unknown",
+          errorType: error instanceof Error ? error.constructor.name : "Unknown",
           isZodError: error instanceof ZodError,
           isRegularError: error instanceof Error,
           errorMessage: error instanceof Error ? error.message : String(error),
           zodIssues: error instanceof ZodError ? error.issues : null,
         });
-
+  
         if (error instanceof ZodError) {
           setShowToast(true);
           setToastMessage(error.issues[0].message);
@@ -579,9 +685,7 @@ export function ActivityDrawerContent({
           setToastVariant("warning");
         } else {
           setShowToast(true);
-          setToastMessage(
-            `Terjadi kesalahan tidak diketahui: ${String(error)}`,
-          );
+          setToastMessage(`Terjadi kesalahan tidak diketahui: ${String(error)}`);
           setToastVariant("warning");
         }
       }
@@ -644,6 +748,14 @@ export function ActivityDrawerContent({
   const [quizTimingEnabled, setQuizTimingEnabled] = useState(false);
   const [passingGradeEnabled, setPassingGradeEnabled] = useState(false);
 
+  // Bank content states
+  const [bankContentPage, setBankContentPage] = useState(1);
+  const [selectedBankContent, setSelectedBankContent] = useState<MasterContent | null>(null);
+  const [bankContentSearch, setBankContentSearch] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [isUsingBankContent, setIsUsingBankContent] = useState(false);
+  const bankContentPerPage = 5;
+
   // Fetch course schedules data - moved to top level to follow Rules of Hooks
   const {
     data: courseSchedules = [],
@@ -651,6 +763,17 @@ export function ActivityDrawerContent({
     error,
   } = useCourseSchedules({
     idGroup: GROUP_ID,
+  });
+
+  // Fetch bank content data
+  const {
+    data: bankContentResponse,
+    isLoading: isBankContentLoading,
+    error: bankContentError,
+  } = useMasterContents({
+    page: bankContentPage,
+    perPage: bankContentPerPage,
+    searchQuery: debouncedSearchQuery,
   });
 
   // ✅ Set default values for TASK type
@@ -662,7 +785,17 @@ export function ActivityDrawerContent({
     }
   }, [selectedActivityType]);
 
-  // ✅ BARU: useEffect untuk pre-fill form saat edit mode - LENGKAP
+  // Debounce search query for bank content
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(bankContentSearch);
+      // Reset to first page when search query changes
+      setBankContentPage(1);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [bankContentSearch]);
+
   useEffect(() => {
     if (isEditMode && initialData) {
       // Set content source dan activity type
@@ -688,7 +821,7 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
-              size: "Unknown",
+              size: "-",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -704,7 +837,7 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
-              size: "Unknown",
+              size: "-",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -829,12 +962,80 @@ export function ActivityDrawerContent({
     }
   };
 
+  // Bank content handlers
+  const handleBankContentSelect = (bankContent: MasterContent) => {
+    setSelectedBankContent(bankContent);
+    setIsUsingBankContent(true); // Mark that we're using bank content
+    console.log("🎯 Bank content selected:", bankContent);
+
+    // Pre-fill form with bank content data
+    form.setFieldValue("name", bankContent.name);
+    form.setFieldValue("description", bankContent.description || "");
+    form.setFieldValue("contentUrl", bankContent.contentUrl || "");
+
+    // Set activity type based on bank content type
+    const activityType = bankContent.type as ActivityType;
+    setSelectedActivityType(activityType);
+
+    // Update the relevant state based on content type
+    if (bankContent.contentUrl) {
+      const contentType = bankContent.type.toLowerCase();
+
+      if (contentType === "video") {
+        if (bankContent.contentUrl.includes('youtube.com') || bankContent.contentUrl.includes('vimeo.com')) {
+          setVideoSource("link");
+          setVideoUrl(bankContent.contentUrl);
+        } else {
+          setVideoSource("upload");
+          setUploadedVideo(bankContent.contentUrl);
+        }
+      } else if (contentType === "pdf" || contentType === "task") {
+        setUploadedMaterials([
+          {
+            id: `bank-${Date.now()}`,
+            title: bankContent.name,
+            size: "Unknown",
+          },
+        ]);
+      } else if (contentType === "link") {
+        setLinkUrl(bankContent.contentUrl);
+      }
+    }
+
+    // Switch to form view
+    setContentSource("new");
+  };
+
+  const handleBankContentPageChange = (page: number) => {
+    setBankContentPage(page);
+  };
+
+  const handleBankContentSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBankContentSearch(e.target.value);
+  };
+
+  const handleBankContentBack = () => {
+    // Reset search and bank content state when going back
+    setBankContentSearch("");
+    setDebouncedSearchQuery("");
+    setBankContentPage(1);
+    setIsUsingBankContent(false);
+    setSelectedBankContent(null);
+    setContentSource(null);
+  };
+
   const handleFileUpload = (
     event: React.ChangeEvent<HTMLInputElement>,
     setter: (value: string) => void,
   ) => {
     const file = event.target.files?.[0];
     if (file) setter(file.name);
+  };
+
+  // Helper to reset bank content state when switching to manual content creation
+  const resetBankContentState = () => {
+    setIsUsingBankContent(false);
+    setSelectedBankContent(null);
   };
 
   const handleMaterialUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1149,17 +1350,17 @@ export function ActivityDrawerContent({
   );
 
   const CompletionSection = () => (
-    <div className="my-4 space-y-4 border rounded-xl p-4">
+    <div className="my-4 space-y-4 border border-gray-200 dark:border-zinc-700 dark:border-zinc-700 rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-green-600 flex items-center justify-center">
             <CheckSquare className="size-5 text-white" />
           </div>
           <div>
-            <h5 className="font-medium text-green-900">
+            <h5 className="font-medium text-green-900 dark:text-green-100 dark:text-green-100">
               Pengaturan Penyelesaian
             </h5>
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-green-700 dark:text-green-300 dark:text-green-300">
               {selectedActivityType === "TASK"
                 ? "Atur kriteria penyelesaian tugas"
                 : "Atur kriteria kapan activity dianggap selesai"
@@ -1177,7 +1378,7 @@ export function ActivityDrawerContent({
               <div className="flex items-center justify-between">
                 <div>
                   <h6 className="font-medium">Harus Membuka Tautan</h6>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400">
                     Peserta harus membuka link ini agar dianggap selesai
                   </p>
                 </div>
@@ -1192,7 +1393,7 @@ export function ActivityDrawerContent({
                 <div className="flex items-center justify-between">
                   <div>
                     <h6 className="font-medium">Wajib Mengumpulkan</h6>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">
                       Peserta harus mengumpulkan tugas untuk menyelesaikan aktivitas
                     </p>
                   </div>
@@ -1207,7 +1408,7 @@ export function ActivityDrawerContent({
                 <div className="flex items-center justify-between">
                   <div>
                     <h6 className="font-medium">Tenggat Waktu</h6>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">
                       Tetapkan deadline pengumpulan tugas
                     </p>
                   </div>
@@ -1217,7 +1418,7 @@ export function ActivityDrawerContent({
                   <div>
                     <Label
                       htmlFor="taskDeadlineDate"
-                      className="block text-sm font-medium text-gray-700 my-2"
+                      className="block text-sm font-medium text-gray-700 dark:text-zinc-300 my-2"
                     >
                       Deadline Tugas
                     </Label>
@@ -1247,7 +1448,7 @@ export function ActivityDrawerContent({
               <div className="flex items-center justify-between">
                 <div>
                   <h6 className="font-medium">Tenggat Waktu</h6>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400">
                     Tetapkan deadline penyelesaian aktivitas
                   </p>
                 </div>
@@ -1257,7 +1458,7 @@ export function ActivityDrawerContent({
                 <div>
                   <Label
                     htmlFor="deadlineDate"
-                    className="block text-sm font-medium text-gray-700 my-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 my-2"
                   >
                     Deadline
                   </Label>
@@ -1278,7 +1479,7 @@ export function ActivityDrawerContent({
                 <div className="flex items-center justify-between">
                   <div>
                     <h6 className="font-medium">Penilaian</h6>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">
                       Aktifkan penilaian untuk kuis ini
                     </p>
                   </div>
@@ -1293,7 +1494,7 @@ export function ActivityDrawerContent({
                 <div>
                   <Label
                     htmlFor="quizStartDate"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
                   >
                     Mulai Kuis
                   </Label>
@@ -1307,7 +1508,7 @@ export function ActivityDrawerContent({
                 <div>
                   <Label
                     htmlFor="quizEndDate"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2"
                   >
                     Selesai Kuis
                   </Label>
@@ -1351,7 +1552,7 @@ export function ActivityDrawerContent({
         />
         <label htmlFor={id} className="cursor-pointer">
           <Icon className={`size-12 mx-auto mb-3 text-${color}-600`} />
-          <p className="mb-1 text-gray-600">{description}</p>
+          <p className="mb-1 text-gray-600 dark:text-zinc-400">{description}</p>
         </label>
       </div>
     </div>
@@ -1395,7 +1596,7 @@ export function ActivityDrawerContent({
             {[...Array(3)].map((_, index) => (
               <div
                 key={index}
-                className="bg-white border border-gray-200 rounded-xl p-6"
+                className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-6"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
@@ -1423,10 +1624,10 @@ export function ActivityDrawerContent({
         {/* Error State */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
+            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
               Gagal Memuat Jadwal
             </h3>
-            <p className="text-red-600 mb-4">
+            <p className="text-red-600 dark:text-red-400 mb-4">
               Terjadi kesalahan saat memuat jadwal kurikulum. Silakan coba lagi.
             </p>
             <Button
@@ -1494,13 +1695,13 @@ export function ActivityDrawerContent({
 
             {/* Empty State */}
             {courseSchedules.length === 0 && (
-              <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+              <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-12 text-center">
                 <div className="max-w-md mx-auto">
                   <Calendar className="size-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 dark:text-zinc-100 mb-2">
                     Belum Ada Jadwal
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 dark:text-zinc-400">
                     Tidak ada jadwal kurikulum yang tersedia untuk saat ini.
                   </p>
                 </div>
@@ -1524,11 +1725,215 @@ export function ActivityDrawerContent({
     );
   }
 
+  // Bank Content Selection View
+  if (contentSource === "bank" && !selectedActivityType) {
+    const bankContents = bankContentResponse?.data || [];
+    const pageMeta = bankContentResponse?.pageMeta;
+
+    // Helper to get content type icon and color
+    const getContentTypeInfo = (type: string) => {
+      switch (type.toUpperCase()) {
+        case "VIDEO":
+          return { icon: Video, color: "blue", label: "Video" };
+        case "PDF":
+          return { icon: FileText, color: "green", label: "PDF" };
+        case "LINK":
+          return { icon: Link2, color: "orange", label: "Link" };
+        case "SCORM":
+          return { icon: Package, color: "purple", label: "SCORM" };
+        case "TASK":
+          return { icon: CheckSquare, color: "indigo", label: "Task" };
+        default:
+          return { icon: FileText, color: "gray", label: type };
+      }
+    };
+
+    return (
+      <div>
+        <BackButton onClick={handleBankContentBack} />
+        <h4 className="mb-4">Pilih dari Bank Konten:</h4>
+
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Cari berdasarkan judul konten..."
+              value={bankContentSearch}
+              onChange={handleBankContentSearch}
+              className="w-full pr-10"
+            />
+            {bankContentSearch && (
+              <button
+                type="button"
+                onClick={() => setBankContentSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
+          {bankContentSearch && (
+            <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+              Mencari: "{bankContentSearch}"
+            </p>
+          )}
+        </div>
+
+        {/* Loading State */}
+        {isBankContentLoading && (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, index) => (
+              <div
+                key={index}
+                className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-lg bg-gray-200 animate-pulse"></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                  </div>
+                  <div className="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {bankContentError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+              Gagal Memuat Bank Konten
+            </h3>
+            <p className="text-red-600 dark:text-red-400 mb-4">
+              Terjadi kesalahan saat memuat bank konten. Silakan coba lagi.
+            </p>
+            <Button
+              onClick={() => setBankContentPage(1)}
+              variant="outline"
+              size="sm"
+            >
+              Muat Ulang
+            </Button>
+          </div>
+        )}
+
+        {/* Success State - Compact Bank Content Cards */}
+        {!isBankContentLoading && !bankContentError && (
+          <>
+            <div className="space-y-2 mb-4">
+              {bankContents.map((content) => {
+                const typeInfo = getContentTypeInfo(content.type);
+                const Icon = typeInfo.icon;
+
+                return (
+                  <div
+                    key={content.id}
+                    onClick={() => handleBankContentSelect(content)}
+                    className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-4 cursor-pointer hover:shadow-md hover:border-gray-300 dark:hover:border-zinc-600 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Content Type Icon */}
+                      <div className={`size-10 rounded-lg bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`size-5 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400`} />
+                      </div>
+
+                      {/* Content Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h5 className="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                            {content.name}
+                          </h5>
+                          <Badge variant="outline" className={`text-xs border-${typeInfo.color}-300 dark:border-${typeInfo.color}-700 text-${typeInfo.color}-700 dark:text-${typeInfo.color}-300`}>
+                            {typeInfo.label}
+                          </Badge>
+                        </div>
+                        {content.description && (
+                          <p className="text-sm text-gray-600 dark:text-zinc-400 line-clamp-1">
+                            {content.description}
+                          </p>
+                        )}
+                        {content.contentUrl && (
+                          <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">
+                            📎 {content.contentUrl.split('/').pop() || 'File tersedia'}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Selection Indicator */}
+                      <div className="flex-shrink-0">
+                        <div className="size-6 rounded-full border-2 border-gray-300 dark:border-zinc-600"></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Empty State */}
+            {bankContents.length === 0 && (
+              <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-12 text-center">
+                <div className="max-w-md mx-auto">
+                  <Database className="size-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 dark:text-zinc-100 mb-2">
+                    {bankContentSearch ? "Tidak Ada Hasil Pencarian" : "Bank Konten Kosong"}
+                  </h3>
+                  <p className="text-gray-600 dark:text-zinc-400">
+                    {bankContentSearch
+                      ? `Tidak ada konten dengan judul "${bankContentSearch}". Coba kata kunci lain.`
+                      : "Tidak ada konten yang tersedia di bank. Tambahkan konten terlebih dahulu."
+                    }
+                  </p>
+                  {bankContentSearch && (
+                    <button
+                      onClick={() => setBankContentSearch("")}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Hapus pencarian
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {pageMeta && pageMeta.totalPageCount > 1 && (
+              <div className="flex justify-center mt-6">
+                <Pagination
+                  currentPage={bankContentPage}
+                  totalPages={pageMeta.totalPageCount}
+                  onPageChange={handleBankContentPageChange}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {showToast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
+            <Toast
+              variant={toastVariant}
+              message={toastMessage}
+              onClose={() => setShowToast(false)}
+              autoDismiss={true}
+              duration={toastVariant === "success" ? 2000 : 3000}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Activity Type Selection View (skip if edit mode)
   if (contentSource === "new" && !selectedActivityType && !isEditMode) {
     return (
       <div className="space-y-4">
-        <BackButton onClick={() => setContentSource(null)} />
+        <BackButton onClick={() => {
+          setContentSource(null);
+          resetBankContentState();
+        }} />
         <h4 className="mb-4">Pilih jenis konten yang ingin ditambahkan:</h4>
 
         <div className="space-y-6">
@@ -1538,7 +1943,10 @@ export function ActivityDrawerContent({
                 <Card
                   key={type}
                   className={`p-6 cursor-pointer hover:border-${color}-500 hover:shadow-lg transition-all`}
-                  onClick={() => setSelectedActivityType(type as ActivityType)}
+                  onClick={() => {
+                  setSelectedActivityType(type as ActivityType);
+                  resetBankContentState();
+                }}
                 >
                   <div className="flex flex-col items-center text-center gap-3">
                     <div
@@ -1548,7 +1956,7 @@ export function ActivityDrawerContent({
                     </div>
                     <div>
                       <p className="font-medium">{label}</p>
-                      <p className="text-sm text-gray-500 mt-1">{description}</p>
+                      <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{description}</p>
                     </div>
                   </div>
                 </Card>
@@ -1602,7 +2010,7 @@ export function ActivityDrawerContent({
 
         {/* ✅ Show edit mode indicator */}
         {/* {isEditMode && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg p-3 mb-4">
             <p className="text-sm text-blue-800 font-medium">
               📝 Mode Edit - Mengubah activity yang sudah ada
             </p>
@@ -1637,7 +2045,7 @@ export function ActivityDrawerContent({
                     className="mt-1"
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                       {field.state.meta.errors[0]}
                     </p>
                   )}
@@ -1670,19 +2078,13 @@ export function ActivityDrawerContent({
                     className="mt-1 bg-transparent"
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                       {field.state.meta.errors[0]}
                     </p>
                   )}
                 </div>
               )}
             />
-
-            {/* Only show completion sections for TASK and QUIZ */}
-            {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
-              <CompletionSection />
-            )}
-
 
             {showMaterialsList && (
               <div className="mt-6">
@@ -1716,19 +2118,24 @@ export function ActivityDrawerContent({
           </>
         )}
 
+        {/* Only show completion sections for TASK and QUIZ */}
+        {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
+          <CompletionSection />
+        )}
+
         {selectedActivityType === "VIDEO" && (
           <>
             {/* Video Source Selection */}
             <div className="mb-6">
-              <Label className="text-sm font-medium text-gray-700 mb-3">
+              <Label className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-3">
                 Pilih sumber video
               </Label>
               <div className="flex gap-4">
                 <Card
                   className={`flex-1 p-4 cursor-pointer transition-all border-2 ${
                     videoSource === "upload"
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                      : "border-gray-200 dark:border-zinc-700 hover:border-gray-300"
                   }`}
                   onClick={() => {
                     setVideoSource("upload");
@@ -1738,14 +2145,14 @@ export function ActivityDrawerContent({
                   <div className="flex flex-col items-center text-center gap-2">
                     <Video className="size-6 text-blue-600" />
                     <span className="font-medium">Upload Video</span>
-                    <span className="text-sm text-gray-500">File video lokal</span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">File video lokal</span>
                   </div>
                 </Card>
                 <Card
                   className={`flex-1 p-4 cursor-pointer transition-all border-2 ${
                     videoSource === "link"
                       ? "border-orange-500 bg-orange-50"
-                      : "border-gray-200 hover:border-gray-300"
+                      : "border-gray-200 dark:border-zinc-700 hover:border-gray-300"
                   }`}
                   onClick={() => {
                     setVideoSource("link");
@@ -1755,7 +2162,7 @@ export function ActivityDrawerContent({
                   <div className="flex flex-col items-center text-center gap-2">
                     <Link className="size-6 text-orange-600" />
                     <span className="font-medium">Link Video</span>
-                    <span className="text-sm text-gray-500">YouTube, platform lain</span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">YouTube, platform lain</span>
                   </div>
                 </Card>
               </div>
@@ -1767,7 +2174,8 @@ export function ActivityDrawerContent({
                 name="videoFile"
                 validators={{
                   onChange: ({ value }) => {
-                    if (!value) {
+                    // Don't require video file if we're using bank content with existing video
+                    if (!value && !isUsingBankContent) {
                       return "Video file harus diunggah";
                     }
                     return undefined;
@@ -1792,7 +2200,7 @@ export function ActivityDrawerContent({
                       }}
                     />
                     {field.state.meta.errors.length > 0 && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                         {field.state.meta.errors[0]}
                       </p>
                     )}
@@ -1818,7 +2226,7 @@ export function ActivityDrawerContent({
                       </div>
                     )}
                     {uploadError && (
-                      <div className="mt-3 flex items-center text-red-600">
+                      <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                         <AlertCircle className="w-4 h-4 mr-2" />
                         <span className="text-sm">{uploadError}</span>
                       </div>
@@ -1861,11 +2269,11 @@ export function ActivityDrawerContent({
                       className="mt-1"
                     />
                     {field.state.meta.errors.length > 0 && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                         {field.state.meta.errors[0]}
                       </p>
                     )}
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-2">
                       Masukkan link video dari YouTube, Vimeo, atau platform video lainnya
                     </p>
                   </div>
@@ -1903,11 +2311,11 @@ export function ActivityDrawerContent({
                   className="mt-1"
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-gray-500 dark:text-zinc-400 mt-2">
                   Masukkan link eksternal
                 </p>
               </div>
@@ -1920,7 +2328,7 @@ export function ActivityDrawerContent({
             name="documentFile"
             validators={{
               onChange: ({ value }) => {
-                if (!value && uploadedMaterials.length === 0) {
+                if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
                   return "Dokumen harus diupload";
                 }
                 return undefined;
@@ -1945,7 +2353,7 @@ export function ActivityDrawerContent({
                   }}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
@@ -1975,7 +2383,7 @@ export function ActivityDrawerContent({
                   </div>
                 )}
                 {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
+                  <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                     <AlertCircle className="w-4 h-4 mr-2" />
                     <span className="text-sm">{uploadError}</span>
                   </div>
@@ -2000,7 +2408,7 @@ export function ActivityDrawerContent({
               <>
                 <div>
                   <Label>SCORM Package</Label>
-                  <p className="text-sm text-gray-500 mt-1 mb-2">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
                     Import konten pembelajaran dalam format SCORM 1.2 atau 2004
                     (Max 100MB) - Akan diupload ke Cloud Storage
                   </p>
@@ -2022,7 +2430,7 @@ export function ActivityDrawerContent({
                   }}
                 />
                 {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {field.state.meta.errors[0]}
                   </p>
                 )}
@@ -2048,7 +2456,7 @@ export function ActivityDrawerContent({
                   </div>
                 )}
                 {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
+                  <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
                     <AlertCircle className="w-4 h-4 mr-2" />
                     <span className="text-sm">{uploadError}</span>
                   </div>
@@ -2059,80 +2467,82 @@ export function ActivityDrawerContent({
         )}
 
         {selectedActivityType === "TASK" && (
-          <form.Field
-            name="documentFile"
-            validators={{
-              onChange: ({ value }) => {
-                if (!value && uploadedMaterials.length === 0) {
-                  return "Dokumen tugas harus diupload";
-                }
-                return undefined;
-              },
-            }}
-            children={(field) => (
-              <>
-                <div>
-                  <Label>Dokumen Tugas</Label>
-                  <p className="text-sm text-gray-500 mt-1 mb-2">
-                    Upload dokumen tugas yang akan dikerjakan oleh mahasiswa
-                    (Max 5MB) - Akan diupload ke Cloud Storage
-                  </p>
-                </div>
-                <FileUploadArea
-                  icon={ClipboardList}
-                  label=""
-                  accept=".pdf,.doc,.docx,.ppt,.pptx"
-                  description="Klik untuk upload dokumen tugas"
-                  color="indigo"
-                  id="task-upload"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const files = e.target.files;
-                    if (files && files.length > 0) {
-                      const file = files[0];
-                      field.handleChange(file);
-                      handleTaskUploadToR2(file);
-                    }
-                  }}
-                />
-                {field.state.meta.errors.length > 0 && (
-                  <p className="text-xs text-red-600 mt-1">
-                    {field.state.meta.errors[0]}
-                  </p>
-                )}
-                {uploading && (
-                  <div className="mt-3 flex items-center text-indigo-600">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span className="text-sm">Mengupload dokumen tugas...</span>
+          <>
+            <form.Field
+              name="documentFile"
+              validators={{
+                onChange: ({ value }) => {
+                  if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
+                    return "Dokumen tugas harus diupload";
+                  }
+                  return undefined;
+                },
+              }}
+              children={(field) => (
+                <>
+                  <div>
+                    <Label>Dokumen Tugas</Label>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
+                      Upload dokumen tugas yang akan dikerjakan oleh mahasiswa
+                      (Max 5MB) - Akan diupload ke Cloud Storage
+                    </p>
                   </div>
-                )}
-                {uploadedMaterials.length > 0 && !uploading && (
-                  <div className="mt-3 space-y-2">
-                    {uploadedMaterials.map((material) => (
-                      <UploadedFile
-                        key={material.id}
-                        icon={ClipboardList}
-                        name={material.title}
-                        color="indigo"
-                        badge={material.size}
-                        onRemove={() => {
-                          handleRemoveMaterial(material.id);
-                          setUploadedFileUrl("");
-                          form.setFieldValue("contentUrl", "");
-                          field.handleChange(undefined);
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-                {uploadError && (
-                  <div className="mt-3 flex items-center text-red-600">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm">{uploadError}</span>
-                  </div>
-                )}
-              </>
-            )}
-          />
+                  <FileUploadArea
+                    icon={ClipboardList}
+                    label=""
+                    accept=".pdf,.doc,.docx,.ppt,.pptx"
+                    description="Klik untuk upload dokumen tugas"
+                    color="indigo"
+                    id="task-upload"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        const file = files[0];
+                        field.handleChange(file);
+                        handleTaskUploadToR2(file);
+                      }
+                    }}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                      {field.state.meta.errors[0]}
+                    </p>
+                  )}
+                  {uploading && (
+                    <div className="mt-3 flex items-center text-indigo-600">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span className="text-sm">Mengupload dokumen tugas...</span>
+                    </div>
+                  )}
+                  {uploadedMaterials.length > 0 && !uploading && (
+                    <div className="mt-3 space-y-2">
+                      {uploadedMaterials.map((material) => (
+                        <UploadedFile
+                          key={material.id}
+                          icon={ClipboardList}
+                          name={material.title}
+                          color="indigo"
+                          badge={material.size}
+                          onRemove={() => {
+                            handleRemoveMaterial(material.id);
+                            setUploadedFileUrl("");
+                            form.setFieldValue("contentUrl", "");
+                            field.handleChange(undefined);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {uploadError && (
+                    <div className="mt-3 flex items-center text-red-600 dark:text-red-400">
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      <span className="text-sm">{uploadError}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            />
+          </>
         )}
 
         {selectedActivityType === "QUIZ" && (
@@ -2156,11 +2566,11 @@ export function ActivityDrawerContent({
                     className={`h-12 ${
                       field.state.meta.errors.length > 0
                         ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200"
+                        : "border-gray-200 dark:border-zinc-700"
                     }`}
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <div className="flex items-center gap-1 text-red-600 text-sm">
+                    <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm">
                       <span className="text-xs">⚠️</span>
                       <span>{field.state.meta.errors[0]}</span>
                     </div>
@@ -2179,42 +2589,11 @@ export function ActivityDrawerContent({
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="Tambahkan deskripsi untuk quiz ini"
-                    className="min-h-[100px] border-gray-200 resize-none"
+                    className="min-h-[100px] border-gray-200 dark:border-zinc-700 resize-none"
                   />
                 </div>
               )}
             </form.Field>
-
-            {/* ✅ Quiz Questions Management */}
-            <Card className="p-6 border-2 border-blue-100 bg-linear-to-br from-blue-50/30 to-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center size-10 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 shadow-md">
-                    <Edit3 className="size-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Manajemen Soal</h3>
-                    <p className="text-sm text-gray-600">
-                      Buat dan kelola soal untuk quiz ini
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => setShowQuizQuestionsManager(true)}
-                  variant="outline"
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                >
-                  <Edit3 className="size-4 mr-2" />
-                  Kelola Soal
-                </Button>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Info:</strong> Klik tombol "Kelola Soal" untuk membuat, mengedit, atau menghapus soal quiz. Anda dapat membuat berbagai jenis soal seperti pilihan ganda, essay, atau benar/salah.
-                </p>
-              </div>
-            </Card>
 
             {/* 2. Pengaturan Waktu */}
             <Card className="p-6 border-2 border-green-100 bg-linear-to-br from-green-50/30 to-white">
@@ -2225,7 +2604,7 @@ export function ActivityDrawerContent({
                   </div>
                   <div>
                     <h3 className="font-semibold">Pengaturan Waktu</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-zinc-400">
                       Atur jadwal pembukaan dan penutupan quiz
                     </p>
                   </div>
@@ -2247,7 +2626,7 @@ export function ActivityDrawerContent({
                           className={`relative rounded-lg border-2 transition-all ${
                             quizOpenDate
                               ? "border-green-300 bg-green-50/50 hover:border-green-400"
-                              : "border-gray-200 bg-white hover:border-green-300"
+                              : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-green-300"
                           }`}
                         >
                           <Input
@@ -2256,14 +2635,14 @@ export function ActivityDrawerContent({
                             value={quizOpenDate}
                             onChange={(e) => setQuizOpenDate(e.target.value)}
                             className={`border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-11 ${
-                              quizOpenDate ? "text-green-900" : ""
+                              quizOpenDate ? "text-green-900 dark:text-green-100" : ""
                             }`}
                           />
                           {quizOpenDate && (
                             <button
                               type="button"
                               onClick={() => setQuizOpenDate("")}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-green-100 transition-colors opacity-0 group-hover:opacity-100"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-green-100 dark:bg-green-900/30 transition-colors opacity-0 group-hover:opacity-100"
                               aria-label="Clear date"
                             >
                               <XCircle className="size-4 text-green-600" />
@@ -2281,7 +2660,7 @@ export function ActivityDrawerContent({
                           className={`relative rounded-lg border-2 transition-all ${
                             quizCloseDate
                               ? "border-red-300 bg-red-50/50 hover:border-red-400"
-                              : "border-gray-200 bg-white hover:border-red-300"
+                              : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-red-300"
                           }`}
                         >
                           <Input
@@ -2300,7 +2679,7 @@ export function ActivityDrawerContent({
                               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100"
                               aria-label="Clear date"
                             >
-                              <XCircle className="size-4 text-red-600" />
+                              <XCircle className="size-4 text-red-600 dark:text-red-400" />
                             </button>
                           )}
                         </div>
@@ -2320,7 +2699,7 @@ export function ActivityDrawerContent({
                         <div className="font-medium">
                           Batasi Waktu Pengerjaan
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
                           Setiap peserta punya waktu terbatas untuk mengerjakan
                         </p>
                       </Label>
@@ -2331,7 +2710,7 @@ export function ActivityDrawerContent({
                     </div>
 
                     {quizTimeLimitEnabled && (
-                      <div className="space-y-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                      <div className="space-y-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/30 border border-blue-200">
                         <div>
                           <Label
                             htmlFor="quiz-time-limit"
@@ -2347,9 +2726,9 @@ export function ActivityDrawerContent({
                               placeholder="60"
                               value={quizTimeLimit}
                               onChange={(e) => setQuizTimeLimit(e.target.value)}
-                              className="h-11 pr-16 bg-white border-blue-200 focus:border-blue-400"
+                              className="h-11 pr-16 bg-white dark:bg-zinc-800 border-blue-200 focus:border-blue-400"
                             />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-zinc-400">
                               menit
                             </div>
                           </div>
@@ -2369,7 +2748,7 @@ export function ActivityDrawerContent({
                 </div>
                 <div>
                   <h3 className="font-semibold">Upaya & Penilaian</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-zinc-400">
                     Atur jumlah percobaan dan kriteria kelulusan
                   </p>
                 </div>
@@ -2393,7 +2772,7 @@ export function ActivityDrawerContent({
                     onChange={(e) => setQuizAttemptsAllowed(e.target.value)}
                     className="h-11 border-2 hover:border-purple-300 transition-colors"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-2">
                     {quizAttemptsAllowed === "1"
                       ? "Cocok untuk ujian formal"
                       : "Ideal untuk latihan"}
@@ -2431,7 +2810,7 @@ export function ActivityDrawerContent({
                             ? parseInt(quizGradeToPass) >= 80
                               ? "border-amber-300 bg-amber-50/50"
                               : "border-green-300 bg-green-50/50"
-                            : "border-gray-200"
+                            : "border-gray-200 dark:border-zinc-700"
                         }`}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -2440,7 +2819,7 @@ export function ActivityDrawerContent({
                             className={`text-sm font-medium ${
                               parseInt(quizGradeToPass) >= 80
                                 ? "text-amber-700"
-                                : "text-green-700"
+                                : "text-green-700 dark:text-green-300"
                             }`}
                           >
                             {quizGradeToPass}%
@@ -2525,7 +2904,7 @@ export function ActivityDrawerContent({
       <div className="space-y-6">
         <div className="text-center my-8">
           <h4 className="mb-2">Dari mana konten activity ini berasal?</h4>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-zinc-400">
             Pilih salah satu opsi di bawah untuk melanjutkan
           </p>
         </div>
@@ -2546,7 +2925,7 @@ export function ActivityDrawerContent({
                   </div>
                   <div>
                     <p className="font-medium">{label}</p>
-                    <p className="text-sm text-gray-500 mt-1">{description}</p>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{description}</p>
                   </div>
                 </div>
               </Card>
@@ -2586,7 +2965,7 @@ export function ActivityDrawerContent({
       <QuizQuestionsManager
         quizInfo={quizInfo}
         onBack={() => setShowQuizQuestionsManager(false)}
-        onSaveQuiz={(savedQuizInfo, questions, questionsToSave) => {
+        onSaveQuiz={(savedQuizInfo, questions) => {
           // Update form values with quiz info
           form.setFieldValue("name", savedQuizInfo.title);
           form.setFieldValue("description", savedQuizInfo.description || "");
@@ -2599,17 +2978,19 @@ export function ActivityDrawerContent({
           setQuizGradeToPass(savedQuizInfo.passingScore?.toString() || "60");
 
           // Store questions to save when quiz is created (for create mode)
-          if (questionsToSave && !contentId) {
+          if (questions && !contentId) {
             // Save questions to state for later use when quiz is created
-            (window as any).tempQuestionsToSave = questionsToSave;
-            console.log("Questions prepared for bulk creation:", questionsToSave);
+            (window as any).tempQuestionsToSave = questions;
+            console.log("Questions prepared for bulk creation:", questions);
           }
 
           setShowQuizQuestionsManager(false);
-          showToastMessage("Soal kuis berhasil disimpan!", "success");
+          setShowToast(true);
+          setToastMessage("Soal kuis berhasil disimpan!");
+          setToastVariant("success");
         }}
         initialQuestions={[]} // Will be populated from backend later
-        contentId={contentId} // Pass the contentId for API calls
+        quizId={contentId || "new"} // Pass the contentId as quizId, fallback to "new" for new quizzes
       />
     );
   }

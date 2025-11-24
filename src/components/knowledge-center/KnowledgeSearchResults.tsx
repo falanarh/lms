@@ -7,9 +7,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Calendar, Users, Eye, ThumbsUp, ExternalLink } from 'lucide-react';
+import { Search, BookOpen, Calendar, Eye, ThumbsUp, ExternalLink } from 'lucide-react';
 import { useKnowledgeCenterSearch } from '@/hooks/useKnowledgeCenter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
+import { KnowledgeSubject } from '@/types';
 
 interface KnowledgeSearchResultsProps {
   searchQuery: string;
@@ -38,7 +39,7 @@ export default function KnowledgeSearchResults({
   });
   
   // Add API subjects, but don't overwrite existing ones
-  apiSubjects.forEach(subject => {
+  apiSubjects.forEach((subject: KnowledgeSubject) => {
     if (!subjectMap.has(subject.id)) {
       subjectMap.set(subject.id, { ...subject, source: 'api' });
     }
@@ -130,11 +131,9 @@ export default function KnowledgeSearchResults({
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="w-4 h-4 text-blue-600" />
               <h4 className="font-medium text-gray-900">Knowledge Centers</h4>
-              {knowledgeCenters.length > 0 && (
-                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
-                  {knowledgeCenters.length}
-                </span>
-              )}
+              <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+                {knowledgeCenters.length}
+              </span>
             </div>
 
             {isLoading ? (

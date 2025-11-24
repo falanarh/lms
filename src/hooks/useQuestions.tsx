@@ -5,9 +5,6 @@ import {
   updateQuestion,
   deleteQuestion,
   createBulkQuestions,
-  type Question,
-  type QuestionRequest,
-  type QuestionResponse,
 } from "@/api/questions";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";

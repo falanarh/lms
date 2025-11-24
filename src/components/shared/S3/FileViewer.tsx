@@ -1,19 +1,19 @@
 import { MaterialType } from "@/features/course/components/ActivityCard";
 import React, { useState } from "react";
-import { FileText, Video, Download, Eye, Link, X, ExternalLink } from "lucide-react";
+import { FileText, Video, Download, Eye, Link, X, ExternalLink, HelpCircle, ListTodo } from "lucide-react";
+
 import { Button } from "@/components/ui/Button";
 
-
-const materialConfig: Record
-  MaterialType,
-  {
+const materialConfig: {
+  [key in MaterialType]: {
     icon: typeof FileText;
     color: string;
     bgColor: string;
     iconColor: string;
     label: string;
   }
-> = {
+} = {
+
   PDF: {
     icon: FileText,
     color: "green",
@@ -41,6 +41,20 @@ const materialConfig: Record
     bgColor: "bg-yellow-100",
     iconColor: "text-yellow-600",
     label: "SCORM",
+  },
+  QUIZ: {
+    icon: HelpCircle,
+    color: "purple",
+    bgColor: "bg-purple-100",
+    iconColor: "text-purple-600",
+    label: "QUIZ",
+  },
+  TASK: {
+    icon: ListTodo,
+    color: "indigo",
+    bgColor: "bg-indigo-100",
+    iconColor: "text-indigo-600",
+    label: "TASK",
   },
 };
 

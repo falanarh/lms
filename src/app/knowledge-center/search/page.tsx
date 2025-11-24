@@ -1,19 +1,17 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, Search } from 'lucide-react';
+import { ArrowLeft, Search, BookOpen } from 'lucide-react';
 import { KnowledgeCard } from '@/components/knowledge-center';
-import { Pagination } from '@/components/shared/Pagination/Pagination';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Input } from '@/components/ui/Input/Input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useKnowledge } from '@/hooks/useKnowledgeCenter';
-import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { useKnowledgeCenterSearch } from '@/hooks/useKnowledgeCenter';
 import { useDebounce } from '@/hooks/useDebounce';
-import { SortOption, SORT_OPTIONS, KnowledgeQueryParams } from '@/types/knowledge-center';
+import { SortOption, SORT_OPTIONS } from '@/types/knowledge-center';
 import Link from 'next/link';
+import { Icon, IconName } from '@/components/ui/icon-picker';
 
 // Skeleton component for knowledge cards
 const KnowledgeCardSkeleton = () => (
@@ -38,17 +36,13 @@ const KnowledgeCardSkeleton = () => (
   </div>
 );
 
-export default function KnowledgeSearchPage() {
+function KnowledgeSearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get('q') || '';
   
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortBy, setSortBy] = useState<SortOption>(SORT_OPTIONS.NEWEST);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
-  
-  const { data: subjects } = useKnowledgeSubjects();
 
   // Debounce search query so that global search does not hit APIs on every keystroke
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -56,62 +50,16 @@ export default function KnowledgeSearchPage() {
   // Use the search API for live search results
   const { data: searchResults, isLoading: isSearchLoading, error: searchError } = useKnowledgeCenterSearch(
     debouncedSearchQuery,
-    debouncedSearchQuery.length >= 2,
+    true, // Always enabled if there is a query, handled by hook
   );
 
-  // Also get regular knowledge items for comprehensive results
-  const queryparams: KnowledgeQueryParams = useMemo(() => ({
-    search: debouncedSearchQuery || undefined,
-    sort: sortBy,
-    page: currentPage,
-    limit: itemsPerPage,
-  }), [debouncedSearchQuery, sortBy, currentPage, itemsPerPage]);
+  const isLoading = isSearchLoading;
+  const error = searchError;
 
-  const {
-    data: knowledgeItems,
-    isLoading: isKnowledgeLoading,
-    error: knowledgeError,
-    total,
-    totalPages,
-  } = useKnowledge(queryparams);
-
-  // Combine search results with regular knowledge items
-  const combinedResults = useMemo(() => {
-    const searchKnowledgeCenters = searchResults?.data?.knowledgeCenters || [];
-    const regularKnowledgeItems = knowledgeItems || [];
-    
-    // Create a map to avoid duplicates
-    const resultMap = new Map();
-    
-    // Add search results first (higher priority)
-    searchKnowledgeCenters.forEach((item: any) => {
-      resultMap.set(item.id, item);
-    });
-    
-    // Add regular knowledge items if not already present
-    regularKnowledgeItems.forEach(item => {
-      if (!resultMap.has(item.id)) {
-        resultMap.set(item.id, item);
-      }
-    });
-    
-    return Array.from(resultMap.values());
-  }, [searchResults, knowledgeItems]);
-
-  const isLoading = isSearchLoading || isKnowledgeLoading;
-  const error = searchError || knowledgeError;
-
-  // Filter subjects based on search query
-  const filteredSubjects = useMemo(() => {
-    if (!subjects || debouncedSearchQuery.length < 2) return [];
-    return subjects.filter(subject =>
-      subject.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-    );
-  }, [subjects, debouncedSearchQuery]);
+  const resultCount = searchResults?.data?.knowledgeCenters?.length || 0;
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
     // Update URL
     const newUrl = query ? `/knowledge-center/search?q=${encodeURIComponent(query)}` : '/knowledge-center/search';
     window.history.replaceState({}, '', newUrl);
@@ -119,16 +67,6 @@ export default function KnowledgeSearchPage() {
 
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
   };
 
   const handleBackClick = () => {
@@ -210,7 +148,9 @@ export default function KnowledgeSearchPage() {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Search Results</h2>
                   <p className="text-gray-600 mt-1">
-                    {isLoading ? 'Searching...' : `${filteredSubjects.length} subjects and ${combinedResults.length} knowledge centers found`}
+                    {isLoading
+                      ? 'Searching...'
+                      : `${searchResults?.data?.knowledgeSubjects?.length || 0} subjects and ${searchResults?.data?.knowledgeCenters?.length || 0} knowledge centers found`}
                   </p>
                 </div>
 
@@ -231,20 +171,20 @@ export default function KnowledgeSearchPage() {
             </div>
 
             {/* Knowledge Subjects Section */}
-            {filteredSubjects.length > 0 && (
+            {searchResults?.data?.knowledgeSubjects && searchResults.data.knowledgeSubjects.length > 0 && (
               <div className="mb-12">
                 <div className="flex items-center gap-2 mb-6">
                   <BookOpen className="w-5 h-5 text-green-600" />
                   <h3 className="text-xl font-semibold text-gray-900">Knowledge Subjects</h3>
                   {!isLoading && (
                     <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
-                      {filteredSubjects.length}
+                      {searchResults.data.knowledgeSubjects.length}
                     </span>
                   )}
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredSubjects.map((subject) => (
+                  {searchResults.data.knowledgeSubjects.map((subject: any) => (
                     <Link
                       key={subject.id}
                       href={`/knowledge-center/subject/${subject.id}`}
@@ -252,7 +192,7 @@ export default function KnowledgeSearchPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-green-600" />
+                          <Icon name={(subject.icon) as IconName || 'book-open'} className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
                           <h4 className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
@@ -274,7 +214,7 @@ export default function KnowledgeSearchPage() {
                 <h3 className="text-xl font-semibold text-gray-900">Knowledge Centers</h3>
                 {!isLoading && (
                   <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
-                    {combinedResults.length}
+                    {searchResults?.data?.knowledgeCenters?.length || 0}
                   </span>
                 )}
               </div>
@@ -282,7 +222,7 @@ export default function KnowledgeSearchPage() {
               {/* Loading State */}
               {isLoading && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {[...Array(itemsPerPage)].map((_, index) => (
+                  {[...Array(12)].map((_, index) => (
                     <KnowledgeCardSkeleton key={index} />
                   ))}
                 </div>
@@ -303,17 +243,19 @@ export default function KnowledgeSearchPage() {
                 </div>
               )}
 
-              {/* Knowledge Centers Grid */}
-              {!isLoading && !error && combinedResults.length > 0 && (
+              {/* Knowledge Centers Grid - uses search results from API */}
+              {!isLoading && !error && searchResults?.data?.knowledgeCenters?.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                  {combinedResults.map((knowledge) => (
+                  {searchResults.data.knowledgeCenters.map((knowledge: any) => (
                     <KnowledgeCard key={knowledge.id} knowledge={knowledge} />
                   ))}
                 </div>
               )}
 
-              {/* Empty State */}
-              {!isLoading && !error && combinedResults.length === 0 && filteredSubjects.length === 0 && (
+              {/* Empty State - Only show if BOTH lists are empty */}
+              {!isLoading && !error && 
+               (!searchResults?.data?.knowledgeCenters || searchResults.data.knowledgeCenters.length === 0) && 
+               (!searchResults?.data?.knowledgeSubjects || searchResults.data.knowledgeSubjects.length === 0) && (
                 <div className="text-center py-16">
                   <div className="max-w-md mx-auto">
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -331,52 +273,6 @@ export default function KnowledgeSearchPage() {
                     >
                       Clear Search
                     </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Pagination */}
-              {!isLoading && combinedResults.length > 0 && totalPages > 1 && (
-                <div className="mt-12">
-                  <div className="flex items-center justify-between">
-                    {/* Showing X from Y Knowledge - Left */}
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-600">
-                        Showing <span className="font-semibold text-gray-900">{combinedResults.length}</span> from{' '}
-                        <span className="font-semibold text-gray-900">{total || 0}</span> Knowledge Centers
-                      </p>
-                    </div>
-
-                    {/* Pagination - Center */}
-                    <div className="flex-1 flex justify-center">
-                      <Pagination
-                        alignment="center"
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                        className="max-w-xl"
-                      />
-                    </div>
-
-                    {/* Items Per Page Selector - Right */}
-                    <div className="flex-1 flex justify-end">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600">Tampilkan:</span>
-                        <Dropdown
-                          value={itemsPerPage.toString()}
-                          onChange={(value: string) => handleItemsPerPageChange(parseInt(value))}
-                          items={[
-                            { value: '5', label: '5' },
-                            { value: '10', label: '10' },
-                            { value: '12', label: '12' },
-                            { value: '20', label: '20' },
-                            { value: '50', label: '50' },
-                          ]}
-                          className="w-20"
-                          searchable={false}
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -402,5 +298,44 @@ export default function KnowledgeSearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function KnowledgeSearchPageLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
+            <div>
+              <div className="h-8 bg-gray-200 rounded w-96 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-80"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(12)].map((_, index) => (
+            <KnowledgeCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Export the wrapped component
+export default function KnowledgeSearchPageWrapper() {
+  return (
+    <Suspense fallback={<KnowledgeSearchPageLoading />}>
+      <KnowledgeSearchPage />
+    </Suspense>
   );
 }

@@ -8,8 +8,8 @@ import {
   KNOWLEDGE_TYPES,
   CONTENT_TYPES,
 } from '@/types/knowledge-center';
-import { useSubjects, usePenyelenggara } from '@/hooks/useKnowledgeCenter';
-import { useTags } from '@/hooks/useKnowledgeCenter';
+import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
+import { PENYELENGGARA_OPTIONS } from '@/constants/knowledge';
 
 interface KnowledgeFiltersProps {
   filters: KnowledgeFilters;
@@ -23,9 +23,9 @@ export default function KnowledgeFilters({
   className = ''
 }: KnowledgeFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { subjects } = useSubjects();
-  const { penyelenggara } = usePenyelenggara();
-  const { tags } = useTags();
+  const { data: subjects = [] } = useKnowledgeSubjects();
+  const penyelenggara = PENYELENGGARA_OPTIONS;
+  const tags: { id: string; name: string }[] = [];
 
   const handleFilterChange = (key: keyof KnowledgeFilters, value: any) => {
     onFiltersChange({
@@ -66,10 +66,16 @@ export default function KnowledgeFilters({
 
   const mediaTypes: { value: ContentType; label: string }[] = [
     { value: CONTENT_TYPES.VIDEO, label: 'Video' },
-    { value: CONTENT_TYPES.PDF, label: 'PDF' },
+    { value: CONTENT_TYPES.FILE, label: 'File' },
     { value: CONTENT_TYPES.PODCAST, label: 'Podcast' },
     { value: CONTENT_TYPES.ARTICLE, label: 'Article' },
   ];
+
+  const knowledgeTypeFilter = Array.isArray(filters.knowledgeType)
+    ? filters.knowledgeType
+    : filters.knowledgeType
+    ? [filters.knowledgeType]
+    : [];
 
   const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="border-b border-gray-100 last:border-b-0 pb-4 last:pb-0">
@@ -164,7 +170,7 @@ export default function KnowledgeFilters({
               </div>
             )}
 
-            {filters.knowledgeType?.map(type => (
+            {knowledgeTypeFilter.map(type => (
               <div
                 key={type}
                 className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
@@ -252,9 +258,9 @@ export default function KnowledgeFilters({
                 key={type.value}
                 id={`type-${type.value}`}
                 label={type.label}
-                checked={filters.knowledgeType?.includes(type.value) || false}
+                checked={knowledgeTypeFilter.includes(type.value)}
                 onChange={(checked) =>
-                  handleArrayFilterChange('knowledge_type', type.value, checked)
+                  handleArrayFilterChange('knowledgeType', type.value, checked)
                 }
               />
             ))}
@@ -269,7 +275,7 @@ export default function KnowledgeFilters({
                 label={type.label}
                 checked={filters.mediaType?.includes(type.value) || false}
                 onChange={(checked) =>
-                  handleArrayFilterChange('media_type', type.value, checked)
+                  handleArrayFilterChange('mediaType', type.value, checked)
                 }
               />
             ))}

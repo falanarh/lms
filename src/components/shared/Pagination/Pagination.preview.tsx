@@ -15,7 +15,7 @@ export default function PaginationPreview() {
       <section className="space-y-2">
         <h2 className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)]">Sizes</h2>
         <div className="flex flex-col gap-3">
-          <Pagination size="sm" totalPages={12} currentPage={3} onPageChange={() => {}} />
+          <Pagination size="sm" totalPages={8} currentPage={3} onPageChange={() => {}} />
           <Pagination size="md" totalPages={12} currentPage={6} onPageChange={() => {}} />
           <Pagination size="lg" totalPages={12} currentPage={9} onPageChange={() => {}} />
         </div>

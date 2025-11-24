@@ -4,7 +4,10 @@ export type Quiz = {
   idContent: string;
   idCurriculum?: string;
   curriculum?: string;
+  // Primary duration field from API
   durationLimit: number;
+  // Optional alias used in some UI components
+  timeLimit?: number;
   totalQuestions?: number;
   maxPoint?: number;
   passingScore: number;
@@ -14,6 +17,17 @@ export type Quiz = {
   deleted: boolean;
   createdAt: string;
   updatedAt: string;
+  // Optional joined content metadata when quiz is fetched together with its content
+  content?: {
+    idSection?: string;
+    type?: string;
+    contentUrl?: string;
+    name?: string;
+    description?: string;
+    contentStart?: string;
+    contentEnd?: string;
+    sequence?: number;
+  };
 };
 
 export type QuizCreateRequest = {

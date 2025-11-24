@@ -1,4 +1,4 @@
-import { Info, List, MessageSquare, Star, ChevronDown } from "lucide-react";
+import { Info, List, MessageSquare, Star, ChevronDown, FileText } from "lucide-react";
 import { CourseTabType, TabConfig } from "../types/tab";
 
 interface CourseTabNavigationProps {
@@ -17,6 +17,11 @@ const tabs: TabConfig[] = [
     key: "course_contents" as CourseTabType,
     label: "Course Contents",
     icon: <List className="w-4 h-4" />,
+  },
+  {
+    key: "summary" as CourseTabType,
+    label: "Summary",
+    icon: <FileText className="w-4 h-4" />,
   },
   {
     key: "discussion_forum" as CourseTabType,
@@ -46,7 +51,7 @@ export const CourseTabNavigation = ({
           <select
             value={activeTab}
             onChange={(e) => onTabChange(e.target.value as CourseTabType)}
-            className="w-full h-[48px] px-4 pr-10 bg-white border-2 border-gray-200 rounded-xl appearance-none text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+            className="w-full h-[48px] px-4 pr-10 bg-white dark:bg-zinc-800 border-2 border-gray-200 dark:border-zinc-700 rounded-xl appearance-none text-sm font-medium text-gray-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
           >
             {visibleTabs.map((tab) => (
               <option key={tab.key} value={tab.key}>
@@ -54,12 +59,12 @@ export const CourseTabNavigation = ({
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-zinc-500 pointer-events-none" />
         </div>
       </div>
 
       {/* Desktop: Tabs */}
-      <div className="hidden md:block bg-[#ececf0] rounded-[14px] w-full">
+      <div className="hidden md:block bg-[#ececf0] dark:bg-zinc-700/50 rounded-[14px] w-full">
         <div className="flex flex-row items-center size-full">
           <div className="box-border flex items-center px-[3px] py-[3px] size-full gap-0">
             {visibleTabs.map((tab) => {
@@ -71,9 +76,9 @@ export const CourseTabNavigation = ({
                   type="button"
                   onClick={() => onTabChange(tab.key)}
                   className={`
-                    basis-0 grow h-[38px] relative rounded-[14px] shrink-0 
+                    basis-0 grow h-[38px] relative rounded-[14px] shrink-0
                     transition-colors duration-200
-                    ${isActive ? "bg-white" : "bg-transparent hover:bg-white/50"}
+                    ${isActive ? "bg-white dark:bg-zinc-800" : "bg-transparent hover:bg-white/50 dark:hover:bg-zinc-600/30"}
                   `}
                 >
                   <div
@@ -82,17 +87,16 @@ export const CourseTabNavigation = ({
                   />
                   <div className="h-[38px] relative w-full flex items-center justify-center gap-2">
                     <span
-                      className="flex-shrink-0 [&>svg]:size-4 [&>svg]:stroke-2"
-                      style={{
-                        color: isActive ? "#0A0A0A" : "#717182",
-                      }}
+                      className={`flex-shrink-0 [&>svg]:size-4 [&>svg]:stroke-2 ${
+                        isActive ? "text-zinc-900 dark:text-zinc-100" : "text-[#717182] dark:text-zinc-400"
+                      }`}
                     >
                       {tab.icon}
                     </span>
                     <span
                       className={`
                         font-medium leading-5 text-sm text-nowrap whitespace-pre tracking-tight
-                        ${isActive ? "text-neutral-950" : "text-[#717182]"}
+                        ${isActive ? "text-neutral-950 dark:text-zinc-100" : "text-[#717182] dark:text-zinc-400"}
                       `}
                     >
                       {tab.label}

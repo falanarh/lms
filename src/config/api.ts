@@ -52,3 +52,4 @@ export const API_CONFIG = {
 
 export default API_ENDPOINTS;
 export const API_COURSE_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://service-courses.vercel.app/api/v1";
+export const DUMMY_USER_ID = "0f6224e4-be11-4702-897c-6370ffe8f7c1";

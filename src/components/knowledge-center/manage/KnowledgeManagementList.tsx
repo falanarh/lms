@@ -74,6 +74,17 @@ const getStatusInfo = (status: "draft" | "scheduled" | "published") => {
   }
 };
 
+const getStatusActionClasses = (status: "draft" | "scheduled" | "published") => {
+  switch (status) {
+    case "draft":
+      return "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-sm";
+    case "scheduled":
+      return "bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 shadow-sm";
+    case "published":
+      return "bg-yellow-500 hover:bg-yellow-600 text-gray-900 border-yellow-500 hover:border-yellow-600 shadow-sm";
+  }
+};
+
 interface KnowledgeManagementListProps {
   onEdit: (knowledge: KnowledgeCenter) => void;
   onDelete: (id: string) => void;
@@ -231,19 +242,28 @@ const KnowledgeManagementListItem = ({
             Edit
           </Button>
           <Button
-            variant={(() => {
-              const status = getKnowledgeStatus(knowledge);
-              return status === "draft" ? "solid" : "outline";
-            })()}
+            variant="solid"
             size="sm"
             onClick={onToggleStatus}
             disabled={isUpdating || isDeleting}
+            className={(() => {
+              const status = getKnowledgeStatus(knowledge);
+              return getStatusActionClasses(status);
+            })()}
           >
             {(() => {
               const status = getKnowledgeStatus(knowledge);
               switch (status) {
-                case "draft":
-                  return "Publish";
+                case "draft": {
+                  const publishDate = knowledge.publishedAt
+                    ? new Date(knowledge.publishedAt)
+                    : null;
+                  const isFuturePublishDate =
+                    !!publishDate &&
+                    !isNaN(publishDate.getTime()) &&
+                    publishDate > new Date();
+                  return isFuturePublishDate ? "Schedule" : "Publish";
+                }
                 case "scheduled":
                   return "Unschedule";
                 case "published":
@@ -653,7 +673,7 @@ export default function KnowledgeManagementList({
 
           {/* Advanced Filters */}
           {showFilters && (
-            <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm mb-8">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

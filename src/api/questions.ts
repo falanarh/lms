@@ -8,9 +8,11 @@ export interface QuestionRequest {
   questionType: QuestionType;
   questionText: string;
   maxScore: number;
+  optionsCode?: string[];
   optionsText?: string[];
   answer: {
-    answer: string | string[]; 
+    answer: string | string[];
+    codeAnswer?: string | null;
   };
 }
 

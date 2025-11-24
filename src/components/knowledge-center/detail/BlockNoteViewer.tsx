@@ -2,7 +2,6 @@
 
 import React, { useMemo } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
-// @ts-expect-error: CSS module has no type declarations
 import "@blocknote/mantine/style.css";
 import { Block, BlockNoteEditor } from "@blocknote/core";
 

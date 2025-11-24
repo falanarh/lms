@@ -20,6 +20,8 @@ interface ScormPreviewModalProps {
   description?: string;
 }
 
+// In ScormPreviewModal.tsx
+
 export function ScormPreviewModal({
   isOpen,
   onClose,
@@ -43,8 +45,7 @@ export function ScormPreviewModal({
     setIsFullscreen(!isFullscreen);
   };
 
-  if (!isOpen) return null;
-
+  // Move useEffect hooks before the early return
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -68,6 +69,9 @@ export function ScormPreviewModal({
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  // Now we can safely return early
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">

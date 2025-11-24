@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useEffect } from "react";
-// @ts-expect-error: CSS module has no type declarations
 import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-// @ts-expect-error: CSS module has no type declarations
 import "@blocknote/mantine/style.css";
 import { Block } from "@blocknote/core";
 import { ContentType } from "@/types";

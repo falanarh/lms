@@ -12,21 +12,27 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getLogActivities,
-  getLogActivityById,
-  getLogActivityStats,
   exportLogActivities,
   getLogActivitiesQueryOptions,
   getLogActivityStatsQueryOptions,
   getLogActivityDetailQueryOptions,
+  getCategoryLogTypesQueryOptions,
+  getLogTypesQueryOptions,
+  createCategoryLogType,
+  createLogType,
+  updateCategoryLogType,
+  deleteCategoryLogType,
+  updateLogType,
+  deleteLogType,
 } from '@/api/logActivity';
 import {
   LogActivity,
   LogActivityQueryParams,
   LogActivityStats,
-  LogType,
-  LogCategory,
   SortOption,
+  CategoryLogType,
+  LogType,
+  LogActivityListResponse,
 } from '@/types/log-activity';
 
 // ============================================================================
@@ -35,29 +41,139 @@ import {
 
 /**
  * Hook for fetching log activities list with query parameters
+ * Uses backend pageMeta for accurate pagination, similar to Knowledge Center.
  */
 export const useLogActivities = (params: LogActivityQueryParams = {}) => {
-  const {
-    data: logActivities = [],
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-  } = useQuery(getLogActivitiesQueryOptions(params));
+  const queryResult = useQuery(getLogActivitiesQueryOptions(params));
 
-  // Calculate total and pagination info from response
-  const total = logActivities.length;
-  const totalPages = params.limit ? Math.ceil(total / params.limit) : 1;
+  const response = queryResult.data as LogActivityListResponse | undefined;
+  const items = (response?.data || []) as LogActivity[];
+  const pageMeta = response?.pageMeta;
+
+  const total = pageMeta?.totalResultCount ?? items.length;
+  const page = pageMeta?.page ?? params.page ?? 1;
+  const fallbackLimit = items.length || 10;
+  const limit = pageMeta?.perPage ?? params.limit ?? fallbackLimit;
+  const totalPages = pageMeta?.totalPageCount ?? (limit ? Math.max(1, Math.ceil(total / limit)) : 1);
 
   return {
-    data: logActivities as LogActivity[],
-    isLoading,
-    isFetching,
-    error,
-    refetch,
+    data: items,
+    page,
+    limit,
     total,
     totalPages,
+    pageMeta,
+    isLoading: queryResult.isLoading,
+    isFetching: queryResult.isFetching,
+    error: queryResult.error,
+    refetch: queryResult.refetch,
   };
+};
+
+/**
+ * Hook for fetching all category log types (master data)
+ */
+export const useCategoryLogTypes = () => {
+  const {
+    data: categories = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(getCategoryLogTypesQueryOptions());
+
+  return {
+    data: categories as CategoryLogType[],
+    isLoading,
+    error,
+    refetch,
+  };
+};
+
+/**
+ * Hook for fetching all log types (master data)
+ */
+export const useLogTypes = () => {
+  const {
+    data: logTypes = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(getLogTypesQueryOptions());
+
+  return {
+    data: logTypes as LogType[],
+    isLoading,
+    error,
+    refetch,
+  };
+};
+
+export const useCreateCategoryLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createCategoryLogType,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['category-log-types'] });
+    },
+  });
+};
+
+export const useCreateLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createLogType,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['log-types'] });
+    },
+  });
+};
+
+export const useUpdateCategoryLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { name: string; description?: string } }) =>
+      updateCategoryLogType(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['category-log-types'] });
+    },
+  });
+};
+
+export const useDeleteCategoryLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteCategoryLogType,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['category-log-types'] });
+    },
+  });
+};
+
+export const useUpdateLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { name: string; description?: string; idCategoryLogType?: string | null } }) =>
+      updateLogType(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['log-types'] });
+    },
+  });
+};
+
+export const useDeleteLogType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteLogType,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['log-types'] });
+    },
+  });
 };
 
 /**
@@ -201,8 +317,8 @@ export const useLogActivityManagementPage = ({
  */
 export const useLogActivityTableState = () => {
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [selectedLogTypes, setSelectedLogTypes] = React.useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
+  const [selectedLogTypes, setSelectedLogTypes] = React.useState<string[]>([]); // array of idLogType
+  const [selectedCategory, setSelectedCategory] = React.useState<string>('all'); // idCategoryLogType or 'all'
   const [dateRange, setDateRange] = React.useState<{
     start?: Date;
     end?: Date;
@@ -211,27 +327,23 @@ export const useLogActivityTableState = () => {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage, setItemsPerPage] = React.useState(25);
   const [selectedUserName, setSelectedUserName] = React.useState<string>('');
-  const [selectedCourseName, setSelectedCourseName] = React.useState<string>('');
 
-  // Build query parameters
+  // Build query parameters (DB-aligned)
   const queryParams: LogActivityQueryParams = React.useMemo(() => ({
     search: searchQuery || undefined,
-    logType: selectedLogTypes.length > 0 ? selectedLogTypes as LogType[] : undefined,
-    category: selectedCategory !== 'all' ? selectedCategory as LogCategory : undefined,
-    userName: selectedUserName || undefined,
-    courseName: selectedCourseName || undefined,
+    idLogType: selectedLogTypes.length > 0 ? selectedLogTypes : undefined,
+    idCategoryLogType: selectedCategory !== 'all' ? selectedCategory : undefined,
+    nameUser: selectedUserName || undefined,
     startDate: dateRange.start?.toISOString(),
     endDate: dateRange.end?.toISOString(),
     sort: sortBy as SortOption,
     page: currentPage,
     limit: itemsPerPage,
-    includeMetadata: true,
   }), [
     searchQuery,
     selectedLogTypes,
     selectedCategory,
     selectedUserName,
-    selectedCourseName,
     dateRange,
     sortBy,
     currentPage,
@@ -245,11 +357,10 @@ export const useLogActivityTableState = () => {
       selectedLogTypes.length > 0 ||
       selectedCategory !== 'all' ||
       selectedUserName ||
-      selectedCourseName ||
       dateRange.start ||
       dateRange.end
     );
-  }, [searchQuery, selectedLogTypes, selectedCategory, selectedUserName, selectedCourseName, dateRange]);
+  }, [searchQuery, selectedLogTypes, selectedCategory, selectedUserName, dateRange]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -257,7 +368,6 @@ export const useLogActivityTableState = () => {
     setSelectedLogTypes([]);
     setSelectedCategory('all');
     setSelectedUserName('');
-    setSelectedCourseName('');
     setDateRange({});
     setCurrentPage(1);
   };
@@ -272,7 +382,6 @@ export const useLogActivityTableState = () => {
     currentPage,
     itemsPerPage,
     selectedUserName,
-    selectedCourseName,
     queryParams,
     hasActiveFilters,
 
@@ -285,7 +394,6 @@ export const useLogActivityTableState = () => {
     setCurrentPage,
     setItemsPerPage,
     setSelectedUserName,
-    setSelectedCourseName,
     clearFilters,
   };
 };

@@ -31,20 +31,20 @@ export function ConfirmDialog({
 
   const variantStyles = {
     danger: {
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600",
+      iconBg: "bg-red-100 dark:bg-red-900/30",
+      iconColor: "text-red-600 dark:text-red-400",
       buttonClass: "bg-red-600 hover:bg-red-700",
       icon: icon || <Trash2 className="size-6" />,
     },
     warning: {
-      iconBg: "bg-yellow-100",
-      iconColor: "text-yellow-600",
+      iconBg: "bg-yellow-100 dark:bg-yellow-900/30",
+      iconColor: "text-yellow-600 dark:text-yellow-400",
       buttonClass: "bg-yellow-600 hover:bg-yellow-700",
       icon: icon || <AlertTriangle className="size-6" />,
     },
     info: {
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
+      iconBg: "bg-blue-100 dark:bg-blue-900/30",
+      iconColor: "text-blue-600 dark:text-blue-400",
       buttonClass: "bg-blue-600 hover:bg-blue-700",
       icon: icon || <AlertTriangle className="size-6" />,
     },
@@ -61,7 +61,7 @@ export function ConfirmDialog({
       >
         {/* Dialog */}
         <div
-          className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-in zoom-in-95 duration-200"
+          className="bg-white dark:bg-zinc-800 rounded-xl shadow-2xl max-w-md w-full animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with icon */}
@@ -76,10 +76,10 @@ export function ConfirmDialog({
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-2">
                   {title}
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-600 dark:text-zinc-400 leading-relaxed">
                   {description}
                 </p>
               </div>
@@ -88,15 +88,15 @@ export function ConfirmDialog({
               <button
                 onClick={onClose}
                 disabled={isLoading}
-                className="flex-shrink-0 p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50"
               >
-                <X className="size-5 text-gray-400" />
+                <X className="size-5 text-gray-400 dark:text-zinc-500" />
               </button>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="px-6 py-4 bg-gray-50 rounded-b-xl flex items-center justify-end gap-3">
+          <div className="px-6 py-4 bg-gray-50 dark:bg-zinc-700 rounded-b-xl flex items-center justify-end gap-3">
             <Button
               variant="outline"
               onClick={onClose}

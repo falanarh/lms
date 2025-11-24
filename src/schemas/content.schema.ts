@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { pagemetaSchema } from "./pagemeta.schema";
 
+export const taskDataSchema = z.object({
+  maxPoint: z.number().int().min(1).max(1000),
+  isRequired: z.boolean().optional().default(true),
+  dueDate: z.string().optional(),
+  createdBy: z.uuidv4(),
+});
+
 // Content Schema
 export const contentSchema = z
   .object({
@@ -23,6 +30,19 @@ export const contentSchema = z
     }),
     createdAt: z.coerce.date().optional(),
     updatedAt: z.coerce.date().optional(),
+    // ✅ NEW: Task data
+    taskData: taskDataSchema.optional(),
+    // Quiz data (already exists)
+    quizData: z.object({
+      idCurriculum: z.string().uuid().optional(),
+      curriculum: z.string().optional(),
+      durationLimit: z.number().int().min(1),
+      totalQuestions: z.number().int().positive().optional(),
+      maxPoint: z.number().int().positive(),
+      passingScore: z.number().min(0).max(100),
+      attemptLimit: z.number().int().positive().optional(),
+      shuffleQuestions: z.boolean(),
+    }).optional(),
   })
   .refine((data) => new Date(data.contentEnd) > new Date(data.contentStart), {
     message: "Content end date must be after content start date",
@@ -138,6 +158,16 @@ export const createPdfContentSchema = baseContentSchema.extend({
 //       data.contentUrl !== undefined,
 //     { message: "At least one field must be updated" },
 //   );
+export const quizDataSchema = z.object({
+  idCurriculum: z.uuidv4().optional(),
+  curriculum: z.string().optional(),
+  durationLimit: z.number().int().min(1),
+  totalQuestions: z.number().int().positive().optional(),
+  maxPoint: z.number().int().positive(),
+  passingScore: z.number().min(0).max(100),
+  attemptLimit: z.number().int().positive().optional(),
+  shuffleQuestions: z.boolean(),
+});
 
 export const updatePdfContentSchema = baseContentSchema
   .extend({
@@ -178,12 +208,14 @@ export const createQuizContentSchema = baseContentSchema.extend({
   type: z.literal("QUIZ"),
   contentUrl: z.string().optional(),
   sequence: z.number().int().min(0),
+  quizData: quizDataSchema.optional(),
 });
 
 export const updateQuizContentSchema = baseContentSchema
   .extend({
     type: z.literal("QUIZ"),
     contentUrl: z.string().optional(),
+    quizData: quizDataSchema.optional(),
   })
   .partial()
   .required({ type: true });
@@ -195,12 +227,14 @@ export const createTaskContentSchema = baseContentSchema.extend({
   type: z.literal("TASK"),
   contentUrl: z.string().optional(),
   sequence: z.number().int().min(0),
+  taskData: taskDataSchema.optional(),
 });
 
 export const updateTaskContentSchema = baseContentSchema
   .extend({
     type: z.literal("TASK"),
     contentUrl: z.string().optional(),
+    taskData: taskDataSchema.optional(),
   })
   .partial()
   .required({ type: true });

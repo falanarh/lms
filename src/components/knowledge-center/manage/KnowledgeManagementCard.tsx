@@ -28,6 +28,23 @@ import {
 import { Button } from '@/components/ui/Button/Button';
 import { KnowledgeCenter, ContentType, CONTENT_TYPES, KNOWLEDGE_TYPES } from '@/types/knowledge-center';
 
+type KnowledgeStatus = 'draft' | 'scheduled' | 'published';
+
+const getKnowledgeStatus = (knowledge: KnowledgeCenter): KnowledgeStatus => {
+  if (!knowledge.isFinal) {
+    return 'draft';
+  }
+
+  const publishDate = new Date(knowledge.publishedAt);
+  const now = new Date();
+
+  if (publishDate > now) {
+    return 'scheduled';
+  }
+
+  return 'published';
+};
+
 interface KnowledgeManagementCardProps {
   knowledge: KnowledgeCenter;
   onEdit: () => void;
@@ -157,6 +174,29 @@ export default function KnowledgeManagementCard({
     knowledge.webinar?.zoomDate &&
     new Date(knowledge.webinar.zoomDate) > new Date();
 
+  const status: KnowledgeStatus = getKnowledgeStatus(knowledge);
+
+  const publishDate = knowledge.publishedAt ? new Date(knowledge.publishedAt) : null;
+  const isFuturePublishDate =
+    !!publishDate && !isNaN(publishDate.getTime()) && publishDate > new Date();
+
+  const statusBadgeClasses =
+    status === 'draft'
+      ? 'bg-yellow-100/90 text-yellow-700 border-yellow-200/50'
+      : status === 'scheduled'
+      ? 'bg-blue-100/90 text-blue-700 border-blue-200/50'
+      : 'bg-green-100/90 text-green-700 border-green-200/50';
+
+  const statusLabel =
+    status === 'draft' ? 'Draft' : status === 'scheduled' ? 'Scheduled' : 'Published';
+
+  const statusActionButtonClasses =
+    status === 'draft'
+      ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-sm'
+      : status === 'scheduled'
+      ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 shadow-sm'
+      : 'bg-yellow-500 hover:bg-yellow-600 text-gray-900 border-yellow-500 hover:border-yellow-600 shadow-sm';
+
   // Actions are handled by the bottom buttons instead of dropdown
 
   return (
@@ -180,6 +220,7 @@ export default function KnowledgeManagementCard({
             src={getThumbnailUrl(knowledge.thumbnail)}
             alt={knowledge.title}
             fill
+            priority
             className="object-cover"
             onError={() => setImageError(true)}
             unoptimized={knowledge.thumbnail.includes('youtube.com')}
@@ -213,12 +254,10 @@ export default function KnowledgeManagementCard({
 
         {/* Status badge */}
         <div className="absolute top-2 right-2">
-          <div className={`px-2 py-1 rounded-md text-xs font-medium backdrop-blur-sm border ${
-            knowledge.isFinal 
-              ? 'bg-green-100/90 text-green-700 border-green-200/50' 
-              : 'bg-yellow-100/90 text-yellow-700 border-yellow-200/50'
-          }`}>
-            {knowledge.isFinal ? 'Published' : 'Draft'}
+          <div
+            className={`px-2 py-1 rounded-md text-xs font-medium backdrop-blur-sm border ${statusBadgeClasses}`}
+          >
+            {statusLabel}
           </div>
         </div>
 
@@ -316,25 +355,28 @@ export default function KnowledgeManagementCard({
           </Button>
           
           <Button
-            variant="outline"
+            variant="solid"
             size="sm"
             onClick={onToggleStatus}
             disabled={isDeleting || isUpdating}
-            className={`flex-1 ${
-              knowledge.isFinal 
-                ? 'text-yellow-600 hover:text-yellow-700 border-yellow-200 hover:border-yellow-300' 
-                : 'text-green-600 hover:text-green-700 border-green-200 hover:border-green-300'
-            }`}
+            className={`flex-1 ${statusActionButtonClasses}`}
           >
-            {knowledge.isFinal ? (
+            {status === 'draft' && (
+              <>
+                <CheckCircle className="w-3 h-3 mr-1" />
+                {isFuturePublishDate ? 'Schedule' : 'Publish'}
+              </>
+            )}
+            {status === 'scheduled' && (
+              <>
+                <XCircle className="w-3 h-3 mr-1" />
+                Unschedule
+              </>
+            )}
+            {status === 'published' && (
               <>
                 <XCircle className="w-3 h-3 mr-1" />
                 Unpublish
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Publish
               </>
             )}
           </Button>

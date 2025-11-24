@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string[] } }
+  { params }: { params: Promise<{ params: string[] }> }
 ) {
-  const [width, height] = params.slug;
+  const { params: slug } = await params;
+  const [width, height] = slug;
 
   // Validate dimensions
   const w = parseInt(width) || 400;

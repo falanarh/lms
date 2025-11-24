@@ -46,7 +46,7 @@ export const transformFormDataToAPI = (
       jpCount: formValues.webinar.jpCount || 0,
       youtubeLink: formValues.webinar.youtubeLink ? encodeMediaUrl(formValues.webinar.youtubeLink) : undefined,
       vbLink: formValues.webinar.vbLink ? encodeMediaUrl(formValues.webinar.vbLink) : undefined,
-      noteFile: formValues.webinar.noteFile ? encodeMediaUrl(formValues.webinar.noteFile) : undefined,
+      noteFile: typeof formValues.webinar.noteFile === 'string' && formValues.webinar.noteFile ? encodeMediaUrl(formValues.webinar.noteFile) : undefined,
       contentText: formValues.webinar.contentText || undefined,
     };
   }
@@ -65,7 +65,7 @@ export const transformFormDataToAPI = (
     // Encode the URL to handle special characters
     if (contentType !== CONTENT_TYPES.ARTICLE) {
       const rawMediaUrl = formValues.knowledgeContent.mediaUrl || '';
-      apiData.knowledgeContent.mediaUrl = rawMediaUrl ? encodeMediaUrl(rawMediaUrl) : '';
+      apiData.knowledgeContent.mediaUrl = (typeof rawMediaUrl === 'string' && rawMediaUrl) ? encodeMediaUrl(rawMediaUrl) : '';
     }
   }
 

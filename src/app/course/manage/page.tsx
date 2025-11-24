@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import Tabs, { TabItem } from "@/components/ui/Tabs";
 import { SectionActivities } from "@/features/course/components/SectionActivities";
+import { BankContent } from "@/features/course/components/BankContent";
+import { BankSoal } from "@/features/course/components/BankSoal";
 import { Drawer } from "@/components/ui/Drawer";
 import { ActivityDrawerContent } from "@/features/course/components/ActivityDrawerContent";
 import { Content } from "@/api/contents";
@@ -13,12 +15,14 @@ import { queryClient } from "@/lib/queryClient";
 export default function ManageCoursePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("section_activities");
-  const [selectedSectionId, setSelectedSectionId] = useState<string>("");
-
+  
   const baseItems: TabItem[] = [
     { key: "section_activities", label: "Section & Aktivitas" },
+    { key: "bank_content", label: "Bank Content" },
+    { key: "bank_soal", label: "Bank Soal" },
     { key: "peserta", label: "Peserta", counter: 12 },
     { key: "penilaian", label: "Penilaian" },
+
   ];
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -101,13 +105,17 @@ export default function ManageCoursePage() {
         onManageQuizQuestions={handleManageQuizQuestions}
       />
     ),
+    bank_content:
+      <BankContent />,
+    bank_soal:
+      <BankSoal />,
     peserta: <div>Peserta Content</div>,
     penilaian: <div>Penilaian Content</div>,
   } as const;
 
   
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
         <div className="py-6 space-y-6">
           <div className="pt-2 hidden md:block">
@@ -119,10 +127,10 @@ export default function ManageCoursePage() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="font-bold text-3xl lg:text-4xl text-zinc-900 tracking-tight">
+            <h1 className="font-bold text-3xl lg:text-4xl text-zinc-900 dark:text-zinc-100 tracking-tight">
               Manage Course
             </h1>
-            <p className="text-base text-zinc-600 leading-relaxed">
+            <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
               Kelola course, peserta, dan penilaian
             </p>
           </div>
