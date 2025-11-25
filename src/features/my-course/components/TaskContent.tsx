@@ -35,6 +35,8 @@ export const TaskContent = ({
   onTaskSubmitted,
 }: TaskContentProps) => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [taskStatus, setTaskStatus] = useState<TaskStatus>("NOT_SUBMITTED");
   const [taskScore, setTaskScore] = useState<number | null>(null);
   const [taskMaxScore, setTaskMaxScore] = useState<number | null>(null);
@@ -42,6 +44,7 @@ export const TaskContent = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isLocalUnsubmit, setIsLocalUnsubmit] = useState<boolean>(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [keepSubmittedFile, setKeepSubmittedFile] = useState<boolean>(true);
   const [showToast, setShowToast] = useState(false);
@@ -62,7 +65,6 @@ export const TaskContent = ({
   const typedTaskDetail = taskDetail as TaskDetail | null | undefined;
   const typedAttemptData = attemptData as TaskAttempt | null | undefined;
 
-  // Deadline hanya dari dueDate hasil get tasks/{id}
   const rawDeadline = typedTaskDetail?.dueDate || null;
   const deadlineDate = rawDeadline ? new Date(rawDeadline) : null;
   const isDeadlineValid =
@@ -84,32 +86,27 @@ export const TaskContent = ({
     (taskStatus !== "NOT_SUBMITTED" || isLocalUnsubmit) && keepSubmittedFile;
 
   const submittedUrl = typedAttemptData?.urlFile || null;
+
+  // Display submitted file name (with timestamp from server)
   const submittedFileName = useMemo(() => {
-    if (!submittedUrl) return uploadedFiles[0]?.name || null;
+    if (!submittedUrl) return null;
+
     try {
       const url = new URL(submittedUrl);
       const pathname = url.pathname;
       const encodedName = pathname.split("/").pop();
       if (!encodedName) return submittedUrl;
-
-      // Decode URL encoding (e.g., %20 -> space)
-      const decodedName = decodeURIComponent(encodedName);
-
-      // Remove timestamp prefix (e.g., "1763966515352-10_Natalie Merry.pdf" -> "10_Natalie Merry.pdf")
-      const withoutTimestamp = decodedName.replace(/^\d+-/, "");
-
-      return withoutTimestamp || decodedName;
+      return decodeURIComponent(encodedName);
     } catch {
       const parts = submittedUrl.split("/");
       const encodedName = parts[parts.length - 1] || submittedUrl;
       try {
-        const decodedName = decodeURIComponent(encodedName);
-        return decodedName.replace(/^\d+-/, "") || decodedName;
+        return decodeURIComponent(encodedName);
       } catch {
         return encodedName;
       }
     }
-  }, [submittedUrl, uploadedFiles]);
+  }, [submittedUrl]);
 
   // Generate preview URL untuk file yang diupload
   useEffect(() => {
@@ -154,7 +151,9 @@ export const TaskContent = ({
     }
   }, [typedAttemptData, isLocalUnsubmit]);
 
-  async function uploadToR2(file: File): Promise<string> {
+  async function uploadToR2(
+    file: File
+  ): Promise<{ publicUrl: string; fileName: string }> {
     const form = new FormData();
     form.append("file", file);
     const res = await fetch("/api/upload", { method: "POST", body: form });
@@ -163,8 +162,44 @@ export const TaskContent = ({
     const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
     const fileName = data?.fileName;
     if (!fileName || !publicBase) throw new Error("Invalid upload response");
-    return `${publicBase}/${fileName}`;
+    return {
+      publicUrl: `${publicBase}/${fileName}`,
+      fileName: fileName,
+    };
   }
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    setIsUploading(true);
+
+    try {
+      const { publicUrl, fileName } = await uploadToR2(file);
+
+      // Set data setelah upload berhasil
+      setUploadedFiles([file]);
+      setUploadedFileUrl(publicUrl);
+      setUploadedFileName(fileName);
+
+      setShowToast(true);
+      setToastMessage("Dokumen berhasil diupload!");
+      setToastVariant("success");
+    } catch (error) {
+      console.error("Upload error:", error);
+      setShowToast(true);
+      setToastMessage("Gagal mengupload dokumen. Coba lagi.");
+      setToastVariant("warning");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setUploadedFiles([]);
+    setUploadedFileUrl(null);
+    setUploadedFileName(null);
+    setKeepSubmittedFile(false);
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -175,10 +210,12 @@ export const TaskContent = ({
   };
 
   const openFilePreview = () => {
-    if (filePreviewUrl) {
-      window.open(filePreviewUrl, "_blank");
+    if (uploadedFileUrl) {
+      window.open(uploadedFileUrl, "_blank");
     } else if (submittedUrl) {
       window.open(submittedUrl, "_blank");
+    } else if (filePreviewUrl) {
+      window.open(filePreviewUrl, "_blank");
     }
   };
 
@@ -299,31 +336,24 @@ export const TaskContent = ({
           </div>
         </div>
 
-        {showSubmittedFileInfo && (
+        {showSubmittedFileInfo && submittedFileName && (
           <div className="mb-2 md:mb-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 flex items-center gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-sm bg-blue-100 flex items-center justify-center flex-shrink-0">
               <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs md:text-base font-medium text-gray-900 truncate">
-                {submittedFileName || uploadedFiles[0]?.name || "File"}
+              <button
+                onClick={openFilePreview}
+                className="text-xs md:text-base font-medium text-gray-900 truncate hover:underline text-left w-full"
+              >
+                {submittedFileName}
+              </button>
+              <p className="text-xs md:text-sm text-gray-500">
+                {uploadedFiles[0]
+                  ? formatFileSize(uploadedFiles[0].size)
+                  : "File terkumpul"}
               </p>
-              {uploadedFiles[0] ? (
-                <p className="text-xs md:text-sm text-gray-500">
-                  {formatFileSize(uploadedFiles[0].size)}
-                </p>
-              ) : (
-                <p className="text-xs md:text-sm text-gray-500">
-                  File terkumpul
-                </p>
-              )}
             </div>
-            <button
-              onClick={openFilePreview}
-              className="px-2 py-1 md:px-3 md:py-1.5 bg-blue-600 text-white rounded text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              View
-            </button>
             {isLocalUnsubmit && (
               <button
                 onClick={() => {
@@ -369,49 +399,52 @@ export const TaskContent = ({
 
         {showUploadBox && (
           <div className="mb-2 md:mb-3 space-y-2">
-            {uploadedFiles.length > 0 && !keepSubmittedFile && (
+            {uploadedFiles.length > 0 && !keepSubmittedFile ? (
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 flex items-center gap-3">
                 <div className="w-8 h-8 md:w-10 md:h-10 rounded-sm bg-blue-100 flex items-center justify-center flex-shrink-0">
                   <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs md:text-base font-medium text-gray-900 truncate">
-                    {uploadedFiles[0].name}
-                  </p>
+                  <button
+                    onClick={openFilePreview}
+                    className="text-xs md:text-base font-medium text-gray-900 truncate hover:underline text-left w-full"
+                  >
+                    {uploadedFileName || uploadedFiles[0].name}
+                  </button>
                   <p className="text-xs md:text-sm text-gray-500">
                     {formatFileSize(uploadedFiles[0].size)}
                   </p>
                 </div>
                 <button
-                  onClick={openFilePreview}
-                  className="px-2 py-1 md:px-3 md:py-1.5 bg-blue-600 text-white rounded text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors"
-                >
-                  View
-                </button>
-                <button
-                  onClick={() => setUploadedFiles([])}
-                  className="w-7 h-7 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
+                  onClick={handleRemoveFile}
+                  className="w-7 h-7 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors flex-shrink-0"
                   title="Hapus file"
                 >
                   <X className="w-4 h-4 text-red-600" />
                 </button>
               </div>
-            )}
-            {uploadedFiles.length === 0 && !keepSubmittedFile && (
-              <FileUpload
-                acceptedFileTypes={["document"]}
-                maxFileSizeMB={10}
-                variant="slim"
-                value={uploadedFiles[0] ?? null}
-                onChange={(file) => {
-                  if (file) {
-                    setUploadedFiles([file]);
-                  } else {
-                    setUploadedFiles([]);
-                  }
-                }}
-                className="w-full"
-              />
+            ) : null}
+            {uploadedFiles.length === 0 &&
+              !keepSubmittedFile &&
+              !isUploading && (
+                <FileUpload
+                  acceptedFileTypes={["document"]}
+                  maxFileSizeMB={10}
+                  variant="slim"
+                  value={null}
+                  onChange={(file) => {
+                    if (file) {
+                      handleFileUpload(file);
+                    }
+                  }}
+                  className="w-full"
+                  disabled={isUploading}
+                />
+              )}
+            {isUploading && (
+              <div className="text-center py-4 text-sm text-gray-500">
+                Mengupload dokumen...
+              </div>
             )}
             {uploadedFiles.length === 0 &&
               keepSubmittedFile &&
@@ -428,9 +461,10 @@ export const TaskContent = ({
           {taskStatus === "NOT_SUBMITTED" && (
             <>
               <button
-                className="flex-1 px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium text-xs md:text-sm transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                className="flex-1 px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium text-xs md:text-sm transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 onClick={() => {
                   (async () => {
+                    // Case 1: Resubmit after unsubmit without uploading new file
                     if (
                       uploadedFiles.length === 0 &&
                       isLocalUnsubmit &&
@@ -465,22 +499,28 @@ export const TaskContent = ({
                         }
                       } catch (e) {
                         console.error("Error resubmitting task:", e);
-                        alert("Gagal mengumpulkan tugas. Coba lagi.");
+                        setShowToast(true);
+                        setToastMessage("Gagal mengumpulkan tugas. Coba lagi.");
+                        setToastVariant("warning");
                       } finally {
                         setIsSubmitting(false);
                       }
                       return;
                     }
 
-                    if (uploadedFiles.length === 0) {
-                      alert(
+                    // Case 2: Submit with newly uploaded file
+                    if (!uploadedFileUrl) {
+                      setShowToast(true);
+                      setToastMessage(
                         "Silakan upload file tugas terlebih dahulu sebelum mengumpulkan."
                       );
+                      setToastVariant("warning");
                       return;
                     }
+
                     try {
                       setIsSubmitting(true);
-                      const publicUrl = await uploadToR2(uploadedFiles[0]);
+                      const publicUrl = uploadedFileUrl;
 
                       if (typedAttemptData?.id) {
                         await updateAttemptMutation.mutateAsync({
@@ -501,6 +541,9 @@ export const TaskContent = ({
 
                       setIsLocalUnsubmit(false);
                       setKeepSubmittedFile(true);
+                      setUploadedFiles([]);
+                      setUploadedFileUrl(null);
+                      setUploadedFileName(null);
 
                       await refetchAttempt();
 
@@ -516,15 +559,17 @@ export const TaskContent = ({
                       }
                     } catch (e) {
                       console.error("Error submitting task:", e);
-                      alert("Gagal mengumpulkan tugas. Coba lagi.");
+                      setShowToast(true);
+                      setToastMessage("Gagal mengumpulkan tugas. Coba lagi.");
+                      setToastVariant("warning");
                     } finally {
                       setIsSubmitting(false);
                     }
                   })();
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploading}
               >
-                Turn In
+                {isSubmitting ? "Mengumpulkan..." : "Turn In"}
               </button>
             </>
           )}
