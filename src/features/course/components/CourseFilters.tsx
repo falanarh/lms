@@ -1,15 +1,15 @@
-import { Search, X, ChevronDown, Check } from 'lucide-react';
+import { Search, X, ChevronDown, Check } from "lucide-react";
 import {
   Listbox,
   ListboxButton,
   ListboxOption,
   ListboxOptions,
   Transition,
-} from '@headlessui/react';
-import { Fragment } from 'react';
-import { SORT_OPTIONS } from '../constant/course';
-import { ViewModeToggle } from './ViewModeToggle';
-import { ViewModeValue } from '../types';
+} from "@headlessui/react";
+import { Fragment } from "react";
+import { SORT_OPTIONS } from "../constant/course";
+import { ViewModeToggle } from "./ViewModeToggle";
+import { ViewModeValue } from "../types";
 
 interface CourseFiltersProps {
   searchQuery: string;
@@ -53,7 +53,7 @@ export function CourseFilters({
           />
           {searchQuery && (
             <button
-              onClick={() => onSearchChange('')}
+              onClick={() => onSearchChange("")}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
             >
               <X className="w-5 h-5" />
@@ -83,14 +83,18 @@ export function CourseFilters({
               >
                 <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                   {isLoadingCategories ? (
-                    <div className="px-4 py-2 text-sm text-gray-500">Loading categories...</div>
+                    <div className="px-4 py-2 text-sm text-gray-500">
+                      Loading categories...
+                    </div>
                   ) : (
                     categories.map((category) => (
                       <ListboxOption
                         key={category}
                         className={({ active }) =>
                           `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                            active ? 'bg-blue-100 text-blue-900' : 'text-zinc-900'
+                            active
+                              ? "bg-blue-100 text-blue-900"
+                              : "text-zinc-900"
                           }`
                         }
                         value={category}
@@ -98,7 +102,7 @@ export function CourseFilters({
                         {({ selected }) => (
                           <>
                             <span
-                              className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}
+                              className={`block truncate ${selected ? "font-medium" : "font-normal"}`}
                             >
                               {category}
                             </span>
@@ -144,7 +148,9 @@ export function CourseFilters({
                       key={option.value}
                       className={({ active }) =>
                         `relative cursor-default select-none py-2 pl-10 pr-4 ${
-                          active ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100' : 'text-zinc-900 dark:text-zinc-100'
+                          active
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
+                            : "text-zinc-900 dark:text-zinc-100"
                         }`
                       }
                       value={option.value}
@@ -152,7 +158,7 @@ export function CourseFilters({
                       {({ selected }) => (
                         <>
                           <span
-                            className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}
+                            className={`block truncate ${selected ? "font-medium" : "font-normal"}`}
                           >
                             {option.label}
                           </span>

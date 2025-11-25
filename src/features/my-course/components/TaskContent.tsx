@@ -82,10 +82,14 @@ export const TaskContent = ({
     : "-";
 
   const showUploadBox = taskStatus === "NOT_SUBMITTED";
-  const showSubmittedFileInfo =
-    (taskStatus !== "NOT_SUBMITTED" || isLocalUnsubmit) && keepSubmittedFile;
 
   const submittedUrl = typedAttemptData?.urlFile || null;
+
+  const showSubmittedFileInfo =
+    (taskStatus !== "NOT_SUBMITTED" || isLocalUnsubmit) &&
+    keepSubmittedFile &&
+    submittedUrl !== null &&
+    submittedUrl !== "";
 
   // Display submitted file name (with timestamp from server)
   const submittedFileName = useMemo(() => {
@@ -124,18 +128,32 @@ export const TaskContent = ({
       setTaskStatus("NOT_SUBMITTED");
       setTaskScore(null);
       setTaskFeedback(null);
+      // Keep submitted file visible during unsubmit
       return;
     }
 
-    if (!typedAttemptData || typedAttemptData.urlFile === null) {
+    // Handle case when attemptData is undefined (404 - belum pernah submit)
+    if (typedAttemptData === undefined || typedAttemptData === null) {
       setTaskStatus("NOT_SUBMITTED");
       setTaskScore(null);
       setTaskFeedback(null);
       setHasSubmitted(false);
+      setKeepSubmittedFile(false); // No submitted file to keep
+      return;
+    }
+
+    // Handle case when attempt exists but urlFile is null
+    if (typedAttemptData.urlFile === null || typedAttemptData.urlFile === "") {
+      setTaskStatus("NOT_SUBMITTED");
+      setTaskScore(null);
+      setTaskFeedback(null);
+      setHasSubmitted(false);
+      setKeepSubmittedFile(false); // No submitted file to keep
       return;
     }
 
     setHasSubmitted(true);
+    setKeepSubmittedFile(true); // Has submitted file
 
     if (
       typedAttemptData.status === "GRADED" ||
