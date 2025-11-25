@@ -1,69 +1,74 @@
-import {createContent, deleteContent, getContents, updateContent, updateContentsSequence} from "@/api/contents";
+import {
+  createContent,
+  deleteContent,
+  getContents,
+  updateContent,
+  updateContentsSequence,
+} from "@/api/contents";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
-export const getContentQueryKey = () => ["contents"]
+export const getContentQueryKey = () => ["contents"];
 
 export const getContentQueryOptions = () => {
-    return queryOptions({
-        queryKey: getContentQueryKey(),
-        queryFn: getContents
-    })
-}
+  return queryOptions({
+    queryKey: getContentQueryKey(),
+    queryFn: getContents,
+  });
+};
 
 type UseContentParams = {
-    queryConfig?: QueryConfig<typeof getContentQueryOptions>
-}
+  queryConfig?: QueryConfig<typeof getContentQueryOptions>;
+};
 
 export const useContents = (params: UseContentParams = {}) => {
-    return useQuery({
-        ...getContentQueryOptions(),
-        ...params.queryConfig,
-    })
-}
+  return useQuery({
+    ...getContentQueryOptions(),
+    ...params.queryConfig,
+  });
+};
 
 export const useCreateContent = (
-  config: MutationConfig<typeof createContent> = {}
+  config: MutationConfig<typeof createContent> = {},
 ) => {
-  
   return useMutation({
     mutationFn: createContent,
     onSuccess: async (...args) => {
-      await queryClient.refetchQueries({ queryKey: getContentQueryKey() })
-      await config.onSuccess?.(...args)
+      await queryClient.refetchQueries({ queryKey: getContentQueryKey() });
+      await config.onSuccess?.(...args);
     },
     ...config,
-  })
-}
+  });
+};
 
 export const useUpdateContent = (
-  config: MutationConfig<typeof updateContent> = {}
+  config: MutationConfig<typeof updateContent> = {},
 ) => {
   return useMutation({
     mutationFn: updateContent,
     onSuccess: async (...args) => {
-      await queryClient.refetchQueries({ queryKey: getContentQueryKey() })
-      await config.onSuccess?.(...args)
+      await queryClient.refetchQueries({ queryKey: getContentQueryKey() });
+      await config.onSuccess?.(...args);
     },
     ...config,
-  })
-}
+  });
+};
 
 export const useDeleteContent = (
-  config: MutationConfig<typeof deleteContent> = {}
+  config: MutationConfig<typeof deleteContent> = {},
 ) => {
   return useMutation({
     mutationFn: deleteContent,
     onSuccess: async (...args) => {
-      await queryClient.refetchQueries({ queryKey: getContentQueryKey() })
-      await config.onSuccess?.(...args)
+      await queryClient.refetchQueries({ queryKey: getContentQueryKey() });
+      await config.onSuccess?.(...args);
     },
     ...config,
-  })
-}
+  });
+};
 
 export const useUpdateContentsSequence = (
-  config: MutationConfig<typeof updateContentsSequence> = {}
+  config: MutationConfig<typeof updateContentsSequence> = {},
 ) => {
   return useMutation({
     mutationFn: updateContentsSequence,

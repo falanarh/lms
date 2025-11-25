@@ -16,8 +16,6 @@ type Content = {
   contentUrl: string;
 };
 
-
-
 export type CourseSchedule = {
   id: string;
   idCourse: string;
@@ -31,8 +29,10 @@ export type CourseSchedule = {
   isMooc: boolean;
   createdAt: Date;
   updatedAt: Date;
-  course: Course;
-  content: Content;
+  rbmp: string;
+  bahanAjarUrl: string;
+  bahanTayangUrl: string;
+  alatPeraga: string;
 };
 
 type PageMeta = {

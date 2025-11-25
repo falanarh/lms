@@ -1,15 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { Video, Plus, Pencil, Trash2, ExternalLink, Copy, Check, Loader2 } from "lucide-react";
+import {
+  Video,
+  Plus,
+  Pencil,
+  Trash2,
+  ExternalLink,
+  Copy,
+  Check,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog/ConfirmDialog";
-import { useCourse, useUpdateZoomUrl, useDeleteZoomUrl } from "@/hooks/useCourse";
+import {
+  useCourse,
+  useUpdateZoomUrl,
+  useDeleteZoomUrl,
+  getCourseQueryKey,
+} from "@/hooks/useCourse";
 import { useForm } from "@tanstack/react-form";
 import { updateZoomUrlSchema } from "@/schemas/course.schema";
 import { ZodError } from "zod";
+import { queryClient } from "@/lib/queryClient";
 
 interface ZoomManagementProps {
   courseId: string;
@@ -17,19 +32,26 @@ interface ZoomManagementProps {
 
 export function ZoomManagement({ courseId }: ZoomManagementProps) {
   const { data: courseData, isPending: isLoadingCourse } = useCourse(courseId);
-  
+
   const { mutate: updateZoomUrl, isPending: isUpdating } = useUpdateZoomUrl({
     mutationConfig: {
-      onSuccess: () => {
+      onSuccess: async () => {
         setIsEditing(false);
         showToastMessage("success", "Link Zoom berhasil disimpan!");
+
+        await queryClient.refetchQueries({
+          queryKey: getCourseQueryKey(courseId),
+        });
       },
       onError: (error: any) => {
-        showToastMessage("warning", error?.message || "Gagal menyimpan link Zoom!");
+        showToastMessage(
+          "warning",
+          error?.message || "Gagal menyimpan link Zoom!",
+        );
       },
     },
   });
-  
+
   const { mutate: deleteZoomUrl, isPending: isDeleting } = useDeleteZoomUrl({
     mutationConfig: {
       onSuccess: () => {
@@ -37,7 +59,10 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
         showToastMessage("success", "Link Zoom berhasil dihapus!");
       },
       onError: (error: any) => {
-        showToastMessage("warning", error?.message || "Gagal menghapus link Zoom!");
+        showToastMessage(
+          "warning",
+          error?.message || "Gagal menghapus link Zoom!",
+        );
       },
     },
   });
@@ -46,7 +71,9 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastVariant, setToastVariant] = useState<"success" | "warning" | "info">("success");
+  const [toastVariant, setToastVariant] = useState<
+    "success" | "warning" | "info"
+  >("success");
   const [copied, setCopied] = useState(false);
 
   const form = useForm({
@@ -66,7 +93,10 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
     },
   });
 
-  const showToastMessage = (variant: "success" | "warning" | "info", message: string) => {
+  const showToastMessage = (
+    variant: "success" | "warning" | "info",
+    message: string,
+  ) => {
     setToastVariant(variant);
     setToastMessage(message);
     setShowToast(true);
@@ -130,7 +160,8 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
             Belum Ada Link Zoom
           </p>
           <p className="text-sm text-gray-500 dark:text-zinc-400 text-center max-w-md mb-6">
-            Tambahkan link Zoom Meeting untuk course ini agar peserta dapat mengikuti kelas secara online
+            Tambahkan link Zoom Meeting untuk course ini agar peserta dapat
+            mengikuti kelas secara online
           </p>
           <Button onClick={handleEdit} leftIcon={<Plus size={18} />}>
             Tambah Link Zoom
@@ -276,16 +307,6 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
           >
             Edit
           </Button>
-          <Button
-            onClick={() => setShowDeleteConfirm(true)}
-            variant="outline"
-            size="sm"
-            leftIcon={<Trash2 size={16} />}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
-            disabled={isDeleting}
-          >
-            Hapus
-          </Button>
         </div>
       </div>
 
@@ -297,8 +318,12 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
               <Video size={24} className="text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white">Zoom Meeting Link</h3>
-              <p className="text-sm text-blue-100">Klik tombol di bawah untuk join meeting</p>
+              <h3 className="text-lg font-semibold text-white">
+                Zoom Meeting Link
+              </h3>
+              <p className="text-sm text-blue-100">
+                Klik tombol di bawah untuk join meeting
+              </p>
             </div>
           </div>
           <Button
@@ -315,7 +340,9 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
         <div className="p-6">
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Link Meeting</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">
+                Link Meeting
+              </p>
               <p className="text-sm text-gray-700 dark:text-zinc-300 break-all font-mono bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg">
                 {courseData?.zoomUrl}
               </p>
@@ -327,7 +354,10 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
               title="Salin Link"
             >
               {copied ? (
-                <Check size={18} className="text-green-600 dark:text-green-400" />
+                <Check
+                  size={18}
+                  className="text-green-600 dark:text-green-400"
+                />
               ) : (
                 <Copy size={18} />
               )}

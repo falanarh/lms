@@ -11,13 +11,13 @@ export type MasterContent = {
 };
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000";
 
 export const getMasterContents = async (
   page: number = 1,
   perPage: number = 10,
   searchQuery?: string,
-  type?: string
+  type?: string,
 ): Promise<{
   data: MasterContent[];
   pageMeta: {
@@ -39,13 +39,13 @@ export const getMasterContents = async (
 
   // Add search parameters if search query is provided
   if (searchQuery && searchQuery.trim()) {
-    params.append('name[contains]', searchQuery.trim());
-    params.append('name[mode]', 'insensitive');
+    params.append("name[contains]", searchQuery.trim());
+    params.append("name[mode]", "insensitive");
   }
 
   // Add type filter if provided
   if (type && type.trim()) {
-    params.append('type', type.trim());
+    params.append("type", type.trim());
   }
 
   const response = await axios.get<{
@@ -88,7 +88,9 @@ export const createMasterContent = async (
 
 export const updateMasterContent = async (
   id: string,
-  updatedContent: Partial<Omit<MasterContent, "id" | "createdAt" | "updatedAt">>,
+  updatedContent: Partial<
+    Omit<MasterContent, "id" | "createdAt" | "updatedAt">
+  >,
 ): Promise<MasterContent> => {
   const response = await axios.patch<MasterContent>(
     `${BASE_URL}/master-contents/${id}`,
@@ -102,8 +104,6 @@ export const updateMasterContent = async (
   return response.data;
 };
 
-export const deleteMasterContent = async (
-  id: string,
-): Promise<void> => {
+export const deleteMasterContent = async (id: string): Promise<void> => {
   await axios.delete(`${BASE_URL}/master-contents/${id}`);
 };

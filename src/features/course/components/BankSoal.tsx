@@ -28,15 +28,25 @@ import {
   Save,
   Layers,
   Check,
-  GripVertical
+  GripVertical,
+  Upload,
+  FileSpreadsheet,
+  Tag,
 } from "lucide-react";
 import Dropdown from "@/components/ui/Dropdown/Dropdown";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog/ConfirmDialog";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { BlockNoteEditor } from "./BlockNoteEditor";
-import { useMasterQuestions, useCreateMasterQuestion, useUpdateMasterQuestion, useDeleteMasterQuestion } from "@/hooks/useMasterQuestions";
+import {
+  useMasterQuestions,
+  useCreateMasterQuestion,
+  useUpdateMasterQuestion,
+  useDeleteMasterQuestion,
+} from "@/hooks/useMasterQuestions";
 import { Input } from "@/components/ui/Input";
+import { ImportQuestionsModal } from "./importQuestionsModal";
+import { QuestionTagSelector } from "@/components/shared/QuestionTagSelector/QuestionTagSelector";
 
 // Types for Bank Soal - matching QuizQuestionsManager structure
 interface BankQuestion {
@@ -54,6 +64,9 @@ interface BankQuestion {
   createdAt?: string;
   updatedAt?: string;
   usageCount?: number;
+  shuffleOptions?: boolean;
+  questionTagId?: string;
+  questionTagName?: string;
 }
 
 export interface QuizOption {
@@ -68,21 +81,32 @@ type QuestionType = "multiple_choice" | "true_false" | "short_answer";
 type Difficulty = "EASY" | "MEDIUM" | "HARD" | null;
 
 const QUESTION_TYPES = [
-  { value: "multiple_choice", label: "Pilihan Ganda", icon: HelpCircle, color: "blue" },
-  { value: "true_false", label: "Benar/Salah", icon: CheckSquare, color: "green" },
-  { value: "short_answer", label: "Jawaban Singkat", icon: Edit3, color: "purple" },
+  {
+    value: "multiple_choice",
+    label: "Pilihan Ganda",
+    icon: HelpCircle,
+    color: "blue",
+  },
+  {
+    value: "true_false",
+    label: "Benar/Salah",
+    icon: CheckSquare,
+    color: "green",
+  },
+  {
+    value: "short_answer",
+    label: "Jawaban Singkat",
+    icon: Edit3,
+    color: "purple",
+  },
 ];
-
-
-// Type alias for question type
-type QuestionType = BankQuestion['questionType'];
 
 // Question Form Component - matching QuizQuestionsManager structure
 const QuestionForm = ({
   question,
   onSave,
   onCancel,
-  isLoading = false
+  isLoading = false,
 }: {
   question?: BankQuestion;
   onSave: (data: Partial<BankQuestion>) => void;
@@ -90,21 +114,23 @@ const QuestionForm = ({
   isLoading?: boolean;
 }) => {
   const [questionText, setQuestionText] = useState("");
-  const [questionType, setQuestionType] = useState<QuestionType>("multiple_choice");
+  const [questionType, setQuestionType] =
+    useState<QuestionType>("multiple_choice");
   const [points, setPoints] = useState(1);
+  const [shuffleOptions, setShuffleOptions] = useState(false); // New state for shuffle options
   const [options, setOptions] = useState<QuizOption[]>([
     { id: "1", text: "", isCorrect: false, order: 0 },
     { id: "2", text: "", isCorrect: false, order: 1 },
     { id: "3", text: "", isCorrect: false, order: 2 },
-    { id: "4", text: "", isCorrect: false, order: 3 }
+    { id: "4", text: "", isCorrect: false, order: 3 },
   ]);
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [explanation, setExplanation] = useState("");
+  const [questionTagId, setQuestionTagId] = useState("");
+  const [questionTagName, setQuestionTagName] = useState("");
 
   // Update form values when question prop changes
   useEffect(() => {
-    console.log("📝 QuestionForm useEffect triggered with question:", question);
-
     if (question) {
       console.log("📝 Setting form values from question:", {
         questionText: question.questionText,
@@ -112,7 +138,8 @@ const QuestionForm = ({
         points: question.points,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
-        options: question.options
+        options: question.options,
+        shuffleOptions: question.shuffleOptions,
       });
 
       setQuestionText(question.questionText || "");
@@ -120,9 +147,16 @@ const QuestionForm = ({
       setPoints(question.points || 1);
       setCorrectAnswer(question.correctAnswer || "");
       setExplanation(question.explanation || "");
+      setShuffleOptions(question.shuffleOptions || false); // Set shuffle options state
+      setQuestionTagId(question.questionTagId || "");
+      setQuestionTagName(question.questionTagName || "");
 
       // Set options for multiple choice questions
-      if (question.questionType === "multiple_choice" && question.options && question.options.length > 0) {
+      if (
+        question.questionType === "multiple_choice" &&
+        question.options &&
+        question.options.length > 0
+      ) {
         setOptions(question.options);
       } else {
         // Reset to default options for non-multiple choice or when no options exist
@@ -130,7 +164,7 @@ const QuestionForm = ({
           { id: "1", text: "", isCorrect: false, order: 0 },
           { id: "2", text: "", isCorrect: false, order: 1 },
           { id: "3", text: "", isCorrect: false, order: 2 },
-          { id: "4", text: "", isCorrect: false, order: 3 }
+          { id: "4", text: "", isCorrect: false, order: 3 },
         ]);
       }
     } else {
@@ -141,25 +175,32 @@ const QuestionForm = ({
       setPoints(1);
       setCorrectAnswer("");
       setExplanation("");
+      setQuestionTagId("");
+      setQuestionTagName("");
+      setShuffleOptions(false); // Reset shuffle options
       setOptions([
         { id: "1", text: "", isCorrect: false, order: 0 },
         { id: "2", text: "", isCorrect: false, order: 1 },
         { id: "3", text: "", isCorrect: false, order: 2 },
-        { id: "4", text: "", isCorrect: false, order: 3 }
+        { id: "4", text: "", isCorrect: false, order: 3 },
       ]);
     }
   }, [question]);
 
   const handleOptionTextChange = (optionId: string, text: string) => {
-    setOptions(options.map(opt =>
-      opt.id === optionId ? { ...opt, text } : opt
-    ));
+    setOptions(
+      options.map((opt) => (opt.id === optionId ? { ...opt, text } : opt)),
+    );
   };
 
   const handleOptionCorrectChange = (optionId: string, isCorrect: boolean) => {
-    setOptions(options.map(opt =>
-      opt.id === optionId ? { ...opt, isCorrect } : { ...opt, isCorrect: false }
-    ));
+    setOptions(
+      options.map((opt) =>
+        opt.id === optionId
+          ? { ...opt, isCorrect }
+          : { ...opt, isCorrect: false },
+      ),
+    );
   };
 
   const addOption = () => {
@@ -167,14 +208,14 @@ const QuestionForm = ({
       id: Date.now().toString(),
       text: "",
       isCorrect: false,
-      order: options.length
+      order: options.length,
     };
     setOptions([...options, newOption]);
   };
 
   const removeOption = (optionId: string) => {
     if (options.length > 2) {
-      setOptions(options.filter(opt => opt.id !== optionId));
+      setOptions(options.filter((opt) => opt.id !== optionId));
     }
   };
 
@@ -185,19 +226,22 @@ const QuestionForm = ({
     }
 
     if (questionType === "multiple_choice") {
-      const validOptions = options.filter(opt => opt.text.trim() !== "");
+      const validOptions = options.filter((opt) => opt.text.trim() !== "");
       if (validOptions.length < 2) {
         alert("Pilihan ganda minimal harus memiliki 2 opsi");
         return;
       }
-      const hasCorrectOption = options.some(opt => opt.isCorrect);
+      const hasCorrectOption = options.some((opt) => opt.isCorrect);
       if (!hasCorrectOption) {
         alert("Pilih satu jawaban yang benar");
         return;
       }
     }
 
-    if ((questionType === "true_false" || questionType === "short_answer") && !correctAnswer.trim()) {
+    if (
+      (questionType === "true_false" || questionType === "short_answer") &&
+      !correctAnswer.trim()
+    ) {
       alert("Jawaban benar harus diisi");
       return;
     }
@@ -206,12 +250,22 @@ const QuestionForm = ({
       questionText: questionText.trim(),
       questionType,
       points,
-      options: questionType === "multiple_choice" ? options.filter(opt => opt.text.trim() !== "") : undefined,
-      correctAnswer: questionType === "multiple_choice"
-        ? options.find(opt => opt.isCorrect)?.text || ""
-        : correctAnswer,
+      shuffleOptions:
+        questionType === "multiple_choice" ? shuffleOptions : undefined, // Only include for multiple choice
+      options:
+        questionType === "multiple_choice"
+          ? options.filter((opt) => opt.text.trim() !== "")
+          : undefined,
+      correctAnswer:
+        questionType === "multiple_choice"
+          ? options.find((opt) => opt.isCorrect)?.text || ""
+          : correctAnswer,
       explanation: explanation.trim() || undefined,
-      title: questionText.trim().slice(0, 100) + (questionText.trim().length > 100 ? "..." : ""),
+      title:
+        questionText.trim().slice(0, 100) +
+        (questionText.trim().length > 100 ? "..." : ""),
+      questionTagId: questionTagId || undefined,
+      questionTagName: questionTagName || undefined,
     };
 
     onSave(questionData);
@@ -269,61 +323,99 @@ const QuestionForm = ({
 
       {/* Question Type Specific Fields */}
       {questionType === "multiple_choice" && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Opsi Jawaban
+        <div className="space-y-4">
+          {/* Shuffle Options Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Acak Urutan Opsi
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Opsi jawaban akan diacak setiap kali soal ditampilkan
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={shuffleOptions}
+                onChange={(e) => setShuffleOptions(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             </label>
-            <button
-              type="button"
-              onClick={addOption}
-              className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Tambah Opsi
-            </button>
           </div>
 
-          <div className="space-y-2">
-            {options.map((option, index) => (
-              <div key={option.id} className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500">
-                  {String.fromCharCode(65 + index)}.
+          {/* Options */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Opsi Jawaban
+              </label>
+              <button
+                type="button"
+                onClick={addOption}
+                className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah Opsi
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {options.map((option, index) => (
+                <div key={option.id} className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 text-sm font-medium text-gray-500">
+                    {String.fromCharCode(65 + index)}.
+                  </div>
+
+                  <input
+                    type="radio"
+                    checked={option.isCorrect}
+                    onChange={() =>
+                      handleOptionCorrectChange(option.id, !option.isCorrect)
+                    }
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  />
+
+                  <input
+                    type="text"
+                    value={option.text}
+                    onChange={(e) =>
+                      handleOptionTextChange(option.id, e.target.value)
+                    }
+                    placeholder={`Opsi ${String.fromCharCode(65 + index)}`}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+
+                  {options.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeOption(option.id)}
+                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
+              ))}
+            </div>
 
-                <input
-                  type="radio"
-                  checked={option.isCorrect}
-                  onChange={() => handleOptionCorrectChange(option.id, !option.isCorrect)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                />
-
-                <input
-                  type="text"
-                  value={option.text}
-                  onChange={(e) => handleOptionTextChange(option.id, e.target.value)}
-                  placeholder={`Opsi ${String.fromCharCode(65 + index)}`}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-
-                {options.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => removeOption(option.id)}
-                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Pilih salah satu opsi sebagai jawaban benar dengan mengklik radio
+              button
+            </p>
           </div>
-
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Pilih salah satu opsi sebagai jawaban benar dengan mengklik radio button
-          </p>
         </div>
       )}
+
+      <QuestionTagSelector
+        selectedTagId={questionTagId}
+        onTagSelect={(tagId, tagName) => {
+          setQuestionTagId(tagId);
+          setQuestionTagName(tagName);
+        }}
+        disabled={isLoading}
+      />
 
       {questionType === "true_false" && (
         <div>
@@ -355,7 +447,7 @@ const QuestionForm = ({
         </div>
       )}
 
-          {questionType === "short_answer" && (
+      {questionType === "short_answer" && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Jawaban Benar (Untuk Referensi)
@@ -393,11 +485,7 @@ const QuestionForm = ({
 
       {/* Form Actions */}
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          disabled={isLoading}
-        >
+        <Button variant="outline" onClick={onCancel} disabled={isLoading}>
           Batal
         </Button>
         <Button
@@ -419,21 +507,31 @@ export function BankSoal() {
   const pathname = usePathname();
 
   // Local state management instead of URL parameters
-  const [currentPage, setCurrentPage] = useState(Math.max(1, parseInt(searchParams.get('page') || '1')));
-  const [perPage, setPerPage] = useState(Math.max(1, parseInt(searchParams.get('perPage') || '6')));
-  const [searchTitle, setSearchTitle] = useState(searchParams.get('search') || '');
+  const [currentPage, setCurrentPage] = useState(
+    Math.max(1, parseInt(searchParams.get("page") || "1")),
+  );
+  const [perPage, setPerPage] = useState(
+    Math.max(1, parseInt(searchParams.get("perPage") || "6")),
+  );
+  const [searchTitle, setSearchTitle] = useState(
+    searchParams.get("search") || "",
+  );
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false); // New state for import modal
+  const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(
+    null,
+  );
   const [searchInput, setSearchInput] = useState(searchTitle);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchTitle);
-  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '');
+  const [typeFilter, setTypeFilter] = useState(searchParams.get("type") || "");
 
-  
   // Toast and confirmation states
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastVariant, setToastVariant] = useState<"info" | "warning" | "success">("success");
+  const [toastVariant, setToastVariant] = useState<
+    "info" | "warning" | "success"
+  >("success");
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     id: string | null;
@@ -447,7 +545,7 @@ export function BankSoal() {
   // Toast helper function
   const showToastMessage = (
     variant: "info" | "warning" | "success",
-    message: string
+    message: string,
   ) => {
     setToastVariant(variant);
     setToastMessage(message);
@@ -457,10 +555,13 @@ export function BankSoal() {
 
   // Initialize local state from URL params only on component mount
   useEffect(() => {
-    const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const initialPerPage = Math.max(1, parseInt(searchParams.get('perPage') || '6'));
-    const initialSearch = searchParams.get('search') || '';
-    const initialType = searchParams.get('type') || '';
+    const initialPage = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const initialPerPage = Math.max(
+      1,
+      parseInt(searchParams.get("perPage") || "6"),
+    );
+    const initialSearch = searchParams.get("search") || "";
+    const initialType = searchParams.get("type") || "";
 
     setCurrentPage(initialPage);
     setPerPage(initialPerPage);
@@ -497,7 +598,12 @@ export function BankSoal() {
   };
 
   // API Data fetching for questions
-  const { data: response, isLoading, error, refetch } = useMasterQuestions({
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch,
+  } = useMasterQuestions({
     page: currentPage,
     perPage: perPage,
     searchQuery: debouncedSearchQuery,
@@ -505,56 +611,88 @@ export function BankSoal() {
   });
 
   // Convert API data to BankQuestion format
-  const masterQuestions = response?.data?.map((question) => {
-    // Map API question types to our frontend types
-    let mappedQuestionType: BankQuestion['questionType'];
-    switch (question.questionType) {
-      case 'MULTIPLE_CHOICE':
-        mappedQuestionType = 'multiple_choice';
-        break;
-      case 'TRUE_FALSE':
-        mappedQuestionType = 'true_false';
-        break;
-      case 'SHORT_ANSWER':
-        mappedQuestionType = 'short_answer';
-        break;
-      default:
-        mappedQuestionType = 'multiple_choice';
-    }
+  const masterQuestions =
+    response?.data?.map((question) => {
+      // Map API question types to our frontend types
+      let mappedQuestionType: BankQuestion["questionType"];
+      switch (question.questionType) {
+        case "MULTIPLE_CHOICE":
+          mappedQuestionType = "multiple_choice";
+          break;
+        case "TRUE_FALSE":
+          mappedQuestionType = "true_false";
+          break;
+        case "SHORT_ANSWER":
+          mappedQuestionType = "short_answer";
+          break;
+        default:
+          mappedQuestionType = "multiple_choice";
+      }
 
-    // Extract the correct answer from the answer object (kunci jawaban)
-    const correctAnswerText = question.answer?.answer || "";
+      // Extract the correct answer code from the answer object (kunci jawaban)
+      const correctAnswerCode = question.masterAnswer?.codeAnswer || "";
+      const correctAnswerText = question.masterAnswer?.answer || "";
 
-    console.log("🔍 Mapping question:", {
-      id: question.id,
-      name: question.name,
-      questionText: question.questionText,
-      correctAnswer: correctAnswerText,
-      optionsText: question.optionsText
-    });
+      // Map options with correct answer detection
+      const mappedOptions =
+        question.optionsText?.map((option, index) => ({
+          id: `${question.id}-${index}`,
+          text: option || "",
+          isCorrect: question.optionsCode?.[index] === correctAnswerCode, // Match by codeAnswer
+          order: index,
+        })) || [];
 
-    return {
-      id: question.id,
-      questionText: question.questionText || "",
-      questionType: mappedQuestionType,
-      points: question.maxScore || 1,
-      order: 0,
-      title: question.name || "Soal",
-      timeLimit: 60,
-      explanation: question.description || "", // Use description as explanation
-      tags: [],
-      createdAt: question.createdAt,
-      updatedAt: question.updatedAt,
-      usageCount: 0,
-      options: question.optionsText?.map((option, index) => ({
-        id: `${question.id}-${index}`,
-        text: option || "",
-        isCorrect: option === correctAnswerText, // Match with kunci jawaban
-        order: index
-      })) || [],
-      correctAnswer: correctAnswerText // This is the kunci jawaban
-    };
-  }) || [];
+      // For multiple choice, find the correct answer text from options using codeAnswer
+      let finalCorrectAnswer = "";
+      if (mappedQuestionType === "multiple_choice" && correctAnswerCode) {
+        // Find the index of the correct answer code
+        const correctIndex = question.optionsCode?.indexOf(correctAnswerCode);
+        if (
+          correctIndex !== undefined &&
+          correctIndex !== -1 &&
+          question.optionsText?.[correctIndex]
+        ) {
+          finalCorrectAnswer = question.optionsText[correctIndex];
+        } else {
+          // Fallback: find from mapped options
+          const correctOption = mappedOptions.find((opt) => opt.isCorrect);
+          finalCorrectAnswer = correctOption?.text || correctAnswerText;
+        }
+      } else {
+        // For true/false and short answer, use the answer text directly
+        finalCorrectAnswer = correctAnswerText;
+      }
+
+      console.log("🔍 Mapping question:", {
+        id: question.id,
+        name: question.name,
+        questionText: question.questionText,
+        correctAnswerCode: correctAnswerCode,
+        correctAnswerText: correctAnswerText,
+        finalCorrectAnswer: finalCorrectAnswer,
+        optionsText: question.optionsText,
+        optionsCode: question.optionsCode,
+        mappedOptions: mappedOptions,
+        questionTagId: question.questionTag?.id || undefined,
+        questionTagName: question.questionTag?.name || undefined,
+      });
+
+      return {
+        id: question.id,
+        questionText: question.questionText || "",
+        questionType: mappedQuestionType,
+        order: 0,
+        title: question.name || "Soal",
+        timeLimit: 60,
+        explanation: question.description || "", // Use description as explanation
+        usageCount: 0,
+        shuffleOptions: question.shuffleOptions || false, // Map shuffleOptions from API
+        options: mappedOptions,
+        correctAnswer: finalCorrectAnswer, // This is the correct answer text
+        questionTagId: question.questionTag?.id || undefined,
+        questionTagName: question.questionTag?.name || undefined,
+      };
+    }) || [];
 
   const pageMeta = response?.pageMeta;
 
@@ -562,28 +700,34 @@ export function BankSoal() {
   const createMasterQuestionMutation = useCreateMasterQuestion({
     mutationConfig: {
       onSuccess: () => {
-        showToastMessage("success", "✅ Soal berhasil ditambahkan!");
+        showToastMessage("success", "Soal berhasil ditambahkan!");
         setIsCreateDrawerOpen(false);
         refetch();
       },
       onError: (error: any) => {
-        showToastMessage("warning", `${error.message || "Gagal menambah soal"}`);
+        showToastMessage(
+          "warning",
+          `${error.message || "Gagal menambah soal"}`,
+        );
       },
-    }
+    },
   });
 
   const updateMasterQuestionMutation = useUpdateMasterQuestion({
     mutationConfig: {
       onSuccess: () => {
-        showToastMessage("success", "✅ Soal berhasil diperbarui!");
+        showToastMessage("success", " Soal berhasil diperbarui!");
         setIsEditDrawerOpen(false);
         setEditingQuestion(null);
         refetch();
       },
       onError: (error: any) => {
-        showToastMessage("warning", `${error.message || "Gagal memperbarui soal"}`);
+        showToastMessage(
+          "warning",
+          `${error.message || "Gagal memperbarui soal"}`,
+        );
       },
-    }
+    },
   });
 
   const deleteMasterQuestionMutation = useDeleteMasterQuestion({
@@ -593,9 +737,12 @@ export function BankSoal() {
         refetch();
       },
       onError: (error: any) => {
-        showToastMessage("warning", `${error.message || "Gagal menghapus soal"}`);
+        showToastMessage(
+          "warning",
+          `${error.message || "Gagal menghapus soal"}`,
+        );
       },
-    }
+    },
   });
 
   // Use API data directly (API handles search and pagination)
@@ -608,23 +755,22 @@ export function BankSoal() {
     totalPages,
     pageMeta,
     paginatedQuestionsLength: paginatedQuestions.length,
-    shouldShowPagination: totalPages > 1
+    shouldShowPagination: totalPages > 1,
   });
 
   // Get question type info
   const getQuestionTypeInfo = (type: string) => {
-    const typeInfo = QUESTION_TYPES.find(t => t.value === type);
+    const typeInfo = QUESTION_TYPES.find((t) => t.value === type);
     return typeInfo || { icon: HelpCircle, color: "gray", label: type };
   };
 
   const perPageOptions = [
-    { value: '6', label: '6' },
-    { value: '12', label: '12' },
-    { value: '24', label: '24' },
-    { value: '48', label: '48' },
+    { value: "6", label: "6" },
+    { value: "12", label: "12" },
+    { value: "24", label: "24" },
+    { value: "48", label: "48" },
   ];
 
-  
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -656,20 +802,41 @@ export function BankSoal() {
       description: questionData.explanation || "", // Send explanation as description
       questionType: mapQuestionTypeToApi(questionData.questionType || ""),
       questionText: questionData.questionText || "",
-      maxScore: questionData.points || 1,
+      shuffleOptions: Boolean(questionData.shuffleOptions), // Ensure it's a boolean
+      idQuestionTag: questionData.questionTagId || undefined,
       answer: {
         answer: questionData.correctAnswer || "",
-        codeAnswer: null // Set to null for now, can be enhanced later
-      }
+        codeAnswer: null, // Will be set for multiple choice
+      },
     };
 
-    // Only include optionsText for multiple choice questions
-    if (questionData.questionType === "multiple_choice" && questionData.options) {
-      apiData.optionsText = questionData.options
-        .filter(opt => opt.text.trim() !== "")
-        .map(opt => opt.text);
+    // Only include optionsText and optionsCode for multiple choice questions
+    if (
+      questionData.questionType === "multiple_choice" &&
+      questionData.options
+    ) {
+      const validOptions = questionData.options.filter(
+        (opt) => opt.text.trim() !== "",
+      );
+      apiData.optionsText = validOptions.map((opt) => opt.text);
+
+      // Generate optionsCode (A, B, C, D, etc.)
+      apiData.optionsCode = validOptions.map(
+        (_, index) => String.fromCharCode(65 + index), // 65 is 'A' in ASCII
+      );
+
+      // Find the correct answer code
+      const correctOptionIndex = validOptions.findIndex((opt) => opt.isCorrect);
+      if (correctOptionIndex !== -1) {
+        apiData.answer.codeAnswer = String.fromCharCode(
+          65 + correctOptionIndex,
+        );
+        // Also set the answer text
+        apiData.answer.answer = validOptions[correctOptionIndex].text;
+      }
     }
 
+    console.log("📤 Creating question with data:", apiData);
     createMasterQuestionMutation.mutate(apiData);
   };
 
@@ -690,23 +857,44 @@ export function BankSoal() {
       description: questionData.explanation || "", // Send explanation as description
       questionType: mapQuestionTypeToApi(questionData.questionType || ""),
       questionText: questionData.questionText || "",
-      maxScore: questionData.points || 1,
+      shuffleOptions: Boolean(questionData.shuffleOptions),
+      idQuestionTag: questionData.questionTagId || undefined,
       answer: {
         answer: questionData.correctAnswer || "",
-        codeAnswer: null // Set to null for now, can be enhanced later
-      }
+        codeAnswer: null, // Will be set for multiple choice
+      },
     };
 
-    // Only include optionsText for multiple choice questions
-    if (questionData.questionType === "multiple_choice" && questionData.options) {
-      apiData.optionsText = questionData.options
-        .filter(opt => opt.text.trim() !== "")
-        .map(opt => opt.text);
+    // Only include optionsText and optionsCode for multiple choice questions
+    if (
+      questionData.questionType === "multiple_choice" &&
+      questionData.options
+    ) {
+      const validOptions = questionData.options.filter(
+        (opt) => opt.text.trim() !== "",
+      );
+      apiData.optionsText = validOptions.map((opt) => opt.text);
+
+      // Generate optionsCode (A, B, C, D, etc.)
+      apiData.optionsCode = validOptions.map(
+        (_, index) => String.fromCharCode(65 + index), // 65 is 'A' in ASCII
+      );
+
+      // Find the correct answer code
+      const correctOptionIndex = validOptions.findIndex((opt) => opt.isCorrect);
+      if (correctOptionIndex !== -1) {
+        apiData.answer.codeAnswer = String.fromCharCode(
+          65 + correctOptionIndex,
+        );
+        // Also set the answer text
+        apiData.answer.answer = validOptions[correctOptionIndex].text;
+      }
     }
 
+    console.log("📤 Updating question with data:", apiData);
     updateMasterQuestionMutation.mutate({
       id: editingQuestion.id,
-      data: apiData
+      data: apiData,
     });
   };
 
@@ -730,6 +918,66 @@ export function BankSoal() {
     setDeleteConfirm({ isOpen: false, id: null, title: "" });
   };
 
+  // Handle import from Excel
+  const handleImportQuestions = async (questions: any[]) => {
+    try {
+      // Convert imported questions to API format and create them
+      for (const question of questions) {
+        const apiData: any = {
+          name:
+            question.questionText.slice(0, 100) +
+            (question.questionText.length > 100 ? "..." : ""),
+          description: question.explanation || "",
+          questionType: mapQuestionTypeToApi(question.questionType || ""),
+          questionText: question.questionText || "",
+          maxScore: question.points || 10,
+          shuffleOptions: Boolean(question.shuffleOptions), // Ensure it's a boolean
+          answer: {
+            answer: question.correctAnswer || question.answer?.answer || "",
+            codeAnswer: null, // Will be set for multiple choice
+          },
+        };
+
+        // Only include optionsText and optionsCode for multiple choice questions
+        if (question.questionType === "multiple_choice" && question.options) {
+          const validOptions = question.options.filter(
+            (opt: any) => opt.text.trim() !== "",
+          );
+          apiData.optionsText = validOptions.map((opt: any) => opt.text);
+
+          // Generate optionsCode (A, B, C, D, etc.)
+          apiData.optionsCode = validOptions.map(
+            (_: any, index: number) => String.fromCharCode(65 + index), // 65 is 'A' in ASCII
+          );
+
+          // Find the correct answer code
+          const correctOptionIndex = validOptions.findIndex(
+            (opt: any) => opt.isCorrect,
+          );
+          if (correctOptionIndex !== -1) {
+            apiData.answer.codeAnswer = String.fromCharCode(
+              65 + correctOptionIndex,
+            );
+            // Also set the answer text
+            apiData.answer.answer = validOptions[correctOptionIndex].text;
+          }
+        }
+
+        console.log("📤 Importing question with data:", apiData);
+        await createMasterQuestionMutation.mutateAsync(apiData);
+      }
+
+      showToastMessage(
+        "success",
+        `${questions.length} soal berhasil diimport!`,
+      );
+      setIsImportModalOpen(false);
+      refetch();
+    } catch (error: any) {
+      showToastMessage("warning", `Gagal mengimport soal: ${error.message}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -740,16 +988,26 @@ export function BankSoal() {
               Bank Soal
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Kelola {pageMeta?.totalResultCount || masterQuestions.length} soal yang dapat digunakan kembali untuk kuis Anda
+              Kelola {pageMeta?.totalResultCount || masterQuestions.length} soal
+              yang dapat digunakan kembali untuk kuis Anda
             </p>
           </div>
-          <Button
-            onClick={() => setIsCreateDrawerOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Tambah Soal
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Import Excel
+            </Button>
+            <Button
+              onClick={() => setIsCreateDrawerOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Tambah Soal
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filter Controls */}
@@ -773,7 +1031,13 @@ export function BankSoal() {
             {/* Type Filter */}
             <div className="w-full sm:w-40">
               <Dropdown
-                items={[{ value: "", label: "Semua Tipe" }, ...QUESTION_TYPES.map(t => ({ value: t.value, label: t.label }))]}
+                items={[
+                  { value: "", label: "Semua Tipe" },
+                  ...QUESTION_TYPES.map((t) => ({
+                    value: t.value,
+                    label: t.label,
+                  })),
+                ]}
                 value={typeFilter || ""}
                 onChange={handleTypeFilter}
                 size="sm"
@@ -794,8 +1058,8 @@ export function BankSoal() {
                 Search: "{searchTitle}"
                 <button
                   onClick={() => {
-                    setSearchInput('');
-                    setSearchTitle('');
+                    setSearchInput("");
+                    setSearchTitle("");
                     setCurrentPage(1);
                   }}
                   className="ml-1 text-gray-500 hover:text-gray-700"
@@ -806,7 +1070,8 @@ export function BankSoal() {
             )}
             {typeFilter && (
               <Badge variant="outline" className="flex items-center gap-1">
-                Tipe: {QUESTION_TYPES.find(t => t.value === typeFilter)?.label}
+                Tipe:{" "}
+                {QUESTION_TYPES.find((t) => t.value === typeFilter)?.label}
                 <button
                   onClick={() => handleTypeFilter("")}
                   className="ml-1 text-gray-500 hover:text-gray-700"
@@ -841,15 +1106,33 @@ export function BankSoal() {
             const Icon = typeInfo.icon;
 
             return (
-              <Card key={question.id} className="p-6 hover:shadow-lg transition-shadow">
+              <Card
+                key={question.id}
+                className="p-6 hover:shadow-lg transition-shadow"
+              >
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Icon className={`w-4 h-4 text-${typeInfo.color}-600`} />
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full bg-${typeInfo.color}-100 text-${typeInfo.color}-800`}>
+                      <span
+                        className={`text-xs font-medium px-2 py-1 rounded-full bg-${typeInfo.color}-100 text-${typeInfo.color}-800`}
+                      >
                         {typeInfo.label}
                       </span>
+                      {question.shuffleOptions &&
+                        question.questionType === "multiple_choice" && (
+                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                            Acak Opsi
+                          </span>
+                        )}
+
+                      {question.questionTagName && (
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          {question.questionTagName}
+                        </span>
+                      )}
                     </div>
                     <div className="flex space-x-2">
                       <Button
@@ -881,15 +1164,6 @@ export function BankSoal() {
                     </p>
                   </div>
 
-                  {/* Metadata */}
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="font-medium">{question.points} poin</span>
-                    <span>•</span>
-                    {question.createdAt && (
-                      <span>{new Date(question.createdAt).toLocaleDateString('id-ID')}</span>
-                    )}
-                  </div>
-
                   {/* Tags */}
                   {question.tags && question.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1">
@@ -903,26 +1177,6 @@ export function BankSoal() {
                       ))}
                     </div>
                   )}
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      Preview
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 border-green-600 hover:bg-green-50"
-                    >
-                      <Copy className="w-3 h-3 mr-1" />
-                      Salin
-                    </Button>
-                  </div>
                 </div>
               </Card>
             );
@@ -932,64 +1186,81 @@ export function BankSoal() {
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 mb-4">
             {searchTitle || typeFilter
-              ? 'Tidak ada soal yang sesuai dengan kriteria pencarian Anda'
-              : 'Tidak ada soal yang tersedia'
-            }
+              ? "Tidak ada soal yang sesuai dengan kriteria pencarian Anda"
+              : "Tidak ada soal yang tersedia"}
           </div>
-          <Button
-            onClick={() => setIsCreateDrawerOpen(true)}
-            variant="outline"
-            className="text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Tambah Soal
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={() => setIsImportModalOpen(true)}
+              variant="outline"
+              className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Import Excel
+            </Button>
+            <Button
+              onClick={() => setIsCreateDrawerOpen(true)}
+              variant="outline"
+              className="text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Tambah Soal
+            </Button>
+          </div>
         </div>
       )}
 
       {/* Pagination */}
-      {pageMeta && (pageMeta.totalPageCount > 1 || perPageOptions.length > 0) && paginatedQuestions.length > 0 && (
-        <div className="flex items-center justify-between border-t border-gray-200 dark:border-zinc-700 pt-6">
-          <div className="text-sm text-gray-600 dark:text-zinc-400 whitespace-nowrap">
-            {pageMeta.showingFrom > 0 && pageMeta.showingTo > 0 ? (
-              <>
-                Menampilkan <span className="font-medium">{pageMeta.showingFrom}</span> -{' '}
-                <span className="font-medium">{pageMeta.showingTo}</span> dari{' '}
-                <span className="font-medium">{pageMeta.totalResultCount}</span> soal
-              </>
-            ) : (
-              <>Total {pageMeta.totalResultCount} soal</>
-            )}
-          </div>
+      {pageMeta &&
+        (pageMeta.totalPageCount > 1 || perPageOptions.length > 0) &&
+        paginatedQuestions.length > 0 && (
+          <div className="flex items-center justify-between border-t border-gray-200 dark:border-zinc-700 pt-6">
+            <div className="text-sm text-gray-600 dark:text-zinc-400 whitespace-nowrap">
+              {pageMeta.showingFrom > 0 && pageMeta.showingTo > 0 ? (
+                <>
+                  Menampilkan{" "}
+                  <span className="font-medium">{pageMeta.showingFrom}</span> -{" "}
+                  <span className="font-medium">{pageMeta.showingTo}</span> dari{" "}
+                  <span className="font-medium">
+                    {pageMeta.totalResultCount}
+                  </span>{" "}
+                  soal
+                </>
+              ) : (
+                <>Total {pageMeta.totalResultCount} soal</>
+              )}
+            </div>
 
-          <div className="flex items-center gap-4">
-            {pageMeta.totalPageCount > 1 && (
-              <div className="flex-1 flex justify-center">
-                <Pagination
-                  totalPages={totalPages}
-                  currentPage={currentPage}
-                  onPageChange={handlePageChange}
-                  showPrevNext
+            <div className="flex items-center gap-4">
+              {pageMeta.totalPageCount > 1 && (
+                <div className="flex-1 flex justify-center">
+                  <Pagination
+                    totalPages={totalPages}
+                    currentPage={currentPage}
+                    onPageChange={handlePageChange}
+                    showPrevNext
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-zinc-400">
+                  Tampilkan:
+                </span>
+                <Dropdown
+                  items={perPageOptions}
+                  value={perPage.toString()}
+                  onChange={handlePerPageChange}
+                  size="sm"
+                  variant="outline"
+                  searchable={false}
+                  placeholder="Pilih"
+                  className="min-w-20"
                 />
               </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 dark:text-zinc-400">Tampilkan:</span>
-              <Dropdown
-                items={perPageOptions}
-                value={perPage.toString()}
-                onChange={handlePerPageChange}
-                size="sm"
-                variant="outline"
-                searchable={false}
-                placeholder="Pilih"
-                className="min-w-20"
-              />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Create Question Drawer */}
       <Drawer
@@ -1021,6 +1292,13 @@ export function BankSoal() {
           isLoading={updateMasterQuestionMutation.isPending}
         />
       </Drawer>
+
+      {/* Import Questions Modal */}
+      <ImportQuestionsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportQuestions}
+      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

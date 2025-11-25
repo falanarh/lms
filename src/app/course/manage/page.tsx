@@ -16,7 +16,7 @@ import { ZoomManagement } from "@/features/course/components/ZoomManagement";
 export default function ManageCoursePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("section_activities");
-  
+
   const baseItems: TabItem[] = [
     { key: "section_activities", label: "Section & Aktivitas" },
     { key: "bank_content", label: "Bank Content" },
@@ -24,7 +24,11 @@ export default function ManageCoursePage() {
     { key: "zoom_management", label: "Zoom Meeting" },
     { key: "peserta", label: "Peserta", counter: 12 },
     { key: "penilaian", label: "Penilaian" },
+  ];
 
+  const breadcrumbItems: TabItem[] = [
+    { key: "course", label: "Course" },
+    { key: "manage", label: "Manage" },
   ];
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -41,7 +45,6 @@ export default function ManageCoursePage() {
     Content | undefined
   >(undefined);
 
-  
   // ✅ Handler saat klik "Tambah Activity"
   const handleAddActivity = (sectionId: string) => {
     console.log("🟢 ADD Activity triggered for section:", sectionId);
@@ -72,7 +75,11 @@ export default function ManageCoursePage() {
     activityId: string,
     activityData: Content,
   ) => {
-    console.log("🟣 MANAGE QUIZ QUESTIONS triggered:", { sectionId, activityId, activityData });
+    console.log("🟣 MANAGE QUIZ QUESTIONS triggered:", {
+      sectionId,
+      activityId,
+      activityData,
+    });
     // Navigate to dedicated quiz management page
     router.push(`/course/manage/quiz/${activityId}`);
   };
@@ -107,26 +114,25 @@ export default function ManageCoursePage() {
         onManageQuizQuestions={handleManageQuizQuestions}
       />
     ),
-    bank_content:
-      <BankContent />,
-    bank_soal:
-      <BankSoal />,
-    zoom_management: <ZoomManagement courseId={"4a74b0b4-c796-4a2d-8d86-e22c05f29f10"} />,
+    bank_content: <BankContent />,
+    bank_soal: <BankSoal />,
+    zoom_management: (
+      <ZoomManagement courseId={"4a74b0b4-c796-4a2d-8d86-e22c05f29f10"} />
+    ),
     peserta: <div>Peserta Content</div>,
     penilaian: <div>Penilaian Content</div>,
   } as const;
 
-  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <div className="px-6 sm:px-8 lg:px-12 xl:px-16">
         <div className="py-6 space-y-6">
           <div className="pt-2 hidden md:block">
-            <Breadcrumb separator="chevron" items={baseItems} />
+            <Breadcrumb separator="chevron" items={breadcrumbItems} />
           </div>
 
           <div className="pt-2 block md:hidden">
-            <Breadcrumb separator="slash" items={baseItems} size="sm" />
+            <Breadcrumb separator="slash" items={breadcrumbItems} size="sm" />
           </div>
 
           <div className="space-y-2">

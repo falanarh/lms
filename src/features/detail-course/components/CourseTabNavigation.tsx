@@ -1,10 +1,10 @@
-import { Info, List, MessageSquare, Star, ChevronDown, FileText } from "lucide-react";
+import { Info, List, MessageSquare, Star, ChevronDown, FileText, Calendar } from "lucide-react";
 import { CourseTabType, TabConfig } from "../types/tab";
 
 interface CourseTabNavigationProps {
   activeTab: CourseTabType;
   onTabChange: (tab: CourseTabType) => void;
-  hiddenTabs?: CourseTabType[]; // Tabs yang akan disembunyikan (untuk sidebar mode)
+  hiddenTabs?: CourseTabType[]; 
 }
 
 const tabs: TabConfig[] = [
@@ -17,6 +17,11 @@ const tabs: TabConfig[] = [
     key: "course_contents" as CourseTabType,
     label: "Course Contents",
     icon: <List className="w-4 h-4" />,
+  },
+  {
+    key: "schedule_attendance" as CourseTabType,
+    label: "Jadwal & Presensi",
+    icon: <Calendar className="w-4 h-4" />,
   },
   {
     key: "summary" as CourseTabType,
@@ -45,7 +50,6 @@ export const CourseTabNavigation = ({
 
   return (
     <>
-      {/* Mobile: Dropdown Select */}
       <div className="md:hidden">
         <div className="relative">
           <select
@@ -63,7 +67,6 @@ export const CourseTabNavigation = ({
         </div>
       </div>
 
-      {/* Desktop: Tabs */}
       <div className="hidden md:block bg-[#ececf0] dark:bg-zinc-700/50 rounded-[14px] w-full">
         <div className="flex flex-row items-center size-full">
           <div className="box-border flex items-center px-[3px] py-[3px] size-full gap-0">

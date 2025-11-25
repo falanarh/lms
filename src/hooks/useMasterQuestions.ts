@@ -4,83 +4,42 @@ import {
   createMasterQuestion,
   updateMasterQuestion,
   deleteMasterQuestion,
-  QuestionRequest,
-  MasterQuestionResponse,
-  MasterQuestionsListResponse,
+  GetMasterQuestionsParams,
+  QuestionType,
 } from "@/api/masterQuestions";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
-// Query keys
-export const getMasterQuestionsQueryKey = (page?: number, perPage?: number, search?: string, type?: string) => {
+// Query keys with proper typing
+export const getMasterQuestionsQueryKey = (
+  params: GetMasterQuestionsParams = {},
+) => {
+  const { page, perPage, search, type, tagId, tagName } = params;
   const key = ["master-questions"];
-  if (page !== undefined && perPage !== undefined) {
-    return [...key, page, perPage, search, type];
-  }
+
+  if (page !== undefined) key.push("page", page.toString());
+  if (perPage !== undefined) key.push("perPage", perPage.toString());
+  if (search) key.push("search", search);
+  if (type) key.push("type", type);
+  if (tagId) key.push("tagId", tagId);
+  if (tagName) key.push("tagName", tagName);
+
   return key;
 };
 
-export const getMasterQuestionByIdQueryKey = (id: string) => ["master-questions", "detail", id];
+export const getMasterQuestionByIdQueryKey = (id: string) => [
+  "master-questions",
+  "detail",
+  id,
+];
 
-// Query options for getting all questions with pagination
+// Query options for getting all questions with pagination and filters
 export const getMasterQuestionsQueryOptions = (
-  page: number = 1,
-  perPage: number = 10,
-  search?: string,
-  type?: string
+  params: GetMasterQuestionsParams = {},
 ) => {
   return queryOptions({
-    queryKey: getMasterQuestionsQueryKey(page, perPage, search, type),
-    queryFn: async () => {
-      // For now, we'll implement a simple search/filter on the client side
-      // since the API doesn't seem to support search/filter parameters directly
-      const response = await getMasterQuestions(page, perPage);
-
-      // If search or type filters are provided, filter the results
-      if (search || type) {
-        let filteredData = response.data || [];
-
-        if (search) {
-          const searchLower = search.toLowerCase();
-          filteredData = filteredData.filter(question =>
-            question.name.toLowerCase().includes(searchLower) ||
-            question.questionText.toLowerCase().includes(searchLower)
-          );
-        }
-
-        if (type) {
-          filteredData = filteredData.filter(question =>
-            question.questionType === type
-          );
-        }
-
-        // Recalculate pagination for filtered results
-        const totalResultCount = filteredData.length;
-        const totalPageCount = Math.max(1, Math.ceil(totalResultCount / perPage));
-        const resultCount = Math.min(perPage, totalResultCount);
-        const showingFrom = totalResultCount > 0 ? ((page - 1) * perPage) + 1 : 0;
-        const showingTo = Math.min(page * perPage, totalResultCount);
-
-        return {
-          ...response,
-          data: filteredData,
-          pageMeta: {
-            ...response.pageMeta,
-            page: page,
-            perPage: perPage,
-            resultCount: resultCount,
-            totalResultCount: totalResultCount,
-            totalPageCount: totalPageCount,
-            showingFrom: showingFrom,
-            showingTo: showingTo,
-            hasPrev: page > 1,
-            hasNext: page < totalPageCount
-          }
-        };
-      }
-
-      return response;
-    },
+    queryKey: getMasterQuestionsQueryKey(params),
+    queryFn: () => getMasterQuestions(params), // FIX: Pass params object directly
   });
 };
 
@@ -89,25 +48,42 @@ export const getMasterQuestionByIdQueryOptions = (id: string) => {
   return queryOptions({
     queryKey: getMasterQuestionByIdQueryKey(id),
     queryFn: () => getMasterQuestionById(id),
+    enabled: !!id,
   });
 };
 
-// Custom hook for getting all master questions with pagination
-export const useMasterQuestions = ({
-  page = 1,
-  perPage = 10,
-  searchQuery,
-  type,
-  queryConfig
-}: {
+// Hook parameters interface
+interface UseMasterQuestionsParams {
   page?: number;
   perPage?: number;
   searchQuery?: string;
-  type?: string;
-  queryConfig?: QueryConfig<MasterQuestionsListResponse>;
-} = {}) => {
+  type?: QuestionType;
+  tagId?: string;
+  tagName?: string;
+  queryConfig?: QueryConfig<typeof getMasterQuestionsQueryOptions>;
+}
+
+// Custom hook for getting all master questions with pagination and filters
+export const useMasterQuestions = (params: UseMasterQuestionsParams = {}) => {
+  const {
+    page = 1,
+    perPage = 10,
+    searchQuery,
+    type,
+    tagId,
+    tagName,
+    queryConfig,
+  } = params;
+
   return useQuery({
-    ...getMasterQuestionsQueryOptions(page, perPage, searchQuery, type),
+    ...getMasterQuestionsQueryOptions({
+      page,
+      perPage,
+      search: searchQuery,
+      type,
+      tagId,
+      tagName,
+    }),
     ...queryConfig,
   });
 };
@@ -115,10 +91,10 @@ export const useMasterQuestions = ({
 // Custom hook for getting a single master question by ID
 export const useMasterQuestion = ({
   id,
-  queryConfig
+  queryConfig,
 }: {
   id: string;
-  queryConfig?: QueryConfig<MasterQuestionResponse>;
+  queryConfig?: QueryConfig<typeof getMasterQuestionByIdQueryOptions>;
 }) => {
   return useQuery({
     ...getMasterQuestionByIdQueryOptions(id),
@@ -128,17 +104,19 @@ export const useMasterQuestion = ({
 
 // Custom hook for creating a master question
 export const useCreateMasterQuestion = ({
-  mutationConfig
+  mutationConfig,
 }: {
-  mutationConfig?: MutationConfig<MasterQuestionResponse, Error, QuestionRequest>;
+  mutationConfig?: MutationConfig<typeof createMasterQuestion>;
 } = {}) => {
   return useMutation({
     mutationFn: createMasterQuestion,
-    onSuccess: (data, variables, context) => {
-      // Invalidate the master questions list queries
-      queryClient.invalidateQueries({ queryKey: ["master-questions"] });
+    onSuccess: async (data, variables, context) => {
+      // Invalidate all master questions queries to refresh the list
+      await queryClient.invalidateQueries({
+        queryKey: ["master-questions"],
+      });
       // Call the custom onSuccess if provided
-      mutationConfig?.onSuccess?.(data, variables, context);
+      await mutationConfig?.onSuccess?.(data, variables, context);
     },
     onError: mutationConfig?.onError,
   });
@@ -146,17 +124,23 @@ export const useCreateMasterQuestion = ({
 
 // Custom hook for updating a master question
 export const useUpdateMasterQuestion = ({
-  mutationConfig
+  mutationConfig,
 }: {
-  mutationConfig?: MutationConfig<MasterQuestionResponse, Error, { id: string; data: Partial<QuestionRequest> }>;
+  mutationConfig?: MutationConfig<typeof updateMasterQuestion>;
 } = {}) => {
   return useMutation({
     mutationFn: updateMasterQuestion,
-    onSuccess: (data, variables, context) => {
-      // Invalidate the master questions list queries and detail queries
-      queryClient.invalidateQueries({ queryKey: ["master-questions"] });
+    onSuccess: async (data, variables, context) => {
+      // Invalidate the specific question detail
+      await queryClient.invalidateQueries({
+        queryKey: getMasterQuestionByIdQueryKey(variables.id),
+      });
+      // Invalidate all master questions list queries
+      await queryClient.invalidateQueries({
+        queryKey: ["master-questions"],
+      });
       // Call the custom onSuccess if provided
-      mutationConfig?.onSuccess?.(data, variables, context);
+      await mutationConfig?.onSuccess?.(data, variables, context);
     },
     onError: mutationConfig?.onError,
   });
@@ -164,19 +148,20 @@ export const useUpdateMasterQuestion = ({
 
 // Custom hook for deleting a master question
 export const useDeleteMasterQuestion = ({
-  mutationConfig
+  mutationConfig,
 }: {
-  mutationConfig?: MutationConfig<void, Error, string>;
+  mutationConfig?: MutationConfig<typeof deleteMasterQuestion>;
 } = {}) => {
   return useMutation({
     mutationFn: deleteMasterQuestion,
-    onSuccess: (data, variables, context) => {
-      // Invalidate the master questions list queries
-      queryClient.invalidateQueries({ queryKey: ["master-questions"] });
+    onSuccess: async (data, variables, context) => {
+      // Invalidate all master questions queries
+      await queryClient.invalidateQueries({
+        queryKey: ["master-questions"],
+      });
       // Call the custom onSuccess if provided
-      mutationConfig?.onSuccess?.(data, variables, context);
+      await mutationConfig?.onSuccess?.(data, variables, context);
     },
     onError: mutationConfig?.onError,
   });
 };
-  
