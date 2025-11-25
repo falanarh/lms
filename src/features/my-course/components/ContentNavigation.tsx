@@ -36,20 +36,21 @@ export const ContentNavigation = ({
         disabled={!hasPrevious || isNavigating}
         className={`
           flex items-center justify-center py-3 rounded-lg font-medium transition-all text-sm
-          flex-none w-28 md:w-40 px-4
+          flex-none w-12 md:w-40 px-2 md:px-4
           ${
             hasPrevious && !isNavigating
               ? "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
               : "bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed"
           }
         `}
+        aria-label="Previous"
       >
         {isNavigating ? (
           <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
         ) : (
           <ChevronLeft className="w-5 h-5" />
         )}
-        <span className="ml-1">Previous</span>
+        <span className="ml-1 hidden md:inline">Previous</span>
       </button>
 
       <button
@@ -89,15 +90,16 @@ export const ContentNavigation = ({
         disabled={!hasNext || isNavigating}
         className={`
           flex items-center justify-center py-3 rounded-lg font-medium transition-all text-sm
-          flex-none w-28 md:w-40 px-4
+          flex-none w-12 md:w-40 px-2 md:px-4
           ${
             hasNext && !isNavigating
               ? "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
               : "bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed"
           }
         `}
+        aria-label="Next"
       >
-        <span className="mr-1">Next</span>
+        <span className="mr-1 hidden md:inline">Next</span>
         {isNavigating ? (
           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
         ) : (
