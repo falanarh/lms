@@ -1,4 +1,4 @@
-import { Search, HelpCircle, BookOpen, CreditCard, Settings, Users, Shield } from "lucide-react";
+import { Search, HelpCircle, BookOpen, Settings, Users, Shield } from "lucide-react";
 import { FAQList } from "@/features/home/FaqList";
 import type { FAQItemType } from "@/features/home/FaqItem";
 
@@ -113,7 +113,7 @@ export default function FAQPage() {
   }));
 
   return (
-    <main className="bg-zinc-50 min-h-screen">
+    <main className="bg-zinc-50 dark:bg-slate-900 min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-600 to-blue-700 text-white py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-14">
@@ -144,19 +144,19 @@ export default function FAQPage() {
       </section>
 
       {/* Quick Links */}
-      <section className="py-12 bg-white border-b border-gray-200">
+      <section className="py-12 bg-white dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-14">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {categories.map((category) => (
               <a
                 key={category.id}
                 href={`#${category.id}`}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-gray-200 hover:border-blue-600 hover:shadow-md transition-all duration-200 group"
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-gray-200 dark:border-zinc-700 hover:border-blue-600 hover:shadow-md transition-all duration-200 group"
               >
-                <div className="size-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="size-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <category.icon size={24} />
                 </div>
-                <span className="text-sm font-medium text-gray-900 text-center">
+                <span className="text-sm font-medium text-gray-900 dark:text-zinc-100 text-center">
                   {category.name}
                 </span>
               </a>
@@ -172,13 +172,13 @@ export default function FAQPage() {
             {groupedFAQs.map((category) => (
               <div key={category.id} id={category.id}>
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="size-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                  <div className="size-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400">
                     <category.icon size={20} />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">
                     {category.name}
                   </h2>
-                  <span className="ml-auto text-sm text-gray-500">
+                  <span className="ml-auto text-sm text-gray-500 dark:text-zinc-400">
                     {category.faqs.length} pertanyaan
                   </span>
                 </div>
@@ -186,7 +186,7 @@ export default function FAQPage() {
                 {category.faqs.length > 0 ? (
                   <FAQList faqs={category.faqs} allowMultipleOpen={false} />
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-500 dark:text-zinc-400">
                     Belum ada pertanyaan untuk kategori ini
                   </div>
                 )}
@@ -197,50 +197,50 @@ export default function FAQPage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white dark:bg-zinc-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-14">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/40 rounded-2xl p-8 md:p-12 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-4">
               Tidak Menemukan Jawaban?
             </h2>
-            <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-gray-600 dark:text-zinc-300 mb-8 max-w-2xl mx-auto">
               Tim support kami siap membantu Anda. Hubungi kami melalui email atau telepon untuk mendapatkan bantuan lebih lanjut.
             </p>
             
             <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-8">
               <a
                 href="mailto:support@ewarkop.bps.go.id"
-                className="flex items-center justify-center gap-3 px-6 py-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group"
+                className="flex items-center justify-center gap-3 px-6 py-4 bg-white dark:bg-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group"
               >
-                <div className="size-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="size-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <div className="text-sm text-gray-500">Email</div>
-                  <div className="font-semibold text-gray-900">support@ewarkop.bps.go.id</div>
+                  <div className="text-sm text-gray-500 dark:text-zinc-400">Email</div>
+                  <div className="font-semibold text-gray-900 dark:text-zinc-100">support@ewarkop.bps.go.id</div>
                 </div>
               </a>
-              
+
               <a
                 href="tel:+622138141195"
-                className="flex items-center justify-center gap-3 px-6 py-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group"
+                className="flex items-center justify-center gap-3 px-6 py-4 bg-white dark:bg-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group"
               >
-                <div className="size-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="size-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <div className="text-sm text-gray-500">Telepon</div>
-                  <div className="font-semibold text-gray-900">(021) 3841195</div>
+                  <div className="text-sm text-gray-500 dark:text-zinc-400">Telepon</div>
+                  <div className="font-semibold text-gray-900 dark:text-zinc-100">(021) 3841195</div>
                 </div>
               </a>
             </div>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
               Jam operasional: Senin - Jumat, 08:00 - 17:00 WIB
             </p>
           </div>

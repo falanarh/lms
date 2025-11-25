@@ -65,18 +65,20 @@ export function CourseCarousel({
     return -(currentIndex * (itemWidth + gap));
   };
 
-  const bgColor = variant === "light" ? "bg-gray-50" : "bg-white";
+  const bgColor = variant === "light"
+    ? "bg-gray-50 dark:bg-slate-800"
+    : "bg-white dark:bg-slate-900";
 
   return (
     <section className={`py-16 ${bgColor}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-14">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             {title}
           </h2>
           {description && (
-            <p className="text-gray-600 max-w-3xl mx-auto">{description}</p>
+            <p className="text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">{description}</p>
           )}
         </div>
 
@@ -86,20 +88,20 @@ export function CourseCarousel({
           {canGoPrevious && (
             <button
               onClick={handlePrevious}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 size-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 size-10 rounded-full bg-white dark:bg-slate-800 shadow-lg dark:shadow-xl flex items-center justify-center hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 active:scale-95"
               aria-label="Previous"
             >
-              <ChevronLeft size={20} className="text-gray-700" />
+              <ChevronLeft size={20} className="text-gray-700 dark:text-gray-300" />
             </button>
           )}
 
           {canGoNext && (
             <button
               onClick={handleNext}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 size-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 size-10 rounded-full bg-white dark:bg-slate-800 shadow-lg dark:shadow-xl flex items-center justify-center hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-110 active:scale-95"
               aria-label="Next"
             >
-              <ChevronRight size={20} className="text-gray-700" />
+              <ChevronRight size={20} className="text-gray-700 dark:text-gray-300" />
             </button>
           )}
 
@@ -134,8 +136,8 @@ export function CourseCarousel({
                   onClick={() => setCurrentIndex(index)}
                   className={`h-2 rounded-full transition-all duration-300 ${
                     index === currentIndex
-                      ? "w-8 bg-blue-600"
-                      : "w-2 bg-gray-300 hover:bg-gray-400"
+                      ? "w-8 bg-blue-600 dark:bg-blue-400"
+                      : "w-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
@@ -148,7 +150,7 @@ export function CourseCarousel({
         {courses.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📚</div>
-            <p className="text-gray-500">Belum ada kursus tersedia</p>
+            <p className="text-gray-500 dark:text-gray-400">Belum ada kursus tersedia</p>
           </div>
         )}
       </div>

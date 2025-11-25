@@ -15,7 +15,6 @@ interface DrawerProps {
   onSave?: () => void;
   saveLabel?: string;
   cancelLabel?: string;
-  loading?: boolean;
 }
 
 const sizeClasses = {
@@ -36,7 +35,6 @@ export function Drawer({
   onSave,
   saveLabel = "Save",
   cancelLabel = "Cancel",
-  loading = false,
 }: DrawerProps) {
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -50,7 +48,7 @@ export function Drawer({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-white/30 backdrop-invert backdrop-opacity-20 transition-opacity" />
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-hidden">
@@ -68,16 +66,16 @@ export function Drawer({
                 <Dialog.Panel
                   className={`pointer-events-auto relative w-screen ${sizeClasses[size]}`}
                 >
-                  <div className="flex h-full flex-col overflow-y-auto bg-white shadow-xl">
-                    <div className="px-4 sm:px-6 py-6 border-b">
+                  <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-zinc-800 shadow-xl">
+                    <div className="px-4 sm:px-6 py-6 border-b border-gray-200 dark:border-zinc-700">
                       <div className="flex items-center justify-between">
-                        <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900">
+                        <Dialog.Title className="text-lg font-semibold leading-6 text-gray-900 dark:text-zinc-100">
                           {title}
                         </Dialog.Title>
                         <div className="ml-3 flex h-7 items-center">
                           <button
                             type="button"
-                            className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+                            className="rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-800"
                             onClick={onClose}
                           >
                             <span className="sr-only">Close panel</span>
@@ -86,9 +84,9 @@ export function Drawer({
                         </div>
                       </div>
                     </div>
-                    <div className="relative flex-1 px-4 sm:px-6">{children}</div>
+                    <div className="relative flex-1 px-4 sm:px-6 py-2">{children}</div>
                     {showFooter && (
-                      <div className="flex flex-shrink-0 justify-end gap-2 px-4 py-4 border-t">
+                      <div className="flex flex-shrink-0 justify-end gap-2 px-4 py-4 border-t border-gray-200 dark:border-zinc-700">
                         <Button variant="outline" onClick={onClose}>
                           {cancelLabel}
                         </Button>

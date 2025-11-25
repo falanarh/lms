@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import {
   ChevronsRight,
@@ -40,13 +40,13 @@ export interface ForumListProps {
 
 export interface ForumListContainerProps {
   forums: Forum[];
-  className?: string;
   title?: string;
   showSearch?: boolean;
   searchPlaceholder?: string;
   enableFilter?: boolean;
   isLoading?: boolean;
   onEditForum?: (forum: Forum) => void;
+  className?: string;
 }
 
 const TYPE_META: Record<
@@ -86,7 +86,6 @@ function timeAgo(dateString: string): string {
 
 export function ForumList({
   forum,
-  className,
   viewMode = "card",
   onEdit,
 }: ForumListProps) {
@@ -315,13 +314,13 @@ export function ForumList({
 // Container component with search, filter, and view toggle
 export function ForumListContainer({
   forums,
-  className,
   title = "Forum Diskusi",
   showSearch = true,
   searchPlaceholder = "Search forums by title or description...",
   enableFilter = true,
   isLoading = false,
   onEditForum,
+  className,
 }: ForumListContainerProps) {
   const [viewMode, setViewMode] = React.useState<ViewMode>("card");
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -384,43 +383,48 @@ export function ForumListContainer({
 
       {/* Search, Filter, and View Mode Section */}
       {showSearch && (
-        <div className="flex w-full justify-between mb-8">
+        <div className="flex w-full flex-col gap-4 mb-8 lg:flex-row lg:items-end lg:justify-between">
           {/* Left Section: Search Bar and Filters */}
-          <div className="flex justify-between items-center gap-4">
+          <div className="flex flex-col gap-4 w-full lg:flex-row lg:items-end lg:flex-1">
             {/* Search Bar */}
-            <div className="w-full sm:flex-1 lg:w-96">
-              <Input
-                placeholder={searchPlaceholder}
-                value={searchTerm}
-                size="sm"
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<Search className="w-4 h-4" />}
-                className="text-sm"
-              />
+            <div className="w-full lg:flex-1">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                <Input
+                  placeholder={searchPlaceholder}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 text-sm w-full"
+                />
+              </div>
             </div>
 
             {/* Filter Dropdown */}
             {enableFilter && (
-              <Dropdown
-                label="Type:"
-                items={filterOptions}
-                value={filterType}
-                onChange={(value) => setFilterType(value)}
-                placeholder="All types"
-                size="sm"
-                className="text-sm"
-              />
+              <div className="w-full lg:w-64">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipe forum
+                </label>
+                <Dropdown
+                  items={filterOptions}
+                  value={filterType}
+                  onChange={(value) => setFilterType(value)}
+                  placeholder="All Forums"
+                  size="sm"
+                  className="w-full text-sm"
+                />
+              </div>
             )}
 
             {/* Clear Filters Button */}
             {(searchTerm || (enableFilter && filterType !== "all")) && (
-              <div className="w-full sm:w-auto">
+              <div className="w-full lg:w-auto">
                 <button
                   onClick={() => {
                     setSearchTerm("");
                     setFilterType("all");
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors w-full sm:w-auto"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors w-full lg:w-auto"
                 >
                   Clear Filters
                 </button>
@@ -429,7 +433,7 @@ export function ForumListContainer({
           </div>
 
           {/* Right Section: View Mode Toggle */}
-          <div className="flex items-center p-1 rounded-md">
+          <div className="flex items-center p-1 rounded-md self-end lg:self-auto">
             <button
               className={`p-2 rounded ${
                 viewMode === "card"
@@ -606,23 +610,3 @@ export default ForumList;
 
 // ThreadsIcon is no longer used in the updated horizontal layout
 // Keeping for reference in case needed for future use
-
-function ArrowRightIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M3.333 8h9.334M8.667 4l4 4-4 4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}

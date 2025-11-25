@@ -1,13 +1,57 @@
 "use client";
 
-import React, { useState } from "react";
-import { CircleQuestionMark, Clock4, MessagesSquare, X, Plus, ChevronDown, ArrowBigUp, ArrowBigDown, Edit2, MoreVertical, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { CircleQuestionMark, Clock4, MessagesSquare, X, Plus, ChevronDown, ArrowBigUp, ArrowBigDown, Edit2, MoreVertical, Trash2, CheckCircle2 } from "lucide-react";
 import Badge from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Textarea } from "../../ui/Textarea";
 import Discussion from "./Discussion";
-import { InfiniteDiscussions } from "../InfiniteScroll/InfiniteDiscussions";
+import { getInitials, getCurrentUserId } from "@/utils/userUtils";
+import { VoteType, VoteTypeEnum, type LocalVoteState } from "@/types/voting";
+
+type DiscussionVoteSnapshot = {
+  upvoteCount: number;
+  downvoteCount: number;
+  userVote: VoteType | null;
+};
+
+const calculateVoteChange = (
+  upvotes: number,
+  downvotes: number,
+  currentVote: VoteType | null,
+  voteType: VoteType
+) => {
+  let nextUpvotes = upvotes;
+  let nextDownvotes = downvotes;
+  let nextVote: VoteType | null = voteType;
+
+  if (currentVote === voteType) {
+    nextVote = null;
+
+    if (voteType === VoteTypeEnum.UPVOTE) {
+      nextUpvotes = Math.max(0, nextUpvotes - 1);
+    } else {
+      nextDownvotes = Math.max(0, nextDownvotes - 1);
+    }
+  } else if (voteType === VoteTypeEnum.UPVOTE) {
+    nextUpvotes = nextUpvotes + 1;
+    if (currentVote === VoteTypeEnum.DOWNVOTE) {
+      nextDownvotes = Math.max(0, nextDownvotes - 1);
+    }
+  } else {
+    nextDownvotes = nextDownvotes + 1;
+    if (currentVote === VoteTypeEnum.UPVOTE) {
+      nextUpvotes = Math.max(0, nextUpvotes - 1);
+    }
+  }
+
+  return {
+    upvotes: nextUpvotes,
+    downvotes: nextDownvotes,
+    userVote: nextVote,
+  };
+};
 
 export interface TopicMeta {
   id: string;
@@ -22,6 +66,7 @@ export interface TopicMeta {
   resolvedBy?: string | null; // Added from API
   upvoteCount?: number;       // Added from API
   downvoteCount?: number;     // Added from API
+  userVote?: VoteType | null; // User's vote on this topic
   avatarInitials?: string;
   avatarBadge?: number | string;
   // Computed properties for UI
@@ -38,8 +83,8 @@ export interface Discussion {
   id: string;
   idTopic?: string;           // Added from API
   idUser: string;             // Changed from author to match API
-  idParent?: string | null;   // Changed from replyingToId to match API
-  idRoot?: string | null;     // Added from API
+  idParent?: string;   // Changed from replyingToId to match API
+  idRoot?: string;     // Added from API
   comment: string;            // Changed from content to match API
   upvoteCount: number;        // ✅ match API
   downvoteCount: number;      // ✅ match API
@@ -54,6 +99,7 @@ export interface Discussion {
   content?: string;           // Computed from comment
   replyingToId?: string;      // Computed from idParent
   replyingToAuthor?: string;  // Computed from idParent
+  userVote?: VoteType | null; // User's vote on this discussion
 }
 
 export interface TopicProps {
@@ -61,39 +107,32 @@ export interface TopicProps {
   discussions?: Discussion[]; // Optional untuk infinite scroll
   currentUserId?: string;
   defaultShowAll?: boolean;
-  infiniteScroll?: boolean; // New: enable infinite scroll
   onSubmitReply?: (payload: {
     topicId: string;
     text: string;
-    replyingToId?: string;
+    replyingToDiscussion?: Discussion;
   }) => void;
-  onUpvoteReply?: (replyId: string) => void;
-  onDownvoteReply?: (replyId: string) => void;
+  onUpvoteReply?: (replyId: string, voteType: VoteType) => Promise<Discussion | void> | Discussion | void;
+  onDownvoteReply?: (replyId: string, voteType: VoteType) => Promise<Discussion | void> | Discussion | void;
   onLoadMoreDiscussions?: () => void; // New: callback untuk load more
-  onUpvoteTopic?: (topicId: string) => void;
-  onDownvoteTopic?: (topicId: string) => void;
-  topicVotes?: { upvotes: number; downvotes: number; userVote: 'up' | 'down' | null };
-  // New: User votes for discussions
-  userVotes?: Record<string, 'upvote' | 'downvote'>;
+  onVoteTopic?: (topicId: string, voteType: VoteType) => Promise<void> | void;
+  topicVotes?: LocalVoteState;
+  isVotingTopic?: boolean;
+  isVotingDiscussion?: boolean;
   // New: Topic edit/delete functionality
   canEditTopic?: boolean;
   onEditTopic?: (topicId: string, newTitle: string, newDescription?: string) => void;
   onDeleteTopic?: (topicId: string) => void;
+  onResolveTopic?: (topicId: string) => void;
+  isResolvingTopic?: boolean;
   // New: Discussion edit/delete functionality
   canEditDiscussion?: boolean;
   onEditDiscussion?: (discussionId: string, newContent: string) => void;
   onDeleteDiscussion?: (discussionId: string) => void;
+  editingDiscussionId?: string | null;
   className?: string;
 }
 
-// Helper untuk sort discussions berdasarkan vote
-function sortDiscussionsByVote(discussions: Discussion[]): Discussion[] {
-  return [...discussions].sort((a, b) => {
-    const voteA = a.upvoteCount - a.downvoteCount;
-    const voteB = b.upvoteCount - b.downvoteCount;
-    return voteB - voteA;
-  });
-}
 
 
 /**
@@ -111,37 +150,136 @@ export function Topic({
   discussions: initialDiscussions = [],
   currentUserId,
   defaultShowAll,
-  infiniteScroll = false,
   onSubmitReply,
   onUpvoteReply,
   onDownvoteReply,
-  onLoadMoreDiscussions,
-  onUpvoteTopic,
-  onDownvoteTopic,
+  onVoteTopic,
   topicVotes,
-  userVotes,
   canEditTopic = false,
   onEditTopic,
   onDeleteTopic,
+  onResolveTopic,
+  isResolvingTopic = false,
   canEditDiscussion = false,
   onEditDiscussion,
   onDeleteDiscussion,
+  editingDiscussionId,
   className,
 }: TopicProps) {
-  // Debug: Log badge state
-  React.useEffect(() => {
-    console.log('Topic Badge Debug:', {
-      topicId: meta.id,
-      state: meta.state,
-      hasState: !!meta.state
+  const [votingType, setVotingType] = useState<'upvote' | 'downvote' | null>(null);
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [localTopicVotes, setLocalTopicVotes] = useState<LocalVoteState | undefined>(topicVotes);
+
+  // State untuk prevent multiple rapid clicks
+  const [localIsVotingTopic, setLocalIsVotingTopic] = useState(false);
+  const votingDiscussionIdsRef = useRef(new Set<string>());
+
+  // Reset voting type when voting is complete
+  useEffect(() => {
+    if (!localIsVotingTopic) {
+      setVotingType(null);
+    }
+  }, [localIsVotingTopic]);
+
+  const [discussions, setDiscussions] = useState(() => initialDiscussions || []);
+  const previousInitialDiscussionsRef = useRef(initialDiscussions);
+  const pendingDiscussionVotesRef = useRef(new Map<string, { previous: DiscussionVoteSnapshot; expected: DiscussionVoteSnapshot }>());
+  const [pendingDiscussionVersion, setPendingDiscussionVersion] = useState(0);
+  const setPendingDiscussionEntry = (
+    discussionId: string,
+    entry: { previous: DiscussionVoteSnapshot; expected: DiscussionVoteSnapshot }
+  ) => {
+    pendingDiscussionVotesRef.current.set(discussionId, entry);
+    setPendingDiscussionVersion((version) => version + 1);
+  };
+
+  const removePendingDiscussionEntry = (discussionId: string) => {
+    if (pendingDiscussionVotesRef.current.delete(discussionId)) {
+      setPendingDiscussionVersion((version) => version + 1);
+    }
+  };
+  const pendingTopicVoteRef = useRef<{ previous: LocalVoteState; expected: LocalVoteState } | null>(null);
+
+  useEffect(() => {
+    pendingTopicVoteRef.current = null;
+    if (pendingDiscussionVotesRef.current.size > 0) {
+      pendingDiscussionVotesRef.current.clear();
+      setPendingDiscussionVersion((version) => version + 1);
+    }
+  }, [meta.id]);
+
+    useEffect(() => {
+    // Simplified state management - langsung gunakan server data
+    // React Query optimistic updates akan handle UI updates
+    setLocalTopicVotes(topicVotes);
+  }, [topicVotes]);
+
+  useEffect(() => {
+    if (previousInitialDiscussionsRef.current === initialDiscussions) {
+      return;
+    }
+
+    previousInitialDiscussionsRef.current = initialDiscussions;
+
+    setDiscussions((currentDiscussions) => {
+      const incomingDiscussions = initialDiscussions || [];
+      const currentDiscussionMap = new Map(
+        currentDiscussions.map((discussion) => [discussion.id, discussion])
+      );
+
+      return incomingDiscussions.map((incomingDiscussion) => {
+        const currentDiscussion = currentDiscussionMap.get(incomingDiscussion.id);
+        const pending = pendingDiscussionVotesRef.current.get(incomingDiscussion.id);
+
+        if (!pending) {
+          return {
+            ...incomingDiscussion,
+            userVote: incomingDiscussion.userVote ?? currentDiscussion?.userVote ?? null,
+          };
+        }
+
+        const matchesPrevious =
+          incomingDiscussion.upvoteCount === pending.previous.upvoteCount &&
+          incomingDiscussion.downvoteCount === pending.previous.downvoteCount;
+
+        const matchesExpected =
+          incomingDiscussion.upvoteCount === pending.expected.upvoteCount &&
+          incomingDiscussion.downvoteCount === pending.expected.downvoteCount;
+
+        if (matchesPrevious) {
+          return {
+            ...incomingDiscussion,
+            upvoteCount: pending.expected.upvoteCount,
+            downvoteCount: pending.expected.downvoteCount,
+            userVote: pending.expected.userVote ?? currentDiscussion?.userVote ?? null,
+          };
+        }
+
+        if (matchesExpected) {
+          removePendingDiscussionEntry(incomingDiscussion.id);
+          return {
+            ...incomingDiscussion,
+            upvoteCount: pending.expected.upvoteCount,
+            downvoteCount: pending.expected.downvoteCount,
+            userVote: incomingDiscussion.userVote ?? currentDiscussion?.userVote ?? null,
+          };
+        }
+
+        return {
+          ...incomingDiscussion,
+          userVote:
+            incomingDiscussion.userVote ??
+            pending.expected.userVote ??
+            currentDiscussion?.userVote ??
+            null,
+        };
+      });
     });
-  }, [meta.id, meta.state]);
-  const [discussions, setDiscussions] = useState(() => sortDiscussionsByVote(initialDiscussions || []));
+  }, [initialDiscussions]);
   const [showAllDiscussions, setShowAllDiscussions] = useState(!!defaultShowAll);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; author: string } | null>(null);
-  const [isInfiniteMode, setIsInfiniteMode] = useState(infiniteScroll);
   const [showTopicMenu, setShowTopicMenu] = useState(false);
 
   // Topic edit states
@@ -150,53 +288,196 @@ export function Topic({
   const [editDescription, setEditDescription] = useState(meta.questionDetail || "");
   const [isSavingTopic, setIsSavingTopic] = useState(false);
 
-  // Sync discussions dengan external changes
-  React.useEffect(() => {
-    setDiscussions(sortDiscussionsByVote(initialDiscussions));
-  }, [initialDiscussions]);
-
   // Sync topic edit states dengan meta changes
-  React.useEffect(() => {
+  useEffect(() => {
     setEditTitle(meta.title);
     setEditDescription(meta.questionDetail || "");
   }, [meta.title, meta.questionDetail]);
 
-  // Vote handlers
-  const handleUpvote = (discussionId: string) => {
-    console.log("Topic handleUpvote called:", { discussionId, currentUserId });
+  const updateDiscussionVoteOptimistically = (discussionId: string, voteType: VoteType) => {
+    let previousSnapshot: DiscussionVoteSnapshot | null = null;
+    let expectedSnapshot: DiscussionVoteSnapshot | null = null;
+
+    setDiscussions((currentDiscussions) =>
+      currentDiscussions.map((discussion) => {
+        if (discussion.id !== discussionId) {
+          return discussion;
+        }
+
+        previousSnapshot = {
+          upvoteCount: discussion.upvoteCount || 0,
+          downvoteCount: discussion.downvoteCount || 0,
+          userVote: discussion.userVote || null,
+        };
+
+        const result = calculateVoteChange(
+          previousSnapshot.upvoteCount,
+          previousSnapshot.downvoteCount,
+          previousSnapshot.userVote,
+          voteType
+        );
+
+        expectedSnapshot = {
+          upvoteCount: result.upvotes,
+          downvoteCount: result.downvotes,
+          userVote: result.userVote,
+        };
+
+        return {
+          ...discussion,
+          upvoteCount: result.upvotes,
+          downvoteCount: result.downvotes,
+          userVote: result.userVote,
+        };
+      })
+    );
+
+    if (expectedSnapshot && previousSnapshot) {
+      setPendingDiscussionEntry(discussionId, {
+        previous: previousSnapshot,
+        expected: expectedSnapshot,
+      });
+    }
+  };
+
+  const handleDiscussionVote = async (
+    discussionId: string,
+    voteType: VoteType,
+    voteHandler?: (discussionId: string, voteType: VoteType) => Promise<Discussion | void> | Discussion | void
+  ) => {
     if (!currentUserId) return;
 
-    // Call parent handler to handle voting logic
-    onUpvoteReply?.(discussionId);
+    // Prevent multiple rapid clicks on same discussion
+    if (votingDiscussionIdsRef.current.has(discussionId)) {
+      return;
+    }
+
+    // Add to voting set
+    votingDiscussionIdsRef.current.add(discussionId);
+
+    const previousDiscussions = discussions.map((discussion) => ({ ...discussion }));
+    updateDiscussionVoteOptimistically(discussionId, voteType);
+
+    try {
+      const result = await voteHandler?.(discussionId, voteType);
+
+      if (result && typeof result === "object" && "id" in result) {
+        const discussionResult = result as Discussion;
+        const pendingEntry = pendingDiscussionVotesRef.current.get(discussionId);
+        let skipServerResult = false;
+        let matchesExpectedResponse = false;
+        let nextExpectedSnapshot: DiscussionVoteSnapshot | null = null;
+
+        setDiscussions((currentDiscussions) =>
+          currentDiscussions.map((discussion) => {
+            if (discussion.id !== discussionResult.id) {
+              return discussion;
+            }
+
+            const responseUpvotes =
+              typeof discussionResult.upvoteCount !== "undefined"
+                ? discussionResult.upvoteCount
+                : discussion.upvoteCount;
+            const responseDownvotes =
+              typeof discussionResult.downvoteCount !== "undefined"
+                ? discussionResult.downvoteCount
+                : discussion.downvoteCount;
+            const responseUserVote =
+              typeof discussionResult.userVote !== "undefined"
+                ? discussionResult.userVote
+                : discussion.userVote ?? null;
+
+            if (pendingEntry) {
+              const matchesPrevious =
+                responseUpvotes === pendingEntry.previous.upvoteCount &&
+                responseDownvotes === pendingEntry.previous.downvoteCount;
+
+              matchesExpectedResponse =
+                responseUpvotes === pendingEntry.expected.upvoteCount &&
+                responseDownvotes === pendingEntry.expected.downvoteCount;
+
+              if (matchesPrevious) {
+                skipServerResult = true;
+                return discussion;
+              }
+
+              if (!matchesExpectedResponse) {
+                nextExpectedSnapshot = {
+                  upvoteCount: responseUpvotes,
+                  downvoteCount: responseDownvotes,
+                  userVote: responseUserVote,
+                };
+              }
+            }
+
+            return {
+              ...discussion,
+              upvoteCount: responseUpvotes,
+              downvoteCount: responseDownvotes,
+              userVote: responseUserVote,
+            };
+          })
+        );
+
+        if (pendingEntry) {
+          if (skipServerResult) {
+            // Keep optimistic snapshot; server still returning stale data
+          } else if (matchesExpectedResponse) {
+            removePendingDiscussionEntry(discussionId);
+          } else if (nextExpectedSnapshot) {
+            setPendingDiscussionEntry(discussionId, {
+              previous: pendingEntry.previous,
+              expected: nextExpectedSnapshot,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update discussion vote:", error);
+      setDiscussions(previousDiscussions);
+      removePendingDiscussionEntry(discussionId);
+    } finally {
+      // Remove from voting set to allow voting again
+      votingDiscussionIdsRef.current.delete(discussionId);
+    }
+  };
+
+  // Vote handlers
+  const handleUpvote = (discussionId: string) => {
+    void handleDiscussionVote(discussionId, VoteTypeEnum.UPVOTE, onUpvoteReply);
   };
 
   const handleDownvote = (discussionId: string) => {
-    console.log("Topic handleDownvote called:", { discussionId, currentUserId });
-    if (!currentUserId) return;
-
-    // Call parent handler to handle voting logic
-    onDownvoteReply?.(discussionId);
+    void handleDiscussionVote(discussionId, VoteTypeEnum.DOWNVOTE, onDownvoteReply);
   };
 
   // Reply form handlers
-  const handleSubmitReply = () => {
+  const handleSubmitReply = async () => {
     const text = replyText.trim();
     if (!text) return;
 
-    onSubmitReply?.({
-      topicId: meta.id,
-      text,
-      replyingToId: replyingTo?.id,
-    });
+    setIsSubmittingReply(true);
+    try {
+      await onSubmitReply?.({
+        topicId: meta.id,
+        text,
+        replyingToDiscussion: replyingTo ? discussions.find(d => d.id === replyingTo.id) : undefined,
+      });
 
-    // Reset form
-    setReplyText("");
-    setShowReplyForm(false);
-    setReplyingTo(null);
+      // Reset form hanya jika berhasil
+      setReplyText("");
+      setShowReplyForm(false);
+      setReplyingTo(null);
+    } catch (error) {
+      console.error("Failed to submit reply:", error);
+      // Form tidak di-reset jika gagal, user bisa mencoba lagi
+    } finally {
+      setIsSubmittingReply(false);
+    }
   };
 
   const handleStartReply = (discussion: Discussion) => {
-    setReplyingTo({ id: discussion.id, author: discussion.author || `User ${discussion.idUser.slice(-6)}` });
+    setReplyingTo({ id: discussion.id, author: discussion.author || getCurrentUserId() });
     setShowReplyForm(true);
   };
 
@@ -257,6 +538,27 @@ export function Topic({
     }
   };
 
+  const handleResolveTopic = () => {
+    setShowTopicMenu(false);
+    if (meta.state === "closed" || isResolvingTopic) {
+      return;
+    }
+    onResolveTopic?.(meta.id);
+  };
+
+  const handleTopicVote = async (voteType: VoteType) => {
+    if (!localTopicVotes || localIsVotingTopic) return;
+    // Prevent multiple rapid clicks
+    setLocalIsVotingTopic(true);
+    try {
+      await onVoteTopic?.(meta.id, voteType);
+    } catch (error) {
+      console.error("Failed to update topic vote:", error);
+    } finally {
+      setLocalIsVotingTopic(false);
+    }
+  };
+
   // Discussion edit handler - update local state
   const handleEditDiscussion = (discussionId: string, newContent: string) => {
     setDiscussions((currentDiscussions) => {
@@ -264,7 +566,7 @@ export function Topic({
         if (discussion.id !== discussionId) return discussion;
         return { ...discussion, content: newContent };
       });
-      return sortDiscussionsByVote(updatedDiscussions);
+      return updatedDiscussions;
     });
 
     // Call parent handler if provided
@@ -277,7 +579,7 @@ export function Topic({
       const updatedDiscussions = currentDiscussions.filter(
         (discussion) => discussion.id !== discussionId
       );
-      return sortDiscussionsByVote(updatedDiscussions);
+      return updatedDiscussions;
     });
 
     // Call parent handler if provided
@@ -285,7 +587,23 @@ export function Topic({
   };
 
   // Discussion visibility
-  const previewDiscussions = showAllDiscussions ? discussions : discussions.slice(0, 2);
+  const displayedDiscussions = useMemo(() => {
+    const baseDiscussions = showAllDiscussions ? discussions : discussions.slice(0, 2);
+
+    return baseDiscussions.map((discussion) => {
+      const pending = pendingDiscussionVotesRef.current.get(discussion.id);
+      if (!pending) {
+        return discussion;
+      }
+
+      return {
+        ...discussion,
+        upvoteCount: pending.expected.upvoteCount,
+        downvoteCount: pending.expected.downvoteCount,
+        userVote: pending.expected.userVote ?? discussion.userVote ?? null,
+      };
+    });
+  }, [discussions, showAllDiscussions, pendingDiscussionVersion]);
   const hasMoreDiscussions = discussions.length > 2;
 
   return (
@@ -293,7 +611,7 @@ export function Topic({
       className={[
         "w-full bg-[var(--surface,white)]",
         "rounded-[var(--radius-xl,16px)]",
-        className,
+        ...(className ? [className] : []),
       ]
         .filter(Boolean)
         .join(" ")}
@@ -320,12 +638,13 @@ export function Topic({
           {canEditTopic && (
             <div className="relative">
               <Button
-                leftIcon={<MoreVertical className="w-4 h-4 text-gray-600" />}
-                variant="outline"
-                className="border-gray-300 hover:border-gray-400 hover:bg-gray-50 w-10 h-10 p-0"
+                variant="ghost"
+                className="w-11 h-11 p-0 text-gray-600 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center"
                 onClick={() => setShowTopicMenu(!showTopicMenu)}
                 aria-label="Menu topik"
-              />
+              >
+                <MoreVertical className="w-5 h-5" />
+              </Button>
 
               {/* Dropdown Menu */}
               {showTopicMenu && (
@@ -338,6 +657,18 @@ export function Topic({
 
                   {/* Menu */}
                   <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                    <button
+                      onClick={handleResolveTopic}
+                      disabled={meta.state === "closed" || isResolvingTopic}
+                      className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+                        meta.state === "closed" || isResolvingTopic
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <CheckCircle2 className={`w-4 h-4 ${meta.state === "closed" || isResolvingTopic ? "text-gray-400" : "text-gray-600"}`} />
+                      {meta.state === "closed" ? "Sudah Selesai" : isResolvingTopic ? "Menandai..." : "Tandai Selesai"}
+                    </button>
                     <button
                       onClick={handleEditTopic}
                       className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -371,7 +702,7 @@ export function Topic({
                 className="text-[var(--font-sm,0.875rem)] font-[var(--font-body-bold,600)] tracking-wide"
                 role="img"
               >
-                {(meta.avatarInitials && meta.avatarInitials.trim().toUpperCase()) || getTopicInitials(meta.startedBy || meta.createdBy || '')}
+                {(meta.avatarInitials && meta.avatarInitials.trim().toUpperCase()) || getInitials(meta.startedBy || meta.createdBy || '')}
               </span>
             </div>
 
@@ -384,47 +715,69 @@ export function Topic({
             )}
 
             {/* Voting Section */}
-            {topicVotes && (
+            {localTopicVotes && (
               <div className="flex flex-col items-center gap-1 mt-3">
                 {/* Upvote Button */}
                 <button
                   type="button"
-                  onClick={() => onUpvoteTopic?.(meta.id)}
-                  className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 ${
-                    topicVotes.userVote === 'up'
-                      ? 'bg-[var(--success,#16a34a)] text-white shadow-sm'
-                      : 'bg-[var(--color-gray-100,#f3f4f6)] text-[var(--color-foreground-muted,#6b7280)] hover:text-[var(--success,#16a34a)] hover:bg-[var(--success,#16a34a)/10]'
-                  }`}
-                  aria-label={`Upvote topic, ${topicVotes.upvotes} upvotes`}
+                  onClick={() => handleTopicVote(VoteTypeEnum.UPVOTE)}
+                  disabled={localIsVotingTopic}
+                  className={`vote-button vote-container ${localIsVotingTopic ? 'vote-loading' : ''} ${
+                    localTopicVotes.userVote === VoteTypeEnum.UPVOTE
+                      ? 'text-white vote-active'
+                      : 'text-[var(--color-foreground-muted)] hover:text-[var(--success)] vote-active'
+                  } ${localIsVotingTopic ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  aria-label={`Upvote topic, ${localTopicVotes.upvotes} upvotes`}
                 >
-                  <ArrowBigUp className="size-4" />
+                  {localIsVotingTopic && votingType === 'upvote' ? (
+                    <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-500"></div>
+                  ) : (
+                    <div className={`topic-vote-arrow ${
+                      localTopicVotes.userVote === VoteTypeEnum.UPVOTE
+                        ? 'active-upvote'
+                        : ''
+                    }`}>
+                      <ArrowBigUp className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.UPVOTE ? 'fill-current' : ''}`} />
+                    </div>
+                  )}
                 </button>
 
                 {/* Vote Count */}
                 <div className="text-center">
-                  <span className={`text-xs font-medium ${
-                    topicVotes.userVote === 'up'
+                  <span className={`vote-count text-xs font-medium ${
+                    localTopicVotes.userVote === VoteTypeEnum.UPVOTE
                       ? 'text-[var(--success,#16a34a)]'
-                      : topicVotes.userVote === 'down'
+                      : localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
                       ? 'text-[var(--color-error,#dc2626)]'
                       : 'text-[var(--color-foreground,#6b7280)]'
                   }`}>
-                    {Math.max(0, topicVotes.upvotes - topicVotes.downvotes)}
+                    {Math.max(0, (localTopicVotes.upvotes || 0) - (localTopicVotes.downvotes || 0))}
                   </span>
                 </div>
 
                 {/* Downvote Button */}
                 <button
                   type="button"
-                  onClick={() => onDownvoteTopic?.(meta.id)}
-                  className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 ${
-                    topicVotes.userVote === 'down'
-                      ? 'bg-[var(--color-error,#dc2626)] text-white shadow-sm'
-                      : 'bg-[var(--color-gray-100,#f3f4f6)] text-[var(--color-foreground-muted,#6b7280)] hover:text-[var(--color-error,#dc2626)] hover:bg-[var(--color-error,#dc2626)/10]'
-                  }`}
-                  aria-label={`Downvote topic, ${topicVotes.downvotes} downvotes`}
+                  onClick={() => handleTopicVote(VoteTypeEnum.DOWNVOTE)}
+                  disabled={localIsVotingTopic}
+                  className={`vote-button vote-container ${localIsVotingTopic ? 'vote-loading' : ''} ${
+                    localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
+                      ? 'text-white vote-active'
+                      : 'text-[var(--color-foreground-muted)] hover:text-[var(--danger)] vote-active'
+                  } ${localIsVotingTopic ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  aria-label={`Downvote topic, ${localTopicVotes.downvotes} downvotes`}
                 >
-                  <ArrowBigDown className="size-4" />
+                  {localIsVotingTopic && votingType === 'downvote' ? (
+                    <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-red-500"></div>
+                  ) : (
+                    <div className={`topic-vote-arrow ${
+                      localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE
+                        ? 'active-downvote'
+                        : ''
+                    }`}>
+                      <ArrowBigDown className={`size-4 ${localTopicVotes.userVote === VoteTypeEnum.DOWNVOTE ? 'fill-current' : ''}`} />
+                    </div>
+                  )}
                 </button>
               </div>
             )}
@@ -485,6 +838,7 @@ export function Topic({
                     {meta.title}
                   </h3>
 
+                  
                   {/* Question Detail - Dynamic Height */}
                   {meta.questionDetail && (
                     <p className="text-md text-[var(--color-foreground-muted)] leading-relaxed min-h-[52px]">
@@ -541,45 +895,10 @@ export function Topic({
       </header>
 
       {/* Discussions Section */}
-      {isInfiniteMode ? (
-        // Infinite Scroll Mode
-        <div className="border-t-2 border-[var(--border,rgba(0,0,0,0.08))]">
-          <InfiniteDiscussions
-            topicId={meta.id}
-            initialParams={{
-              sortBy: 'votes',
-              limit: 2,
-            }}
-            renderItem={(discussion, index) => (
-              <div key={discussion.id} className="px-4 py-4 first:pt-6 last:pb-6">
-                <Discussion
-                  discussion={discussion}
-                  discussionType={discussion.discussionType}
-                  onUpvote={() => handleUpvote(discussion.id)}
-                  onDownvote={() => handleDownvote(discussion.id)}
-                  onStartReply={() => handleStartReply(discussion)}
-                  currentUserId={currentUserId}
-                  userVote={userVotes?.[discussion.id]}
-                  canEditDiscussion={canEditDiscussion}
-                  onEditDiscussion={handleEditDiscussion}
-                  onDeleteDiscussion={handleDeleteDiscussion}
-                />
-              </div>
-            )}
-            listClassName="flex flex-col"
-            showSkeleton={true}
-            skeletonCount={2}
-            onLoadStart={() => console.log("Loading more discussions for topic:", meta.id)}
-            onLoadComplete={(discussions) => console.log("Loaded discussions:", discussions.length)}
-            onError={(error) => console.error("Error loading discussions:", error)}
-          />
-        </div>
-      ) : (
-        // Traditional Mode
-        discussions.length > 0 && (
-          <div className="border-t-2 border-[var(--border,rgba(0,0,0,0.08))]">
+      {discussions.length > 0 && (
+        <div className="border-t border-[var(--border,rgba(0,0,0,0.08))]">
             <ul className="flex flex-col" role="list" aria-label="Daftar balasan">
-              {previewDiscussions.map((discussion) => (
+              {displayedDiscussions.map((discussion) => (
                 <li key={discussion.id} className="px-4 py-4 first:pt-6 last:pb-6" role="listitem">
                   <Discussion
                     discussion={discussion}
@@ -588,10 +907,12 @@ export function Topic({
                     onDownvote={() => handleDownvote(discussion.id)}
                     onStartReply={() => handleStartReply(discussion)}
                     currentUserId={currentUserId}
-                    userVote={userVotes?.[discussion.id]}
+                    userVote={discussion.userVote}
+                    isVoting={votingDiscussionIdsRef.current.has(discussion.id)}
                     canEditDiscussion={canEditDiscussion}
                     onEditDiscussion={handleEditDiscussion}
                     onDeleteDiscussion={handleDeleteDiscussion}
+                    isEditingDiscussion={editingDiscussionId === discussion.id}
                   />
                 </li>
               ))}
@@ -619,12 +940,11 @@ export function Topic({
                 </button>
               </div>
             )}
-          </div>
-        )
+        </div>
       )}
 
       {/* Reply Form Section */}
-      <div className="border-t-2 border-[var(--border,rgba(0,0,0,0.08))] px-4 py-3">
+      <div className="border-t border-[var(--border,rgba(0,0,0,0.08))] px-4 py-3">
         {!showReplyForm ? (
           <button
             type="button"
@@ -688,9 +1008,10 @@ export function Topic({
               <Button
                 size="sm"
                 onClick={handleSubmitReply}
-                disabled={!replyText.trim()}
+                disabled={!replyText.trim() || isSubmittingReply}
+                isLoading={isSubmittingReply}
               >
-                Kirim Balasan
+                {isSubmittingReply ? "Mengirim..." : "Kirim Balasan"}
               </Button>
             </div>
           </div>
@@ -700,13 +1021,6 @@ export function Topic({
   );
 }
 
-// Helper untuk ambil inisial dari nama (untuk Topic component)
-function getTopicInitials(name: string): string {
-  const parts = (name || "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 // Default export untuk memudahkan import
 export default Topic;

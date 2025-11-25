@@ -5,8 +5,9 @@
  * Menampilkan ulasan pengguna
  */
 
-import { Star, ThumbsUp, MessageCircle } from "lucide-react";
+import { Star } from "lucide-react";
 import React from "react";
+import { renderStars } from "../hooks/stars";
 
 interface ReviewCardProps {
   /** URL avatar reviewer */
@@ -75,13 +76,7 @@ export function ReviewCard({
               {/* Rating & Time */}
               <div className="flex items-center gap-3">
                 <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`w-4 h-4 ${i < rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
-                      strokeWidth={1.5}
-                    />
-                  ))}
+                  {renderStars(rating, { size: "sm", strokeWidth: 1.5 })}
                 </div>
                 <span className="text-[13px] text-gray-500">
                   {timePosted}

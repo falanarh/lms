@@ -1,45 +1,7 @@
 "use client";
 /**
- * Komponen: Dropdown
- * Tujuan: Pemilih opsi dengan dukungan pencarian item (filter) dan navigasi keyboard.
- *
- * Ringkasan
- * - Styling: Tailwind CSS + CSS variables (fallback disediakan) untuk warna, spacing, radius, font, dsb.
- * - Aksesibilitas: Tombol pemicu dengan aria-expanded, popover berisi input pencarian, daftar berperan listbox, item berperan option.
- * - Keyboard: Tab untuk fokus, Enter/Space untuk buka/tutup & pilih, Panah Atas/Bawah untuk navigasi, Esc untuk menutup.
- *
- * Import
- * ```tsx
- * import { Dropdown } from "@/components/Dropdown";
- * ```
- *
- * Props
- * - items: Array<{ value: string; label: string; disabled?: boolean }>
- * - value?: string — mode terkontrol
- * - defaultValue?: string — mode tak terkontrol
- * - onChange?: (value: string, item: DropdownItem) => void
- * - placeholder?: string (default: "Select")
- * - label?: string — label teks sebelum dropdown (mis. "Category:")
- * - searchable?: boolean (default: true)
- * - disabled?: boolean
- * - error?: boolean — state error untuk gaya danger
- * - size?: "sm" | "md" | "lg" (default: "md")
- * - variant?: "solid" | "outline" | "ghost" (default: "solid")
- * - className?: string
- * - name?: string — nama field untuk form submit (value tersimpan di input hidden)
- *
- * CSS Variables yang digunakan (fallback tersedia):
- * - --color-foreground, --color-foreground-muted
- * - --color-primary, --color-primary-hover, --color-primary-subtle
- * - --color-focus-ring, --color-ring-offset
- * - --surface, --surface-elevated, --border
- * - --radius-md, --radius-lg
- * - --font-sm, --font-md, --font-lg
- * - --space-1, --space-2, --space-3
- * - --danger, --on-danger
- *
- * Preview
- * - Buka route `/preview/dropdown` untuk melihat varian, size, disabled, error, dan pencarian.
+ * Dropdown Component - Light Mode Only
+ * Optimized with clean, visible colors for light backgrounds
  */
 import React from "react";
 
@@ -65,51 +27,40 @@ export interface DropdownProps {
 
 const sizeMap: Record<DropdownSize, { button: string; text: string; menu: string; input: string }> = {
   sm: {
-    button: "h-9 px-3 rounded-[var(--radius-md,8px)]",
-    text: "text-[var(--font-sm,0.875rem)]",
-    menu: "py-[var(--space-1,0.25rem)]",
-    input: "h-9 px-3 text-[var(--font-sm,0.875rem)]",
+    button: "h-9 px-3 rounded-lg",
+    text: "text-sm",
+    menu: "py-1",
+    input: "h-9 px-3 text-sm",
   },
   md: {
-    button: "h-10 px-3.5 rounded-[var(--radius-md,8px)]",
-    text: "text-[var(--font-md,1rem)]",
-    menu: "py-[var(--space-2,0.5rem)]",
-    input: "h-10 px-3.5 text-[var(--font-md,1rem)]",
+    button: "h-10 px-3.5 rounded-lg",
+    text: "text-base",
+    menu: "py-2",
+    input: "h-10 px-3.5 text-base",
   },
   lg: {
-    button: "h-12 px-4 rounded-[var(--radius-lg,12px)]",
-    text: "text-[var(--font-lg,1.125rem)]",
-    menu: "py-[var(--space-2,0.5rem)]",
-    input: "h-12 px-4 text-[var(--font-lg,1.125rem)]",
+    button: "h-12 px-4 rounded-xl",
+    text: "text-lg",
+    menu: "py-2",
+    input: "h-12 px-4 text-lg",
   },
 };
 
 function variantClasses(variant: DropdownVariant, error?: boolean) {
   if (error) {
-    return [
-      "bg-[var(--danger,#dc2626)] text-[var(--on-danger,#ffffff)] border border-transparent",
-      "hover:bg-[color-mix(in_oklab,var(--danger,#dc2626)_92%,black)]",
-    ].join(" ");
+    return "bg-white text-gray-900 border-2 border-red-500 hover:border-red-600";
   }
   switch (variant) {
     case "outline":
-      return [
-        "bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]",
-        "border border-[var(--border,rgba(0,0,0,0.12))]",
-        "hover:bg-[color-mix(in_oklab,var(--surface,white)_94%,black)]",
-      ].join(" ");
+      return "bg-white text-gray-900 border border-gray-300 hover:bg-gray-50";
     case "ghost":
-      return [
-        "bg-transparent text-[var(--color-foreground,#111827)]",
-        "hover:bg-[var(--color-primary-subtle,rgba(37,99,235,0.08))]",
-        "border border-transparent",
-      ].join(" ");
+      return "bg-transparent text-gray-900 hover:bg-blue-50 border border-transparent";
     case "solid":
-    default:
       return [
-        "bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]",
-        "border border-[var(--border,rgba(0,0,0,0.12))]",
-      ].join(" ");
+        "border-2 border-[var(--border,rgba(0,0,0,0.12))]",
+      ]
+    default:
+      return "bg-white text-gray-900 border border-gray-300";
   }
 }
 
@@ -224,26 +175,26 @@ export function Dropdown({
   const listboxId = React.useId();
 
   return (
-    <div className={["inline-flex items-center gap-[var(--space-2,0.5rem)]", className].filter(Boolean).join(" ")}> 
+    <div className={["flex items-center gap-2", className].filter(Boolean).join(" ")}> 
       {label && (
-        <span className="text-[var(--font-sm,0.875rem)] text-[var(--color-foreground-muted,#6b7280)] font-[var(--font-body)]">
+        <span className="text-sm text-gray-700 font-medium">
           {label}
         </span>
       )}
-
       {name && <input type="hidden" name={name} value={selectedValue ?? ""} />}
 
-      <div className="relative">
+      <div className="relative w-full">
         <button
           ref={buttonRef}
           type="button"
           className={[
-            "inline-flex items-center justify-between min-w-48",
+            "w-full inline-flex items-center justify-between",
             sz.button,
             sz.text,
             variantClasses(variant, error),
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
             isDisabled ? "opacity-50 cursor-not-allowed" : "",
+            "transition-colors duration-150",
           ].join(" ")}
           aria-haspopup="listbox"
           aria-expanded={open}
@@ -254,25 +205,22 @@ export function Dropdown({
             if (!open) requestAnimationFrame(() => inputRef.current?.focus());
           }}
           onKeyDown={onButtonKeyDown}
+          disabled={isDisabled}
         >
-          <span className="truncate pr-2">
-            {selectedItem ? selectedItem.label : (
-              <span className="text-[var(--color-foreground-muted,#6b7280)]">{placeholder}</span>
+          <span className="truncate pr-2 text-gray-900">
+            {selectedItem ? (
+              <span className="text-gray-900">{selectedItem.label}</span>
+            ) : (
+              <span className="text-gray-500">{placeholder}</span>
             )}
           </span>
           <ChevronDownIcon />
         </button>
 
         {open && (
-          <div
-            className={[
-              "absolute left-0 mt-1 w-full z-50",
-              "rounded-[var(--radius-md,8px)] shadow-lg",
-              "bg-[var(--surface-elevated,white)] border border-[var(--border,rgba(0,0,0,0.12))]",
-            ].join(" ")}
-          >
+          <div className="absolute left-0 mt-1 w-full z-50 rounded-lg shadow-lg bg-white border border-gray-200">
             {searchable && (
-              <div className={["p-[var(--space-2,0.5rem)]"].join(" ")}>
+              <div className="p-2 border-b border-gray-100">
                 <input
                   ref={inputRef}
                   type="text"
@@ -283,18 +231,18 @@ export function Dropdown({
                     setActiveIndex(0);
                   }}
                   className={[
-                    "w-full rounded-[var(--radius-md,8px)]",
+                    "w-full rounded-lg",
                     sz.input,
-                    "bg-[var(--surface,white)] text-[var(--color-foreground,#111827)]",
-                    "border border-[var(--border,rgba(0,0,0,0.12))]",
-                    "placeholder:text-[var(--color-foreground-muted,#6b7280)]",
-                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-ring-offset,#ffffff)]",
+                    "bg-white text-gray-900",
+                    "border border-gray-300",
+                    "placeholder:text-gray-400",
+                    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
                   ].join(" ")}
                   aria-label="Search options"
                 />
               </div>
             )}
-
+            
             <ul
               id={listboxId}
               ref={listRef}
@@ -304,24 +252,26 @@ export function Dropdown({
               onKeyDown={onListKeyDown}
             >
               {filtered.length === 0 && (
-                <li className="px-3 py-2 text-[var(--color-foreground-muted,#6b7280)]">No results</li>
+                <li className="px-3 py-2 text-gray-500 text-sm">No results</li>
               )}
               {filtered.map((it, idx) => {
                 const selected = it.value === selectedValue;
                 const focused = idx === activeIndex;
                 return (
-                  <li key={it.value} role="option" aria-selected={selected}>
+                  <li key={it.value+idx} role="option" aria-selected={selected}>
                     <button
                       type="button"
                       className={[
                         "w-full text-left px-3 py-2",
                         "flex items-center justify-between",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring,#2563eb)]",
+                        "transition-colors duration-150",
+                        "focus:outline-none",
+                        "text-gray-900", // Force dark text
                         selected
-                          ? "bg-[var(--color-primary-subtle,rgba(37,99,235,0.08))] text-[var(--color-primary,#2563eb)]"
-                          : "text-[var(--color-foreground,#111827)] hover:bg-[color-mix(in_oklab,white_94%,var(--color-primary,#2563eb))]",
-                        it.disabled ? "opacity-50 cursor-not-allowed" : "",
-                        focused ? "outline-none ring-1 ring-[var(--color-focus-ring,#2563eb)]" : "",
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "hover:bg-gray-100",
+                        it.disabled ? "opacity-50 cursor-not-allowed text-gray-400" : "",
+                        focused ? "ring-2 ring-inset ring-blue-500" : "",
                       ].join(" ")}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onClick={() => {
@@ -329,6 +279,7 @@ export function Dropdown({
                         commitChange(it.value);
                         closeAndFocusButton();
                       }}
+                      disabled={it.disabled}
                     >
                       <span className="truncate pr-2">{it.label}</span>
                       {selected && <CheckIcon />}
@@ -346,19 +297,46 @@ export function Dropdown({
 
 function ChevronDownIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <svg 
+      width="20" 
+      height="20" 
+      viewBox="0 0 20 20" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      aria-hidden
+      className="text-gray-600"
+    >
+      <path 
+        d="M6 8l4 4 4-4" 
+        stroke="currentColor" 
+        strokeWidth="1.8" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+      />
     </svg>
   );
 }
 
 function CheckIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg 
+      width="18" 
+      height="18" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      aria-hidden
+      className="text-blue-600"
+    >
+      <path 
+        d="M20 6L9 17l-5-5" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+      />
     </svg>
   );
 }
 
 export default Dropdown;
-

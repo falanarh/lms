@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsRight, Edit2, MoreHorizontal } from "lucide-react";
+import { ChevronsRight, Edit2 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Forum } from "./ForumList";

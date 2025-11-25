@@ -10,60 +10,41 @@ import {
   CourseHeader,
   CourseLayout,
 } from "@/features/course/components";
-import { useCourses } from "@/hooks/useCourse";
+import { useCourses } from "@/hooks/useCourses";
+import { useCategories } from "@/hooks/useCategories";
+import { COURSE_CATEGORIES } from "@/features/course/constant/course";
 
-const COURSES_PER_PAGE = 4;
+const COURSES_PER_PAGE = 8
 
 export default function CoursePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [sortBy, setSortBy] = useState("title-asc");
+  const [sortBy, setSortBy] = useState("none");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewModeValue>("grid-4");
 
-  const { data, isPending, isFetching } = useCourses();
-  const courses = data ?? [];
-
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const filteredAndSortedCourses = useMemo(() => {
-    let filtered = courses.filter((course) => {
-      const matchesSearch = course.title
-        .toLowerCase()
-        .includes(debouncedSearchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "All Categories" ||
-        course.categories === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
+  const { data: categoriesData, isLoading: isLoadingCategories, error: categoriesError } = useCategories();
 
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "title-asc":
-          return a.title.localeCompare(b.title);
-        case "title-desc":
-          return b.title.localeCompare(a.title);
-        case "rating-desc":
-          return b.rating - a.rating;
-        case "students-desc":
-          return b.totalStudents - a.totalStudents;
-        default:
-          return 0;
-      }
-    });
+  const { data: response, isLoading: isLoadingCourses } = useCourses({
+    searchQuery: debouncedSearchQuery,
+    selectedCategory,
+    sortBy,
+    page: currentPage,
+    perPage: COURSES_PER_PAGE
+  });
 
-    return filtered;
-  }, [courses, debouncedSearchQuery, selectedCategory, sortBy]);
+  const categories = useMemo(() => {
+    if (categoriesError || !categoriesData) {
+      return COURSE_CATEGORIES;
+    }
+    return ['All Categories', ...categoriesData];
+  }, [categoriesData, categoriesError]);
 
-  const totalPages = Math.ceil(
-    filteredAndSortedCourses.length / COURSES_PER_PAGE
-  );
-
-  const paginatedCourses = useMemo(() => {
-    const startIndex = (currentPage - 1) * COURSES_PER_PAGE;
-    const endIndex = startIndex + COURSES_PER_PAGE;
-    return filteredAndSortedCourses.slice(startIndex, endIndex);
-  }, [filteredAndSortedCourses, currentPage]);
+  const courses = response?.data || [];
+  const pageMeta = response?.pageMeta;
+  const totalPages = pageMeta?.totalPageCount || 1;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -90,12 +71,14 @@ export default function CoursePage() {
         onSortChange={setSortBy}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        categories={categories}
+        isLoadingCategories={isLoadingCategories}
       />
 
       <CourseGrid
-        courses={paginatedCourses}
+        courses={courses}
         viewMode={viewMode}
-        isLoading={isPending || isFetching}
+        isLoading={isLoadingCourses}
       />
 
       {totalPages > 1 && (

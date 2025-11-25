@@ -1,0 +1,14 @@
+export { CourseBreadcrumb } from "./CourseBreadcrumb";
+export { CourseThumbnail } from "./CourseThumbnail";
+export { CourseTitle } from "./CourseTitle";
+export { CourseInfoCard } from "./CourseInfoCard";
+export { EnrollButton } from "./EnrollButton";
+export { CourseTabNavigation } from "./CourseTabNavigation";
+export { CourseInfoCards } from "./CourseInfoCards";
+export { CourseDescription } from "./CourseDescription";
+export { ActivityCard } from "./ActivityCard";
+export { ReviewCard } from "./ReviewCard";
+export { PageContainer } from "./PageContainer";
+export { DetailCourseSkeleton } from "./DetailCourseSkeleton";
+
+export * from "./tabs";

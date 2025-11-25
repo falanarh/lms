@@ -1,19 +1,21 @@
 "use client";
 import { TriangleAlert, X, CircleCheck } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 /**
  * Komponen: Toast
  * Tujuan: Notifikasi toast/snackbar dengan varian info, warning, success, dan opsi dengan/tanpa title.
  *
  * Ringkasan
- * - Styling: Tailwind CSS + CSS variables untuk warna, border, radius, spacing.
+ * - Styling: Tailwind CSS dengan dukungan light dan dark mode.
  * - Aksesibilitas: role="status", aria-live, aria-atomic untuk screen readers.
- * - Varian: info (biru), warning (kuning/merah), success (hijau).
+ * - Varian: info (biru), warning (merah), success (hijau) - masing-masing dengan tema light/dark.
  * - Auto-dismiss: Opsional tutup otomatis setelah durasi tertentu.
  * - Dismissible: Tombol close dengan aria-label.
+ * - Theme-aware: Otomatis menyesuaikan tampilan berdasarkan tema aktif (light/dark/system).
  *
  * Import
  * ```tsx
- * import { Toast } from "@/components/Toast";
+ * import { Toast } from "@/components/ui/Toast";
  * ```
  *
  * Props
@@ -26,28 +28,23 @@ import { TriangleAlert, X, CircleCheck } from "lucide-react";
  * - duration?: number — durasi auto-dismiss dalam ms (default: 5000)
  * - className?: string — kelas tambahan untuk container
  *
- * CSS Variables yang digunakan (fallback tersedia):
- * - --surface-elevated, --color-foreground, --color-foreground-muted
- * - --border, --radius-lg, --font-sm, --font-md, --space-3, --space-4
- * - Warna varian: --info, --on-info, --warning, --on-warning, --success, --on-success
- *
  * Contoh Penggunaan
  * ```tsx
  * // Info tanpa title
- * <Toast 
+ * <Toast
  *   variant="info"
  *   message="Notification message. Here will be information."
  * />
  *
  * // Warning dengan title
- * <Toast 
+ * <Toast
  *   variant="warning"
  *   title="Peringatan"
  *   message="Data Anda belum tersimpan!"
  * />
  *
  * // Success dengan auto-dismiss
- * <Toast 
+ * <Toast
  *   variant="success"
  *   message="Data berhasil disimpan!"
  *   autoDismiss
@@ -79,19 +76,19 @@ const variantStyles: Record<
   }
 > = {
   info: {
-    container: "bg-[#EEF2FF] border-[#C7D2FE]",
-    icon: "text-[#4F46E5]",
-    iconBg: "bg-[#4F46E5]/10",
+    container: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800",
+    icon: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-blue-100 dark:bg-blue-800/30",
   },
   warning: {
-    container: "bg-[#FEF2F2] border-[#FECACA]",
-    icon: "text-[#DC2626]",
-    iconBg: "bg-[#DC2626]/10",
+    container: "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+    icon: "text-red-600 dark:text-red-400",
+    iconBg: "bg-red-100 dark:bg-red-800/30",
   },
   success: {
-    container: "bg-[#F0FDF4] border-[#BBF7D0]",
-    icon: "text-[#16A34A]",
-    iconBg: "bg-[#16A34A]/10",
+    container: "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800",
+    icon: "text-green-600 dark:text-green-400",
+    iconBg: "bg-green-100 dark:bg-green-800/30",
   },
 };
 
@@ -108,6 +105,7 @@ export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(function Toast
   },
   ref
 ) {
+  const { resolvedTheme } = useTheme();
   const styles = variantStyles[variant];
 
   // Auto-dismiss timer
@@ -128,12 +126,14 @@ export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(function Toast
       aria-live="polite"
       aria-atomic="true"
       className={[
-        "flex items-start gap-[var(--space-3,0.75rem)]",
-        "px-[var(--space-4,1rem)] py-[var(--space-3,0.75rem)]",
-        "rounded-[var(--radius-lg,12px)]",
+        "flex items-start gap-3",
+        "px-4 py-3",
+        "rounded-lg",
         "border",
         "shadow-sm",
         "min-w-[320px] max-w-[480px]",
+        "bg-white dark:bg-gray-900",
+        "text-gray-900 dark:text-gray-100",
         styles.container,
         className,
       ]
@@ -159,9 +159,9 @@ export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(function Toast
         {title && (
           <h3
             className={[
-              "text-[var(--font-md,1rem)]",
+              "text-base",
               "font-semibold",
-              "text-[var(--color-foreground,#111827)]",
+              "text-gray-900 dark:text-gray-100",
               "mb-0.5",
             ].join(" ")}
           >
@@ -170,10 +170,10 @@ export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(function Toast
         )}
         <p
           className={[
-            "text-[var(--font-sm,0.875rem)]",
+            "text-sm",
             title
-              ? "text-[var(--color-foreground-muted,#6b7280)]"
-              : "text-[var(--color-foreground,#111827)]",
+              ? "text-gray-600 dark:text-gray-300"
+              : "text-gray-900 dark:text-gray-100",
           ].join(" ")}
         >
           {message}
@@ -190,14 +190,15 @@ export const Toast = React.forwardRef<HTMLDivElement, ToastProps>(function Toast
             "flex-shrink-0",
             "p-1",
             "rounded-md",
-            "text-[var(--color-foreground-muted,#9ca3af)]",
-            "hover:text-[var(--color-foreground,#111827)]",
-            "hover:bg-black/5",
+            "text-gray-400 dark:text-gray-500",
+            "hover:text-gray-600 dark:hover:text-gray-300",
+            "hover:bg-gray-100 dark:hover:bg-gray-800",
             "transition-colors",
             "focus-visible:outline-none",
             "focus-visible:ring-2",
-            "focus-visible:ring-[var(--color-focus-ring,#2563eb)]",
+            "focus-visible:ring-blue-500",
             "focus-visible:ring-offset-2",
+            "focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
           ].join(" ")}
         >
           <X className="size-5" />

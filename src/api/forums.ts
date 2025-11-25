@@ -1,5 +1,6 @@
 import { queryOptions, useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import { API_ENDPOINTS, API_CONFIG } from "@/config/api";
 
 export type Forum = {
   id: string;
@@ -39,7 +40,7 @@ export type ForumResponse = {
 
 export const getForums = async (): Promise<Forum[]> => {
   try {
-    const response = await axios.get<ForumResponse>("https://api-lms-kappa.vercel.app/forums", {withCredentials: false});
+    const response = await axios.get<ForumResponse>(API_ENDPOINTS.FORUMS, API_CONFIG);
     if (response.data.status !== 200) {
       throw new Error(response.data.message || "Failed to fetch forums");
     }
@@ -63,14 +64,9 @@ export const getForums = async (): Promise<Forum[]> => {
 export const createForum = async (forumData: CreateForumRequest): Promise<Forum> => {
   try {
     const response = await axios.post<{ status: number; data: Forum; message: string }>(
-      "https://api-lms-kappa.vercel.app/forums",
+      API_ENDPOINTS.FORUMS,
       forumData,
-      {
-        withCredentials: false,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      API_CONFIG
     );
 
     if (response.data.status < 200 || response.data.status >= 300) {
@@ -89,14 +85,9 @@ export const createForum = async (forumData: CreateForumRequest): Promise<Forum>
 export const updateForum = async (id: string, forumData: UpdateForumRequest): Promise<Forum> => {
   try {
     const response = await axios.patch<{ status: number; data: Forum; message: string }>(
-      `https://api-lms-kappa.vercel.app/forums/${id}`,
+      API_ENDPOINTS.FORUM_BY_ID(id),
       forumData,
-      {
-        withCredentials: false,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      API_CONFIG
     );
 
     if (response.data.status < 200 || response.data.status >= 300) {
