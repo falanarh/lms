@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import {
   getQuizDetailByContent,
+  getQuizAttemptHistory,
   startQuizAttempt,
   getQuestionWithAnswer,
   saveQuizAnswer,
@@ -10,6 +11,7 @@ import {
   getQuizAttemptById,
   getQuizAttemptForReview,
   type QuizDetailResponse,
+  type QuizAttemptHistoryResponse,
   type QuizStartResponse,
   type QuestionDetail,
   type QuizAttemptDetail,
@@ -48,7 +50,18 @@ export const getQuizDetailQueryOptions = (idContent: string) =>
     queryKey: getQuizDetailQueryKey(idContent),
     queryFn: () => getQuizDetailByContent(idContent),
     enabled: !!idContent,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - info kuis jarang berubah
+  });
+
+export const getQuizAttemptHistoryQueryOptions = (
+  idUser: string,
+  idContent: string
+) =>
+  queryOptions({
+    queryKey: getQuizAttemptHistoryQueryKey(idUser, idContent),
+    queryFn: () => getQuizAttemptHistory(idUser, idContent),
+    enabled: !!idUser && !!idContent,
+    staleTime: 30 * 1000, // 30 seconds - riwayat sering berubah
   });
 
 export const getQuestionDetailQueryOptions = (idQuestion: string) =>
@@ -82,6 +95,20 @@ export const getQuizAttemptForReviewQueryOptions = (
 export const useQuizDetail = (idContent: string, config: any = {}) => {
   return useQuery({
     ...getQuizDetailQueryOptions(idContent),
+    ...config,
+  });
+};
+
+/**
+ * Hook to get quiz attempt history
+ */
+export const useQuizAttemptHistory = (
+  idUser: string,
+  idContent: string,
+  config: any = {}
+) => {
+  return useQuery({
+    ...getQuizAttemptHistoryQueryOptions(idUser, idContent),
     ...config,
   });
 };
@@ -191,7 +218,7 @@ export const useSubmitQuizAttempt = (config: any = {}) => {
     onSuccess: (data: QuizAttemptDetail) => {
       // Update the attempt detail cache
       queryClient.setQueryData(getQuizAttemptByIdQueryKey(data.id), data);
-      // Invalidate attempt history
+      // Invalidate ONLY attempt history (info kuis tidak perlu di-refetch)
       queryClient.invalidateQueries({
         queryKey: getQuizAttemptHistoryQueryKey(data.idUser, data.idContent),
       });

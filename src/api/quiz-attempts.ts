@@ -30,6 +30,9 @@ export interface QuizDetailResponse {
   maxPoint: number;
   passingScore: number;
   attemptLimit: number;
+}
+
+export interface QuizAttemptHistoryResponse {
   attempts: QuizAttemptSummary[];
 }
 
@@ -60,7 +63,7 @@ export interface QuestionDetail {
   maxScore: number;
   optionsText: string[];
   optionsCode: string[];
-  answers: QuizAnswer[];
+  answers: QuizAnswer;
 }
 
 export interface SaveAnswerRequest {
@@ -75,9 +78,11 @@ export interface QuizAttemptDetail {
   idUser: string;
   idContent: string;
   questionOrder: string[];
-  questionName: string[];
-  questionDescription: string[];
+  questionName?: string[];
+  questionDescription?: string[];
   questionText: string[];
+  optionsText?: string[][];
+  optionsCode?: string[][];
   questionType: QuestionType[];
   questionScore: number[];
   keyAnswer: string[];
@@ -87,7 +92,7 @@ export interface QuizAttemptDetail {
   attemptNo: number;
   status: QuizAttemptStatus;
   totalScore: number;
-  finalScore: number;
+  finalScore?: number;
   isPassed: boolean;
   quizStart: string;
   quizEnd: string;
@@ -98,6 +103,17 @@ export const getQuizDetailByContent = async (
 ): Promise<QuizDetailResponse> => {
   const response = await axios.get<QuizDetailResponse>(
     `${API_QUIZ_BASE_URL}/quizzes/${idContent}`,
+    { withCredentials: false }
+  );
+  return response.data;
+};
+
+export const getQuizAttemptHistory = async (
+  idUser: string,
+  idContent: string
+): Promise<QuizAttemptHistoryResponse> => {
+  const response = await axios.get<QuizAttemptHistoryResponse>(
+    `${API_QUIZ_BASE_URL}/quizzes/user/${idUser}/content/${idContent}`,
     { withCredentials: false }
   );
   return response.data;

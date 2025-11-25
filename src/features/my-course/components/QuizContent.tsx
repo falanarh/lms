@@ -1,7 +1,10 @@
 "use client";
 
+import { Toast } from "@/components/ui/Toast/Toast";
+
 import { Content } from "@/api/contents";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   CheckCircle,
@@ -15,6 +18,7 @@ import {
 import { DUMMY_USER_ID } from "@/config/api";
 import {
   useQuizDetail,
+  useQuizAttemptHistory,
   useQuestionDetail,
   useStartQuizAttempt,
   useHandleQuizAnswer,
@@ -24,6 +28,7 @@ import {
 } from "@/hooks/useQuizAttempts";
 import type {
   QuizDetailResponse,
+  QuizAttemptHistoryResponse,
   QuestionDetail,
   QuizAttemptDetail,
 } from "@/api/quiz-attempts";
@@ -50,6 +55,14 @@ export const QuizContent = ({
   onStartContent,
   onFinishContent,
 }: QuizContentProps) => {
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState<
+    "info" | "warning" | "success"
+  >("success");
+  const [toastKey, setToastKey] = useState(0);
+  const toastTimeoutRef = useRef<number | null>(null);
+  const TOAST_HIDE_MS = 2000;
   const [isQuizStarted, setIsQuizStarted] = useState(false);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -58,22 +71,29 @@ export const QuizContent = ({
   const [answeredQuestions, setAnsweredQuestions] = useState<
     Record<string, boolean>
   >({});
+  const [answerCodeMap, setAnswerCodeMap] = useState<Record<string, string>>(
+    {}
+  );
   const [quizTimeLeft, setQuizTimeLeft] = useState<number | null>(null);
   const [showQuizSubmitConfirm, setShowQuizSubmitConfirm] = useState(false);
   const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null);
 
-  // Fetch quiz detail from API
+  // Fetch quiz detail from API (info kuis statis)
   const { data: quizDetail, isLoading: isQuizDetailLoading } = useQuizDetail(
     content.id,
     { retry: false }
   );
 
+  // Fetch attempt history from API (data dinamis)
+  const { data: attemptHistory, isLoading: isHistoryLoading } =
+    useQuizAttemptHistory(DUMMY_USER_ID, content.id, {
+      retry: false,
+    });
+
   // Fetch current attempt detail (if exists)
   const { data: currentAttempt, refetch: refetchCurrentAttempt } =
     useQuizAttemptById(currentAttemptId || "", {
       enabled: !!currentAttemptId,
-      // Hapus refetchInterval untuk mencegah polling terus-menerus
-      // refetchInterval: isQuizStarted && !isReviewMode ? 5000 : false,
     });
 
   const { data: reviewAttempt } = useQuizAttemptForReview(
@@ -89,19 +109,39 @@ export const QuizContent = ({
   const typedQuizDetail = quizDetail as QuizDetailResponse | undefined;
   const typedCurrentAttempt = currentAttempt as QuizAttemptDetail | undefined;
   const typedReviewAttempt = reviewAttempt as QuizAttemptDetail | undefined;
+  const typedAttemptHistory = attemptHistory as
+    | QuizAttemptHistoryResponse
+    | undefined;
+
+  const router = useRouter();
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Treat tablets and smaller (width < 1024) as "mobile" for back behaviour
+    const check = () =>
+      setIsMobile(typeof window !== "undefined" && window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const handleBackToInfo = () => {
+    // Di tablet/iPad dan desktop, kembali ke info kuis (reset state)
+    setIsQuizStarted(false);
+    setIsReviewMode(false);
+    setReviewAttemptId(null);
+    setCurrentQuestionIndex(0);
+    setQuizTimeLeft(null);
+  };
 
   const currentQuestionId =
     isReviewMode && typedReviewAttempt
       ? typedReviewAttempt.questionOrder?.[currentQuestionIndex] || ""
       : questionIds[currentQuestionIndex];
 
-  const isMultipleChoiceInReview =
-    isReviewMode &&
-    typedReviewAttempt?.questionType?.[currentQuestionIndex] ===
-      "MULTIPLE_CHOICE";
-
   const { data: currentQuestion } = useQuestionDetail(currentQuestionId || "", {
-    enabled: !!currentQuestionId && (isQuizStarted || isMultipleChoiceInReview),
+    enabled: !!currentQuestionId && isQuizStarted && !isReviewMode,
     retry: false,
   });
 
@@ -112,12 +152,12 @@ export const QuizContent = ({
 
   const typedCurrentQuestion = currentQuestion as QuestionDetail | undefined;
 
-  // Computed values from API data - use attempts from quizDetail
-  const attemptHistory = typedQuizDetail?.attempts || [];
-  const hasAttempts = attemptHistory.length > 0;
-  const attemptsUsed = attemptHistory.length;
+  // Computed values from API data - attempts dari API terpisah
+  const attempts = typedAttemptHistory?.attempts || [];
+  const hasAttempts = attempts.length > 0;
+  const attemptsUsed = attempts.length;
   const attemptsRemaining = (typedQuizDetail?.attemptLimit || 0) - attemptsUsed;
-  const latestAttempt = hasAttempts ? attemptHistory[0] : null;
+  const latestAttempt = hasAttempts ? attempts[0] : null;
   const totalQuestions =
     questionIds.length || typedQuizDetail?.totalQuestions || 0;
   const isFirstQuestion = currentQuestionIndex === 0;
@@ -154,6 +194,7 @@ export const QuizContent = ({
       setCurrentAttemptId(response.attemptId);
       setQuestionIds(response.questions.map((q: any) => q.question_id));
       setAnsweredQuestions({});
+      setAnswerCodeMap({});
 
       if (typedQuizDetail?.durationLimit) {
         setQuizTimeLeft(typedQuizDetail.durationLimit * 60);
@@ -170,7 +211,11 @@ export const QuizContent = ({
     }
   };
 
-  const handleAnswerChange = async (questionId: string, value: string) => {
+  const handleAnswerChange = async (
+    questionId: string,
+    value: string,
+    codeAnswer?: string
+  ) => {
     if (!currentAttemptId) return;
 
     try {
@@ -178,11 +223,18 @@ export const QuizContent = ({
       const currentFlag =
         typedCurrentAttempt?.flag?.[currentQuestionIndex] || false;
 
+      // For multiple choice/true-false, use codeAnswer from mapping
+      // For short answer/essay, use the value directly as code
+      let codeToSend = codeAnswer || value;
+
+      // Save the mapping for display purposes
+      setAnswerCodeMap((prev) => ({ ...prev, [questionId]: codeToSend }));
+
       await handleAnswer(
         {
           idAttempt: currentAttemptId,
           idQuestion: questionId,
-          answer: value,
+          answer: codeToSend,
           flag: currentFlag,
         },
         isUpdate
@@ -190,6 +242,20 @@ export const QuizContent = ({
 
       // Mark question as answered
       setAnsweredQuestions((prev) => ({ ...prev, [questionId]: true }));
+
+      // Show toast on success with new key to force re-render
+      // Show toast on success and auto-hide after TOAST_HIDE_MS
+      setToastMessage("Jawaban tersimpan");
+      setToastVariant("success");
+      setToastKey((prev) => prev + 1);
+      setShowToast(true);
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      toastTimeoutRef.current = window.setTimeout(() => {
+        setShowToast(false);
+        toastTimeoutRef.current = null;
+      }, TOAST_HIDE_MS);
     } catch (error) {
       console.error("Failed to save answer:", error);
     }
@@ -201,23 +267,36 @@ export const QuizContent = ({
     try {
       const currentFlag =
         typedCurrentAttempt?.flag?.[currentQuestionIndex] || false;
-      const currentAnswer =
-        typedCurrentAttempt?.answer?.[currentQuestionIndex] || "";
+      const currentAnswerCode = answerCodeMap[questionId] || "";
       const isUpdate = answeredQuestions[questionId];
 
       await handleAnswer(
         {
           idAttempt: currentAttemptId,
           idQuestion: questionId,
-          answer: currentAnswer,
+          answer: currentAnswerCode,
           flag: !currentFlag,
         },
-        isUpdate || !!currentAnswer
+        isUpdate || !!currentAnswerCode
       );
 
-      if (!answeredQuestions[questionId] && currentAnswer) {
+      if (!answeredQuestions[questionId] && currentAnswerCode) {
         setAnsweredQuestions((prev) => ({ ...prev, [questionId]: true }));
       }
+
+      // Show toast on success with new key to force re-render
+      // Show toast on success and auto-hide after TOAST_HIDE_MS
+      setToastMessage("Jawaban tersimpan");
+      setToastVariant("success");
+      setToastKey((prev) => prev + 1);
+      setShowToast(true);
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      toastTimeoutRef.current = window.setTimeout(() => {
+        setShowToast(false);
+        toastTimeoutRef.current = null;
+      }, TOAST_HIDE_MS);
     } catch (error) {
       console.error("Failed to toggle flag:", error);
     }
@@ -237,6 +316,31 @@ export const QuizContent = ({
       setQuestionIds(typedReviewAttempt.questionOrder);
     }
   }, [isReviewMode, typedReviewAttempt]);
+
+  // Effect to populate answerCodeMap from current attempt when it changes
+  useEffect(() => {
+    if (
+      !isQuizStarted ||
+      isReviewMode ||
+      !typedCurrentAttempt ||
+      !questionIds.length
+    )
+      return;
+
+    const newCodeMap: Record<string, string> = {};
+    const newAnsweredMap: Record<string, boolean> = {};
+
+    questionIds.forEach((qId, index) => {
+      const answerCode = typedCurrentAttempt.answer?.[index];
+      if (answerCode) {
+        newCodeMap[qId] = answerCode;
+        newAnsweredMap[qId] = true;
+      }
+    });
+
+    setAnswerCodeMap(newCodeMap);
+    setAnsweredQuestions(newAnsweredMap);
+  }, [typedCurrentAttempt, questionIds, isQuizStarted, isReviewMode]);
 
   useEffect(() => {
     if (
@@ -260,6 +364,16 @@ export const QuizContent = ({
 
     return () => window.clearInterval(interval);
   }, [isQuizStarted, isReviewMode, quizTimeLeft]);
+
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handleGoToQuestion = (index: number) => {
     if (index < 0 || index >= totalQuestions) return;
@@ -291,10 +405,22 @@ export const QuizContent = ({
       setCurrentAttemptId(null);
       setQuestionIds([]);
       setAnsweredQuestions({});
+      setAnswerCodeMap({});
       setQuizTimeLeft(null);
       setCurrentQuestionIndex(0);
 
-      alert("Kuis berhasil dikumpulkan!");
+      // Show success toast
+      setToastMessage("Kuis berhasil dikumpulkan!");
+      setToastVariant("success");
+      setToastKey((prev) => prev + 1);
+      setShowToast(true);
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+      toastTimeoutRef.current = window.setTimeout(() => {
+        setShowToast(false);
+        toastTimeoutRef.current = null;
+      }, TOAST_HIDE_MS);
     } catch (error) {
       console.error("Failed to submit quiz:", error);
       alert("Gagal mengumpulkan kuis. Silakan coba lagi.");
@@ -360,14 +486,20 @@ export const QuizContent = ({
 
       if (questionType === "TRUE_FALSE") {
         const options = ["true", "false"];
+        const optionCodes =
+          typedReviewAttempt.optionsCode?.[currentQuestionIndex] || options;
+
         return (
           <div className="mt-3 space-y-3 text-sm">
             <p className={`font-semibold ${statusClass}`}>{statusLabel}</p>
 
             <div className="space-y-2 rounded-md bg-blue-50/40 px-3 py-3 border border-blue-100">
-              {options.map((option) => {
-                const isSelected = currentAnswer.toLowerCase() === option;
-                const isCorrect = correctAnswer.toLowerCase() === option;
+              {options.map((option, index) => {
+                const optionCode = optionCodes[index] || option;
+                const isSelected =
+                  currentAnswer.toLowerCase() === optionCode.toLowerCase();
+                const isCorrect =
+                  correctAnswer.toLowerCase() === optionCode.toLowerCase();
                 let borderClass = "border-gray-200 bg-white";
                 let textClass = "text-gray-800";
 
@@ -413,18 +545,29 @@ export const QuizContent = ({
         );
       }
 
-      if (
-        questionType === "MULTIPLE_CHOICE" &&
-        typedCurrentQuestion?.optionsText
-      ) {
+      if (questionType === "MULTIPLE_CHOICE") {
+        const options =
+          typedReviewAttempt.optionsText?.[currentQuestionIndex] || [];
+        const optionCodes =
+          typedReviewAttempt.optionsCode?.[currentQuestionIndex] || [];
+
+        if (options.length === 0) {
+          return (
+            <div className="text-center py-8 text-gray-500">
+              Loading question options...
+            </div>
+          );
+        }
+
         return (
           <div className="mt-3 space-y-3 text-sm">
             <p className={`font-semibold ${statusClass}`}>{statusLabel}</p>
 
             <div className="space-y-2 rounded-md bg-blue-50/40 px-3 py-3 border border-blue-100">
-              {typedCurrentQuestion.optionsText.map((option, index) => {
-                const isSelected = currentAnswer === option;
-                const isCorrect = correctAnswer === option;
+              {options.map((option, index) => {
+                const optionCode = optionCodes[index] || option;
+                const isSelected = currentAnswer === optionCode;
+                const isCorrect = correctAnswer === optionCode;
                 let borderClass = "border-gray-200 bg-white";
                 let textClass = "text-gray-800";
 
@@ -438,7 +581,7 @@ export const QuizContent = ({
 
                 return (
                   <div
-                    key={option}
+                    key={`${option}-${index}`}
                     className={`flex items-center gap-2 rounded-md border px-3 py-2 ${borderClass}`}
                   >
                     <span
@@ -462,7 +605,7 @@ export const QuizContent = ({
                   Jawaban yang benar
                 </p>
                 <p className="text-sm font-semibold text-amber-800 break-words">
-                  {correctAnswer}
+                  {options[optionCodes.indexOf(correctAnswer)] || correctAnswer}
                 </p>
               </div>
             )}
@@ -486,8 +629,7 @@ export const QuizContent = ({
     }
 
     const questionId = typedCurrentQuestion.id;
-    const currentAnswer =
-      typedCurrentAttempt?.answer?.[currentQuestionIndex] || "";
+    const currentCodeAnswer = answerCodeMap[questionId] || "";
 
     if (
       typedCurrentQuestion.questionType === "SHORT_ANSWER" ||
@@ -495,7 +637,7 @@ export const QuizContent = ({
     ) {
       return (
         <textarea
-          value={currentAnswer}
+          value={currentCodeAnswer}
           onChange={(e) => handleAnswerChange(questionId, e.target.value)}
           className="mt-3 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[90px]"
           placeholder="Tulis jawaban Anda di sini..."
@@ -508,7 +650,10 @@ export const QuizContent = ({
         <div className="mt-3 space-y-2">
           {typedCurrentQuestion.optionsText.map((option, index) => {
             const id = `q-${questionId}-opt-${index}`;
-            const isSelected = currentAnswer === option;
+            const optionCode =
+              typedCurrentQuestion.optionsCode?.[index] || option;
+            const currentCodeAnswer = answerCodeMap[questionId];
+            const isSelected = currentCodeAnswer === optionCode;
             return (
               <label
                 key={index}
@@ -525,8 +670,8 @@ export const QuizContent = ({
                   name={`question-${questionId}`}
                   value={option}
                   checked={isSelected}
-                  onChange={(e) =>
-                    handleAnswerChange(questionId, e.target.value)
+                  onChange={() =>
+                    handleAnswerChange(questionId, option, optionCode)
                   }
                   className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
@@ -545,7 +690,7 @@ export const QuizContent = ({
     "relative w-full bg-white rounded-md transition-all duration-500 border border-gray-200 shadow-sm flex flex-col md:flex-row md:h-[520px] md:min-h-[520px] md:max-h-[520px]";
 
   if (!isQuizStarted && !isReviewMode) {
-    if (isQuizDetailLoading) {
+    if (isQuizDetailLoading || isHistoryLoading) {
       return (
         <div className={wrapperClasses}>
           <div className="flex items-center justify-center w-full h-full">
@@ -648,7 +793,7 @@ export const QuizContent = ({
                   Tanggal mulai
                 </p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {formatDate(typedQuizDetail.content.contentStart)}
+                  {formatDate(typedQuizDetail?.content?.contentStart)}
                 </p>
               </div>
             </div>
@@ -662,7 +807,7 @@ export const QuizContent = ({
                   Tanggal selesai
                 </p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {formatDate(typedQuizDetail.content.contentEnd)}
+                  {formatDate(typedQuizDetail?.content?.contentEnd)}
                 </p>
               </div>
             </div>
@@ -670,13 +815,13 @@ export const QuizContent = ({
         </div>
 
         <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex flex-col p-3 md:p-4 gap-3">
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+          <div className="flex-1 flex flex-col min-h-0">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Riwayat pengerjaan
             </p>
             {hasAttempts ? (
-              <div className="space-y-2">
-                {attemptHistory.map((attempt, index) => {
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                {attempts.map((attempt, index) => {
                   const hasPassed = attempt.isPassed === true;
                   const hasFailed = attempt.isPassed === false;
                   const hasScore = attempt.totalScore !== null;
@@ -684,7 +829,7 @@ export const QuizContent = ({
                   return (
                     <div
                       key={attempt.id}
-                      className="rounded-lg border border-gray-200 bg-white p-3 space-y-1.5"
+                      className="rounded-lg border border-gray-200 bg-white p-3 space-y-1.5 flex-shrink-0"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div>
@@ -760,256 +905,289 @@ export const QuizContent = ({
   }
 
   return (
-    <div className={wrapperClasses}>
-      {isReviewMode ? (
-        <div className="absolute top-2 left-2 z-10 inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200">
-          <span className="text-xs font-semibold text-gray-800">
-            Review jawaban
-          </span>
-          <span className="text-[11px] tracking-wide text-gray-500">
-            Soal {currentQuestionIndex + 1} dari {totalQuestions}
-          </span>
-        </div>
-      ) : (
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200">
-          <Clock className="w-3.5 h-3.5 text-blue-600" />
-          {quizTimeLeft !== null ? (
-            <span className="text-xs font-semibold text-gray-900">
-              {formatTime(quizTimeLeft)}
-            </span>
-          ) : (
-            <span className="text-xs text-gray-500">Tanpa batas waktu</span>
-          )}
-          <span className="ml-2 text-[11px] text-gray-500">
-            Soal {currentQuestionIndex + 1} / {totalQuestions}
-          </span>
+    <>
+      {showToast && (
+        <div
+          key={toastKey}
+          className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5"
+        >
+          <Toast
+            message={toastMessage}
+            variant={toastVariant}
+            onClose={() => {
+              if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+                toastTimeoutRef.current = null;
+              }
+              setShowToast(false);
+              // Reset after close to ensure next toast can appear
+              setTimeout(() => setToastKey((prev) => prev + 1), 100);
+            }}
+            autoDismiss
+            duration={TOAST_HIDE_MS}
+          />
         </div>
       )}
-
-      <div className="flex-1 flex flex-col p-3 md:p-4 md:pr-3">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div>
-            <p className="text-[11px] font-semibold tracking-wide text-blue-600 mb-1">
-              Soal {currentQuestionIndex + 1} dari {totalQuestions}
-            </p>
-            <h3 className="text-sm md:text-base font-semibold text-gray-900 leading-relaxed">
-              {isReviewMode && typedReviewAttempt
-                ? typedReviewAttempt.questionText?.[currentQuestionIndex] ||
-                  "Loading..."
-                : typedCurrentQuestion?.questionText || "Loading..."}
-            </h3>
-          </div>
+      {/* ...existing code... */}
+      <div className={wrapperClasses}>
+        <div className="flex-1 flex flex-col p-3 md:p-4 md:pr-3">
+          {/* Timer badge moved inside content so it doesn't overlap the question */}
+          {!isReviewMode && (
+            <div className="mb-3 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200 w-fit">
+              <Clock className="w-3.5 h-3.5 text-blue-600" />
+              {quizTimeLeft !== null ? (
+                <span className="text-xs font-semibold text-gray-900">
+                  {formatTime(quizTimeLeft)}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-500">Tanpa batas waktu</span>
+              )}
+              <span className="ml-2 text-[11px] text-gray-500">
+                Soal {currentQuestionIndex + 1} / {totalQuestions}
+              </span>
+            </div>
+          )}
           {isReviewMode && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsQuizStarted(false);
-                setIsReviewMode(false);
-                setReviewAttemptId(null);
-                setCurrentQuestionIndex(0);
-                setQuizTimeLeft(null);
-              }}
-              className="inline-flex items-center rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
-            >
-              {"Kembali ke info kuis"}
-            </button>
-          )}
-        </div>
-
-        {!isReviewMode && typedCurrentQuestion && (
-          <div className="mb-2">
-            <button
-              type="button"
-              onClick={() => toggleUnsure(typedCurrentQuestion.id)}
-              disabled={isSavingAnswer}
-              className={`inline-flex items-center justify-center gap-1 rounded-md border px-3 md:px-4 py-2 text-xs md:text-sm font-medium shadow-sm transition-colors disabled:opacity-50 ${
-                typedCurrentAttempt?.flag?.[currentQuestionIndex]
-                  ? "border-amber-500 bg-amber-50 text-amber-700"
-                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <Flag className="w-4 h-4 text-amber-700 mr-1" />
-              {typedCurrentAttempt?.flag?.[currentQuestionIndex]
-                ? "Ditandai Ragu-ragu"
-                : "Tandai ragu-ragu"}
-            </button>
-          </div>
-        )}
-
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-          {renderQuestionInput()}
-        </div>
-
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            disabled={isFirstQuestion}
-            className={`inline-flex items-center justify-center rounded-md border px-3 py-2 text-xs md:text-sm font-medium shadow-sm transition-colors ${
-              isFirstQuestion
-                ? "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
-                : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-            }`}
-          >
-            Previous Question
-          </button>
-
-          {isLastQuestion ? (
-            <button
-              type="button"
-              onClick={() => setShowQuizSubmitConfirm(true)}
-              className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-            >
-              Submit Kuis
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-            >
-              Next Question
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="hidden md:flex md:w-64 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex-col p-3 md:p-4 gap-3">
-        <div>
-          <p className="text-xs font-semibold text-gray-700 mb-2">
-            Navigasi soal
-          </p>
-          <div className="grid grid-cols-5 gap-2">
-            {questionIds.map((qId, index) => {
-              const isCurrent = index === currentQuestionIndex;
-              const attemptToUse = isReviewMode
-                ? typedReviewAttempt
-                : typedCurrentAttempt;
-              const isAnswered = !!attemptToUse?.answer?.[index];
-              const isUnsure = !!attemptToUse?.flag?.[index];
-
-              // For review mode, determine if answer is correct
-              let isCorrect = false;
-              let isWrong = false;
-              if (isReviewMode && attemptToUse) {
-                const userAnswer = attemptToUse.answer?.[index];
-                const correctAnswer = attemptToUse.keyAnswer?.[index];
-                if (userAnswer && correctAnswer) {
-                  isCorrect = userAnswer === correctAnswer;
-                  isWrong = userAnswer !== correctAnswer;
-                }
-              }
-
-              let baseClass =
-                "border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50";
-
-              if (isReviewMode) {
-                if (isCurrent) {
-                  baseClass = "border-blue-600 bg-blue-500 text-white";
-                } else if (isCorrect) {
-                  baseClass =
-                    "border-emerald-500 bg-emerald-50 text-emerald-700";
-                } else if (isWrong) {
-                  baseClass = "border-rose-500 bg-rose-50 text-rose-700";
-                } else {
-                  baseClass = "border-gray-300 bg-white text-gray-700";
-                }
-              } else if (isCurrent) {
-                baseClass = "border-blue-600 bg-blue-50 text-blue-700";
-              } else if (isUnsure) {
-                baseClass = "border-amber-500 bg-amber-50 text-amber-700";
-              } else if (isAnswered) {
-                baseClass = "border-emerald-500 bg-emerald-50 text-emerald-700";
-              }
-
-              return (
-                <button
-                  key={qId}
-                  type="button"
-                  onClick={() => handleGoToQuestion(index)}
-                  className={`h-8 w-8 rounded-md text-xs font-medium border flex items-center justify-center transition-colors ${baseClass}`}
-                >
-                  {index + 1}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-auto pt-1 text-xs text-gray-500 space-y-1">
-          {isReviewMode ? (
-            <>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-blue-500 align-middle mr-1" />
-                <span>Jawaban aktif</span>
-              </p>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-emerald-500 align-middle mr-1" />
-                <span>Jawaban benar</span>
-              </p>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-rose-500 align-middle mr-1" />
-                <span>Jawaban salah</span>
-              </p>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-gray-300 align-middle mr-1" />
-                <span>Belum dijawab</span>
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-blue-500 align-middle mr-1" />
-                <span>Soal aktif</span>
-              </p>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-amber-500 align-middle mr-1" />
-                <span>Soal ragu-ragu</span>
-              </p>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-emerald-500 align-middle mr-1" />
-                <span>Soal terjawab</span>
-              </p>
-              <p>
-                <span className="inline-block h-2 w-3 rounded-sm bg-gray-300 align-middle mr-1" />
-                <span>Belum dijawab</span>
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-
-      {showQuizSubmitConfirm && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg border border-gray-200">
-            <p className="text-sm font-semibold text-gray-900 mb-1">
-              Selesai mengerjakan kuis?
-            </p>
-            <p className="text-xs text-gray-600 mb-4">
-              Setelah Anda submit, jawaban tidak dapat diubah lagi.
-            </p>
-            <div className="flex justify-end gap-2">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-gray-200 w-fit">
+                <span className="text-xs font-semibold text-gray-800">
+                  Review jawaban
+                </span>
+                <span className="text-[11px] tracking-wide text-gray-500">
+                  Soal {currentQuestionIndex + 1} dari {totalQuestions}
+                </span>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowQuizSubmitConfirm(false)}
-                className="px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                onClick={handleBackToInfo}
+                className="inline-flex items-center h-8 rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 shadow-sm"
               >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowQuizSubmitConfirm(false);
-                  handleSubmitQuiz();
-                }}
-                className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700"
-              >
-                Ya, submit
+                Kembali
               </button>
             </div>
+          )}
+          <div className="mb-4 flex items-start justify-between gap-2">
+            <div>
+              <h3 className="text-sm md:text-base font-semibold text-gray-900 leading-relaxed">
+                {isReviewMode && typedReviewAttempt
+                  ? typedReviewAttempt.questionText?.[currentQuestionIndex] ||
+                    "Loading..."
+                  : typedCurrentQuestion?.questionText || "Loading..."}
+              </h3>
+            </div>
+          </div>
+
+          {!isReviewMode && typedCurrentQuestion && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => toggleUnsure(typedCurrentQuestion.id)}
+                disabled={isSavingAnswer}
+                className={`inline-flex items-center justify-center gap-1 rounded-md border px-3 md:px-4 py-2 text-xs md:text-sm font-medium shadow-sm transition-colors disabled:opacity-50 ${
+                  typedCurrentAttempt?.flag?.[currentQuestionIndex]
+                    ? "border-amber-500 bg-amber-50 text-amber-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Flag className="w-4 h-4 text-amber-700 mr-1" />
+                {typedCurrentAttempt?.flag?.[currentQuestionIndex]
+                  ? "Ditandai Ragu-ragu"
+                  : "Tandai ragu-ragu"}
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {renderQuestionInput()}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handlePrevious}
+              disabled={isFirstQuestion}
+              className={`inline-flex items-center justify-center rounded-md border px-3 py-2 text-xs md:text-sm font-medium shadow-sm transition-colors ${
+                isFirstQuestion
+                  ? "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                  : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              }`}
+            >
+              Previous Question
+            </button>
+
+            {isLastQuestion ? (
+              !isReviewMode ? (
+                <button
+                  type="button"
+                  onClick={() => setShowQuizSubmitConfirm(true)}
+                  className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                >
+                  Submit Kuis
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center justify-center rounded-md border px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-gray-400 bg-gray-50 cursor-not-allowed"
+                >
+                  Next Question
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              >
+                Next Question
+              </button>
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        <div className="hidden md:flex md:w-64 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex-col p-3 md:p-4 gap-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-2">
+              Navigasi soal
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {questionIds.map((qId, index) => {
+                const isCurrent = index === currentQuestionIndex;
+                const attemptToUse = isReviewMode
+                  ? typedReviewAttempt
+                  : typedCurrentAttempt;
+                // Check if answered from our local map
+                const isAnsweredLocal = !!answerCodeMap[qId];
+                const isAnswered = isReviewMode
+                  ? !!attemptToUse?.answer?.[index]
+                  : isAnsweredLocal;
+                const isUnsure = !!attemptToUse?.flag?.[index];
+
+                // For review mode, determine if answer is correct
+                let isCorrect = false;
+                let isWrong = false;
+                if (isReviewMode && attemptToUse) {
+                  const userAnswer = attemptToUse.answer?.[index];
+                  const correctAnswer = attemptToUse.keyAnswer?.[index];
+                  if (userAnswer && correctAnswer) {
+                    isCorrect = userAnswer === correctAnswer;
+                    isWrong = userAnswer !== correctAnswer;
+                  }
+                }
+
+                let baseClass =
+                  "border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50";
+
+                if (isReviewMode) {
+                  if (isCurrent) {
+                    baseClass = "border-blue-600 bg-blue-500 text-white";
+                  } else if (isCorrect) {
+                    baseClass =
+                      "border-emerald-500 bg-emerald-50 text-emerald-700";
+                  } else if (isWrong) {
+                    baseClass = "border-rose-500 bg-rose-50 text-rose-700";
+                  } else {
+                    baseClass = "border-gray-300 bg-white text-gray-700";
+                  }
+                } else if (isCurrent) {
+                  baseClass = "border-blue-600 bg-blue-50 text-blue-700";
+                } else if (isUnsure) {
+                  baseClass = "border-amber-500 bg-amber-50 text-amber-700";
+                } else if (isAnswered) {
+                  baseClass =
+                    "border-emerald-500 bg-emerald-50 text-emerald-700";
+                }
+
+                return (
+                  <button
+                    key={qId}
+                    type="button"
+                    onClick={() => handleGoToQuestion(index)}
+                    className={`h-8 w-8 rounded-md text-xs font-medium border flex items-center justify-center transition-colors ${baseClass}`}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-auto pt-1 text-xs text-gray-500 space-y-1">
+            {isReviewMode ? (
+              <>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-blue-500 align-middle mr-1" />
+                  <span>Jawaban aktif</span>
+                </p>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-emerald-500 align-middle mr-1" />
+                  <span>Jawaban benar</span>
+                </p>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-rose-500 align-middle mr-1" />
+                  <span>Jawaban salah</span>
+                </p>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-gray-300 align-middle mr-1" />
+                  <span>Belum dijawab</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-blue-500 align-middle mr-1" />
+                  <span>Soal aktif</span>
+                </p>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-amber-500 align-middle mr-1" />
+                  <span>Soal ragu-ragu</span>
+                </p>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-emerald-500 align-middle mr-1" />
+                  <span>Soal terjawab</span>
+                </p>
+                <p>
+                  <span className="inline-block h-2 w-3 rounded-sm bg-gray-300 align-middle mr-1" />
+                  <span>Belum dijawab</span>
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {showQuizSubmitConfirm && (
+          <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg border border-gray-200">
+              <p className="text-sm md:text-base font-semibold text-gray-900 mb-1">
+                Apakah Anda yakin ingin mengirimkan jawaban Anda?
+              </p>
+              <p className="text-xs md:text-base text-gray-600 mb-4">
+                Setelah Anda menekan Submit, semua jawaban akan dikunci dan
+                tidak dapat diubah.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowQuizSubmitConfirm(false)}
+                  className="px-3 py-1.5 text-xs md:text-base rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowQuizSubmitConfirm(false);
+                    handleSubmitQuiz();
+                  }}
+                  className="px-3 py-1.5 text-xs md:text-base rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
