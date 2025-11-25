@@ -171,10 +171,12 @@ export function CourseFilters({
           </Listbox>
         </div>
 
-        <ViewModeToggle
-          viewMode={viewMode}
-          onViewModeChange={onViewModeChange}
-        />
+        <div className="hidden md:flex items-center">
+          <ViewModeToggle
+            viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
+          />
+        </div>
       </div>
     </div>
   );
