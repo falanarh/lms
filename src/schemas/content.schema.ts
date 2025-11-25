@@ -33,16 +33,18 @@ export const contentSchema = z
     // ✅ NEW: Task data
     taskData: taskDataSchema.optional(),
     // Quiz data (already exists)
-    quizData: z.object({
-      idCurriculum: z.string().uuid().optional(),
-      curriculum: z.string().optional(),
-      durationLimit: z.number().int().min(1),
-      totalQuestions: z.number().int().positive().optional(),
-      maxPoint: z.number().int().positive(),
-      passingScore: z.number().min(0).max(100),
-      attemptLimit: z.number().int().positive().optional(),
-      shuffleQuestions: z.boolean(),
-    }).optional(),
+    quizData: z
+      .object({
+        idCurriculum: z.string().uuid().optional(),
+        curriculum: z.string().optional(),
+        durationLimit: z.number().int().min(1),
+        totalQuestions: z.number().int().positive().optional(),
+        maxPoint: z.number().int().positive(),
+        passingScore: z.number().min(0).max(100),
+        attemptLimit: z.number().int().positive().optional(),
+        shuffleQuestions: z.boolean(),
+      })
+      .optional(),
   })
   .refine((data) => new Date(data.contentEnd) > new Date(data.contentStart), {
     message: "Content end date must be after content start date",
@@ -127,13 +129,13 @@ export const updateLinkContentSchema = baseContentSchema
   })
   .partial()
   .required({ type: true });
-  // .refine(
-  //   (data) =>
-  //     data.name !== undefined ||
-  //     data.description !== undefined ||
-  //     data.contentUrl !== undefined,
-  //   { message: "At least one field must be updated" },
-  // );
+// .refine(
+//   (data) =>
+//     data.name !== undefined ||
+//     data.description !== undefined ||
+//     data.contentUrl !== undefined,
+//   { message: "At least one field must be updated" },
+// );
 
 // PDF/Document Content Schema
 export const createPdfContentSchema = baseContentSchema.extend({
@@ -219,7 +221,7 @@ export const updateQuizContentSchema = baseContentSchema
   })
   .partial()
   .required({ type: true });
-  // .partial();
+// .partial();
 
 // Task Content Schema
 export const createTaskContentSchema = baseContentSchema.extend({
@@ -250,7 +252,47 @@ export const createJadwalKurikulumContentSchema = baseContentSchema.extend({
   scheduleName: z.string().optional(),
   jp: z.number().int().min(0).optional(),
   scheduleDate: z.string().optional(),
+  // PDF URL fields
+  rbmp: z.string().url("URL tidak valid").optional(),
+  bahanAjarUrl: z.string().url("URL tidak valid").optional(),
+  bahanTayangUrl: z.string().url("URL tidak valid").optional(),
+  alatPeraga: z.string().url("URL tidak valid").optional(),
 });
+
+export const createCourseScheduleContentSchema = baseContentSchema.extend({
+  idSection: z.string().uuid("Invalid section ID"),
+  type: z.literal("COURSE_SCHEDULE"),
+  contentUrl: z.null().optional(),
+  sequence: z.number().int().min(0),
+  // Curriculum schedule fields
+  idSchedule: z.string().uuid("Invalid schedule ID").optional(),
+  scheduleName: z.string().optional(),
+  jp: z.number().int().min(0).optional(),
+  scheduleDate: z.string().optional(),
+  // PDF URL fields
+  rbmp: z.string().url("URL tidak valid").optional(),
+  bahanAjarUrl: z.string().url("URL tidak valid").optional(),
+  bahanTayangUrl: z.string().url("URL tidak valid").optional(),
+  alatPeraga: z.string().url("URL tidak valid").optional(),
+});
+
+export const updateCourseScheduleContentSchema = baseContentSchema
+  .extend({
+    type: z.literal("COURSE_SCHEDULE"),
+    contentUrl: z.null().optional(),
+    // Curriculum schedule fields
+    idSchedule: z.string().uuid("Invalid schedule ID").optional(),
+    scheduleName: z.string().optional(),
+    jp: z.number().int().min(0).optional(),
+    scheduleDate: z.string().optional(),
+    // PDF URL fields
+    rbmp: z.string().url("URL tidak valid").optional(),
+    bahanAjarUrl: z.string().url("URL tidak valid").optional(),
+    bahanTayangUrl: z.string().url("URL tidak valid").optional(),
+    alatPeraga: z.string().url("URL tidak valid").optional(),
+  })
+  .partial()
+  .required({ type: true });
 
 export const updateJadwalKurikulumContentSchema = baseContentSchema
   .extend({
@@ -264,17 +306,17 @@ export const updateJadwalKurikulumContentSchema = baseContentSchema
   })
   .partial()
   .required({ type: true });
-  // .refine(
-  //   (data) =>
-  //     data.name !== undefined ||
-  //     data.description !== undefined ||
-  //     data.contentUrl !== undefined ||
-  //     data.idSchedule !== undefined ||
-  //     data.scheduleName !== undefined ||
-  //     data.jp !== undefined ||
-  //     data.scheduleDate !== undefined,
-  //   { message: "At least one field must be updated" },
-  // );
+// .refine(
+//   (data) =>
+//     data.name !== undefined ||
+//     data.description !== undefined ||
+//     data.contentUrl !== undefined ||
+//     data.idSchedule !== undefined ||
+//     data.scheduleName !== undefined ||
+//     data.jp !== undefined ||
+//     data.scheduleDate !== undefined,
+//   { message: "At least one field must be updated" },
+// );
 
 // Union schemas for all content types
 export const createContentSchema = z.discriminatedUnion("type", [
@@ -285,6 +327,7 @@ export const createContentSchema = z.discriminatedUnion("type", [
   createTaskContentSchema,
   createQuizContentSchema,
   createJadwalKurikulumContentSchema,
+  createCourseScheduleContentSchema,
 ]);
 
 export const updateContentSchema = z.discriminatedUnion("type", [
@@ -295,6 +338,7 @@ export const updateContentSchema = z.discriminatedUnion("type", [
   updateTaskContentSchema,
   updateQuizContentSchema,
   updateJadwalKurikulumContentSchema,
+  updateCourseScheduleContentSchema,
 ]);
 
 // Type exports
@@ -313,8 +357,16 @@ export type UpdateQuizContent = z.infer<typeof updateQuizContentSchema>;
 export type CreateJadwalKurikulumContent = z.infer<
   typeof createJadwalKurikulumContentSchema
 >;
+
+export type CreateCourseScheduleContent = z.infer<
+  typeof createCourseScheduleContentSchema
+>;
 export type UpdateJadwalKurikulumContent = z.infer<
   typeof updateJadwalKurikulumContentSchema
+>;
+
+export type UpdateCourseScheduleContent = z.infer<
+  typeof updateCourseScheduleContentSchema
 >;
 
 export type CreateContentInput = z.infer<typeof createContentSchema>;

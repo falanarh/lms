@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CourseBreadcrumb,
@@ -14,6 +14,7 @@ import {
   RatingsReviewsTab,
   PageContainer,
   DetailCourseSkeleton,
+  ScheduleAttendanceTab,
 } from "@/features/detail-course/components";
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
@@ -21,6 +22,7 @@ import { useSectionContent } from "@/hooks/useSectionContent";
 import { useStartActivity, useCheckEnroll } from "@/hooks/useActivity";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { createToastState } from "@/utils/toastUtils";
+import { AttendanceNotificationBanner } from "@/features/detail-course/components/AttendanceNotifBanner";
 
 interface DetailCoursePageProps {
   params: Promise<{
@@ -36,6 +38,8 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const toastState = createToastState();
+
+  const scheduleTabRef = useRef<HTMLDivElement>(null);
 
   const { data: sectionContent, isLoading: isSectionsLoading } = useSectionContent({
     courseId: id,
@@ -93,6 +97,28 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         : [...prev, sectionId]
     );
   };
+  
+  const handleScheduleClick = () => {
+    // Switch to schedule tab
+    setActiveTab("schedule_attendance");
+    
+    // Scroll to the tab section with longer delay to ensure content is fully rendered
+    setTimeout(() => {
+      if (scheduleTabRef.current) {
+
+        console.log("Scrolling to schedule tab...");
+        // Get the element's position
+        const elementPosition = scheduleTabRef.current.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - 80; // 80px offset for better visibility
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
+      console.log("failed to scroll to schedule tab");
+    }, 300); // Increased delay to 300ms
+  };
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
@@ -101,6 +127,13 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   ];
 
   return (
+
+    <>
+      <AttendanceNotificationBanner
+        onClickSchedule={handleScheduleClick}
+        hasSchedule={true}
+      />
+
     <PageContainer>
       <CourseBreadcrumb items={breadcrumbItems} />
 
@@ -131,60 +164,70 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             }
             isProcessing={isEnrolling}
           />
-          </div>
         </div>
+      </div>
 
-        {/* Tabs & Content */}
-        <div className="space-y-6 pb-8">
-          <CourseTabNavigation activeTab={activeTab} onTabChange={setActiveTab} hiddenTabs={["summary"]} />
+      {/* Tabs & Content */}
+      <div ref={scheduleTabRef} className="space-y-6 pb-8">
+        <CourseTabNavigation 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+          hiddenTabs={["summary"]} 
+        />
 
-          {activeTab === "information" && (
-            <CourseInformationTab
-              method={course.groupCourse.description.method}
-              syllabusFile={course.groupCourse.description.silabus}
-              totalJP={course.groupCourse.description.totalJp}
-              quota={course.groupCourse.description.quota}
-              description={course.groupCourse.description.description}
-              zoomUrl={course.zoomUrl || undefined}
-              isEnrolled={false}
-            />
-          )}
-
-          {activeTab === "course_contents" && (
-            isSectionsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-gray-500">Loading sections...</div>
-              </div>
-            ) : (
-              <CourseContentsTab
-                sections={(sectionContent?.data?.listSection as any) || []}
-                expandedSections={expandedSections}
-                onToggleSection={handleToggleSection}
-              />
-            )
-          )}
-
-          {activeTab === "discussion_forum" && <DiscussionForumTab />}
-
-          {activeTab === "ratings_reviews" && (
-            <RatingsReviewsTab
-              courseId={id}
-            />
-          )}
-        </div>
-        {/* Toast */}
-        {toastState.toast && (
-          <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
-            <Toast
-              variant={toastState.toast.variant}
-              message={toastState.toast.message}
-              onClose={toastState.dismissToast}
-              autoDismiss
-              duration={4000}
-              dismissible
-            />
-          </div>
+        {activeTab === "information" && (
+          <CourseInformationTab
+            method={course.groupCourse.description.method}
+            syllabusFile={course.groupCourse.description.silabus}
+            totalJP={course.groupCourse.description.totalJp}
+            quota={course.groupCourse.description.quota}
+            description={course.groupCourse.description.description}
+            zoomUrl={course.zoomUrl || undefined}
+            isEnrolled={false}
+          />
         )}
+
+        {activeTab === "course_contents" && (
+          isSectionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-gray-500">Loading sections...</div>
+            </div>
+          ) : (
+            <CourseContentsTab
+              sections={(sectionContent?.data?.listSection as any) || []}
+              expandedSections={expandedSections}
+              onToggleSection={handleToggleSection}
+            />
+          )
+        )}
+
+        {activeTab === "schedule_attendance" && (
+          <ScheduleAttendanceTab courseId={id} />
+        )}
+
+        {activeTab === "discussion_forum" && <DiscussionForumTab />}
+
+        {activeTab === "ratings_reviews" && (
+          <RatingsReviewsTab
+            courseId={id}
+          />
+        )}
+      </div>
+
+      {/* Toast */}
+      {toastState.toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+          <Toast
+            variant={toastState.toast.variant}
+            message={toastState.toast.message}
+            onClose={toastState.dismissToast}
+            autoDismiss
+            duration={4000}
+            dismissible
+          />
+        </div>
+      )}
     </PageContainer>
-    );
+    </>
+  );
 }

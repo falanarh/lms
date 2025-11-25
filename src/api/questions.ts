@@ -1,13 +1,19 @@
 import axios from "axios";
 
-export type QuestionType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "ESSAY" | "SHORT_ANSWER";
+export type QuestionType =
+  | "MULTIPLE_CHOICE"
+  | "TRUE_FALSE"
+  | "ESSAY"
+  | "SHORT_ANSWER";
 
 export interface QuestionRequest {
   idContent: string;
+  idQuestionTag: string;
   name: string;
   questionType: QuestionType;
   questionText: string;
   maxScore: number;
+  shuffleOptions: boolean;
   optionsCode?: string[];
   optionsText?: string[];
   answer: {
@@ -31,6 +37,11 @@ export interface Question {
   maxScore: number;
   optionsText?: string[];
   answers: Answer[];
+  tag?: {
+    id: string;
+    name: string;
+    detail?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -44,6 +55,12 @@ export interface QuestionResponse {
   maxScore: number;
   optionsText?: string[];
   answers: Answer[];
+  shuffleOptions: boolean;
+  tag?: {
+    id: string;
+    name: string;
+    detail?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -65,21 +82,28 @@ export interface QuestionsListResponse {
   pageMeta: PageMeta;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_QUIZ_BASE_URL || "http://localhost:3002";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_QUIZ_BASE_URL || "http://localhost:3002";
 
 /**
  * Creates a question with correct answer
- * Based on the curl example: POST /api/v1/questions/with-correct-answer
+ * Based on the curl example: POST /questions/with-correct-answer
  */
 export const createQuestion = async (
-  questionData: QuestionRequest
+  questionData: QuestionRequest,
 ): Promise<QuestionResponse> => {
   try {
-    console.log("📡 Creating question with data:", JSON.stringify(questionData, null, 2));
-    console.log("📡 Sending request to:", `${BASE_URL}/api/v1/questions/with-correct-answer`);
-    
+    console.log(
+      "📡 Creating question with data:",
+      JSON.stringify(questionData, null, 2),
+    );
+    console.log(
+      "📡 Sending request to:",
+      `${BASE_URL}/questions/with-correct-answer`,
+    );
+
     const response = await axios.post<QuestionResponse>(
-      `${BASE_URL}/api/v1/questions/with-correct-answer`,
+      `${BASE_URL}/questions/with-correct-answer`,
       questionData,
       {
         headers: {
@@ -87,9 +111,9 @@ export const createQuestion = async (
           Accept: "application/json",
         },
         withCredentials: false,
-      }
+      },
     );
-    
+
     console.log("📡 Response status:", response.status);
     console.log("📡 Question created successfully:", response.data);
     return response.data;
@@ -116,17 +140,17 @@ export const createQuestion = async (
 export const getQuestionsByContentId = async (
   idContent: string,
   page: number = 1,
-  perPage: number = 10
+  perPage: number = 10,
 ): Promise<QuestionsListResponse> => {
   try {
     const response = await axios.get<QuestionsListResponse>(
-      `${BASE_URL}/api/v1/questions?idContent=${idContent}&page=${page}&perPage=${perPage}`,
+      `${BASE_URL}/questions?idContent=${idContent}&page=${page}&perPage=${perPage}`,
       {
         headers: {
           Accept: "application/json",
         },
         withCredentials: false,
-      }
+      },
     );
     console.log("📡 Questions fetched for content:", response.data);
     return response.data;
@@ -139,16 +163,18 @@ export const getQuestionsByContentId = async (
 /**
  * Get a specific question by ID
  */
-export const getQuestionById = async (id: string): Promise<QuestionResponse> => {
+export const getQuestionById = async (
+  id: string,
+): Promise<QuestionResponse> => {
   try {
     const response = await axios.get<QuestionResponse>(
-      `${BASE_URL}/api/v1/questions/${id}`,
+      `${BASE_URL}/questions/${id}/with-answers`,
       {
         headers: {
           Accept: "application/json",
         },
         withCredentials: false,
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -169,7 +195,7 @@ export const updateQuestion = async ({
 }): Promise<QuestionResponse> => {
   try {
     const response = await axios.patch<QuestionResponse>(
-      `${BASE_URL}/api/v1/questions/${id}`,
+      `${BASE_URL}/questions/${id}/with-answer`,
       data,
       {
         headers: {
@@ -177,7 +203,7 @@ export const updateQuestion = async ({
           Accept: "application/json",
         },
         withCredentials: false,
-      }
+      },
     );
     console.log("📡 Question updated successfully:", response.data);
     return response.data;
@@ -192,7 +218,7 @@ export const updateQuestion = async ({
  */
 export const deleteQuestion = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`${BASE_URL}/api/v1/questions/${id}`, {
+    await axios.delete(`${BASE_URL}/questions/${id}`, {
       headers: {
         Accept: "application/json",
       },
@@ -209,11 +235,11 @@ export const deleteQuestion = async (id: string): Promise<void> => {
  * Bulk create questions for a content
  */
 export const createBulkQuestions = async (
-  questions: QuestionRequest[]
+  questions: QuestionRequest[],
 ): Promise<QuestionResponse[]> => {
   try {
     const response = await axios.post<QuestionResponse[]>(
-      `${BASE_URL}/api/v1/questions/bulk`,
+      `${BASE_URL}/questions/bulk`,
       { questions },
       {
         headers: {
@@ -221,7 +247,7 @@ export const createBulkQuestions = async (
           Accept: "application/json",
         },
         withCredentials: false,
-      }
+      },
     );
     console.log("📡 Bulk questions created successfully:", response.data);
     return response.data;
