@@ -126,6 +126,7 @@ export const QuizContent = ({
   const [showQuizSubmitConfirm, setShowQuizSubmitConfirm] = useState(false);
   const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null);
   const hasAutoSubmittedRef = useRef(false);
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Fetch quiz detail from API (info kuis statis)
   const { data: quizDetail, isLoading: isQuizDetailLoading } = useQuizDetail(
@@ -354,12 +355,15 @@ export const QuizContent = ({
     }
   };
 
+  useEffect(() => {
+    if (!content?.id) return;
+    if (onStartContent) {
+      onStartContent(content.id);
+    }
+  }, [content.id]);
+
   const handleStartQuiz = async () => {
     try {
-      if (onStartContent) {
-        onStartContent(content.id);
-      }
-
       const response = (await startQuizMutation.mutateAsync({
         idUser: DUMMY_USER_ID,
         idContent: content.id,
@@ -631,11 +635,17 @@ export const QuizContent = ({
   const handleNext = () => {
     if (isLastQuestion) return;
     setCurrentQuestionIndex((prev) => Math.min(prev + 1, totalQuestions - 1));
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
   };
 
   const handlePrevious = () => {
     if (isFirstQuestion) return;
     setCurrentQuestionIndex((prev) => Math.max(prev - 1, 0));
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
   };
 
   const handleSubmitQuiz = async () => {
@@ -913,7 +923,7 @@ export const QuizContent = ({
         <textarea
           value={currentCodeAnswer}
           onChange={(e) => handleAnswerChange(questionId, e.target.value)}
-          className="mt-3 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[90px]"
+          className="mt-3 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[90px] max-h-[40vh] overflow-y-auto"
           placeholder="Tulis jawaban Anda di sini..."
         />
       );
@@ -921,7 +931,7 @@ export const QuizContent = ({
 
     if (typedCurrentQuestion.optionsText) {
       return (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-2 max-h-[40vh] overflow-y-auto">
           {typedCurrentQuestion.optionsText.map((option, index) => {
             const id = `q-${questionId}-opt-${index}`;
             const optionCode =
@@ -961,7 +971,7 @@ export const QuizContent = ({
   };
 
   const wrapperClasses =
-    "relative w-full bg-white rounded-md transition-all duration-500 border border-gray-200 shadow-sm flex flex-col md:flex-row md:h-[520px] md:min-h-[520px] md:max-h-[520px]";
+    "relative w-full bg-white rounded-md transition-all duration-500 border border-gray-200 shadow-sm flex flex-col md:flex-row h-[65vh] min-h-[65vh] max-h-[65vh] md:h-[520px] md:min-h-[520px] md:max-h-[520px]";
 
   if (!isQuizStarted && !isReviewMode) {
     if (isQuizDetailLoading || isHistoryLoading) {
@@ -1086,15 +1096,34 @@ export const QuizContent = ({
               </div>
             </div>
           </div>
+
+          {!inProgressAttempt && (
+            <div className="md:hidden px-1 pt-2">
+              <button
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                onClick={handleStartQuiz}
+                disabled={attemptsRemaining <= 0 || startQuizMutation.isPending}
+              >
+                <span className="inline-flex items-center justify-center">
+                  {startQuizMutation.isPending ? "Starting..." : "Mulai Kuis"}
+                </span>
+              </button>
+              <p className="mt-1.5 text-[11px] text-gray-500 text-center">
+                {attemptsRemaining > 0
+                  ? `Anda memiliki ${attemptsRemaining} attempt tersisa.`
+                  : "Anda sudah menggunakan semua attempt."}
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex flex-col p-3 md:p-4 gap-3">
-          <div className="flex-1 flex flex-col min-h-0">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex flex-col p-3 md:p-4 gap-3 max-h-[80vh] md:max-h-none overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex-shrink-0">
               Riwayat pengerjaan
             </p>
             {hasAttempts ? (
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              <div className="space-y-2 overflow-y-auto flex-1 min-h-0 mb-3">
                 {attempts.map((attempt, index) => {
                   const hasPassed = attempt.isPassed === true;
                   const hasFailed = attempt.isPassed === false;
@@ -1103,7 +1132,7 @@ export const QuizContent = ({
                   return (
                     <div
                       key={attempt.id}
-                      className="rounded-lg border border-gray-200 bg-white p-3 space-y-1.5 flex-shrink-0"
+                      className="rounded-lg border border-gray-200 bg-white p-4 space-y-2 flex-shrink-0"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div>
@@ -1157,7 +1186,7 @@ export const QuizContent = ({
             )}
           </div>
 
-          <div className="mt-auto pt-1">
+          <div className="mt-auto pt-3 border-t border-gray-200 flex-shrink-0">
             {inProgressAttempt ? (
               <div className="space-y-2">
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -1210,7 +1239,7 @@ export const QuizContent = ({
                 )}
               </div>
             ) : (
-              <>
+              <div className="hidden md:block">
                 <button
                   className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   onClick={handleStartQuiz}
@@ -1227,7 +1256,7 @@ export const QuizContent = ({
                     ? `Anda memiliki ${attemptsRemaining} attempt tersisa.`
                     : "Anda sudah menggunakan semua attempt."}
                 </p>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -1264,7 +1293,7 @@ export const QuizContent = ({
         <div className="flex-1 flex flex-col p-3 md:p-4 md:pr-3">
           {/* Timer badge moved inside content so it doesn't overlap the question */}
           {!isReviewMode && (
-            <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="sticky top-0 z-10 mb-3 flex items-center justify-between gap-2 bg-white/90 backdrop-blur-sm px-2 py-1 border-b border-gray-200">
               <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200 w-fit">
                 <Clock className="w-3.5 h-3.5 text-blue-600" />
                 {quizTimeLeft !== null ? (
@@ -1272,47 +1301,30 @@ export const QuizContent = ({
                     {formatTime(quizTimeLeft)}
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-500">Tanpa batas waktu</span>
+                  <span className="text-xs text-gray-500">
+                    Tanpa batas waktu
+                  </span>
                 )}
                 <span className="ml-2 text-[11px] text-gray-500">
                   Soal {currentQuestionIndex + 1} / {totalQuestions}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  clearQuizSession(content.id);
-                  setIsQuizStarted(false);
-                  setIsReviewMode(false);
-                  setCurrentAttemptId(null);
-                  setQuestionIds([]);
-                  setAnsweredQuestions({});
-                  setAnswerCodeMap({});
-                  setQuizTimeLeft(null);
-                  setCurrentQuestionIndex(0);
-                  quizStartTimeRef.current = null;
-                  setInProgressAttempt(null);
-                }}
-                className="inline-flex items-center h-8 rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 shadow-sm"
-              >
-                Keluar
-              </button>
             </div>
           )}
           {isReviewMode && (
-            <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="sticky top-0 z-10 mb-3 flex items-center justify-between gap-2 bg-white/90 backdrop-blur-sm px-2 py-1">
               <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-gray-200 w-fit">
-                <span className="text-xs font-semibold text-gray-800">
+                <span className="text-xs md:text-sm font-semibold text-gray-800">
                   Review jawaban
                 </span>
-                <span className="text-[11px] tracking-wide text-gray-500">
+                <span className="text-sm tracking-wide text-gray-500">
                   Soal {currentQuestionIndex + 1} dari {totalQuestions}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleBackToInfo}
-                className="inline-flex items-center h-8 rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 shadow-sm"
+                className="inline-flex items-center h-8 rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs md:text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-sm"
               >
                 Kembali
               </button>
@@ -1349,11 +1361,14 @@ export const QuizContent = ({
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <div
+            ref={contentScrollRef}
+            className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2"
+          >
             {renderQuestionInput()}
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="sticky bottom-0 left-0 right-0 mt-3 flex items-center justify-between gap-2 bg-white/90 backdrop-blur-sm px-2 py-2">
             <button
               type="button"
               onClick={handlePrevious}
