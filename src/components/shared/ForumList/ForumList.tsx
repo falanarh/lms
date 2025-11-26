@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -117,9 +118,11 @@ export function ForumList({
         <div className="flex flex-col sm:flex-row">
           {/* Image Section - Left */}
           <div className="relative w-full sm:w-64 h-48 sm:h-auto overflow-hidden">
-            <img
+            <Image
               src={meta.image}
               alt={forum.title}
+              width={256}
+              height={192}
               className={`w-full h-full object-cover transition-transform duration-300 ease-out ${
                 isHovered ? 'scale-110' : 'scale-100'
               }`}

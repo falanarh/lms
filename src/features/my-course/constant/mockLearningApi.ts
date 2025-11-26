@@ -38,6 +38,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
       listContent: [
         {
           id: "sec1-content-video-1",
+          idSection: "458cb774-5abb-4982-b43d-43dfee087ea3",
           type: "VIDEO",
           name: "Pengenalan Database",
           description: "Dasar-dasar database dan kegunaannya",
@@ -49,6 +50,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
         },
         {
           id: "sec1-content-link-yt",
+          idSection: "458cb774-5abb-4982-b43d-43dfee087ea3",
           type: "LINK",
           name: "Video YouTube: Relational vs NoSQL",
           description: "Perbedaan database relasional dan NoSQL",
@@ -60,6 +62,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
         },
         {
           id: "sec1-content-link-doc",
+          idSection: "458cb774-5abb-4982-b43d-43dfee087ea3",
           type: "LINK",
           name: "Artikel: Indeks dan Optimasi Query",
           description: "Praktik terbaik untuk optimasi query database",
@@ -71,6 +74,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
         },
         {
           id: "sec1-content-pdf-1",
+          idSection: "458cb774-5abb-4982-b43d-43dfee087ea3",
           type: "PDF",
           name: "Materi PDF: Dasar SQL",
           description: "Dokumen pengantar SQL",
@@ -82,6 +86,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
         },
         {
           id: "sec1-content-scorm-1",
+          idSection: "458cb774-5abb-4982-b43d-43dfee087ea3",
           type: "SCORM",
           name: "SCORM: Modul Interaktif Database",
           description: "Konten interaktif pembelajaran database",
@@ -102,6 +107,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
       listContent: [
         {
           id: "sec2-content-task-1",
+          idSection: "a9ef7231-5b1c-41c8-81ea-4f1253df30c6",
           type: "TASK",
           name: "Tugas: Implementasi State Management",
           description: "Buat contoh aplikasi dengan state management sederhana Buat contoh aplikasi dengan state management sederhana Buat contoh aplikasi dengan state management sederhana Buat contoh aplikasi dengan state management sederhana Buat contoh aplikasi dengan state management sederhana Buat contoh aplikasi dengan state management sederhana",
@@ -113,6 +119,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
         },
         {
           id: "sec2-content-quiz-1",
+          idSection: "a9ef7231-5b1c-41c8-81ea-4f1253df30c6",
           type: "QUIZ",
           name: "Kuis: Konsep Dasar State",
           description: "Kuis untuk menguji pemahaman state management",
@@ -133,6 +140,7 @@ export const mockGroupCourseSectionsResponse: GroupCourseSectionsResponse = {
       listContent: [
         {
           id: "20d26981-6ed9-4814-9dc9-f2b9383a06a2",
+          idSection: "423067d7-ee40-498f-a538-fd201dc298d8",
           type: "VIDEO",
           name: "Cloud Fundamentals",
           description: "Basic cloud computing concepts",

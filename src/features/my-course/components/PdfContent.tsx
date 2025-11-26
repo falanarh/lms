@@ -16,7 +16,7 @@ export const PdfContent = ({ content, isSidebarOpen }: PdfContentProps) => {
     >
       <iframe
         key={content.id}
-        src={content.contentUrl}
+        src={content.contentUrl || ""}
         className="w-full h-full"
         title={content.name}
       />

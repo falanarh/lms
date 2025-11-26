@@ -42,9 +42,9 @@ export default function CoursePage() {
     return ['All Categories', ...categoriesData];
   }, [categoriesData, categoriesError]);
 
-  const courses = response?.data || [];
-  const pageMeta = response?.pageMeta;
-  const totalPages = pageMeta?.totalPageCount || 1;
+  const courses = response || [];
+  const pageMeta = undefined; // Response doesn't have pageMeta
+  const totalPages = 1; // Default to 1 since we don't have pagination
 
   useEffect(() => {
     setCurrentPage(1);

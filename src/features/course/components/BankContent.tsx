@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useMasterContents, useCreateMasterContent, useDeleteMasterContent } from "@/hooks/useMasterContent";
 import { useMutation } from "@tanstack/react-query";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import {
+  useMasterContents,
+  useCreateMasterContent,
+  useUpdateMasterContent,
+  useDeleteMasterContent,
+} from "@/hooks/useMasterContent";
 import { MasterContent } from "@/api/masterContent";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card/Card";
@@ -13,12 +18,32 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Drawer } from "@/components/ui/Drawer/Drawer";
 import { Select } from "@/components/ui/Select/Select";
 import { Pagination } from "@/components/shared/Pagination/Pagination";
-import { ExternalLink, FileText, Video, HelpCircle, Link2, Package, Loader2, AlertCircle, X, CheckSquare, Edit3, Trash2, Search } from "lucide-react";
+import {
+  ExternalLink,
+  FileText,
+  Video,
+  HelpCircle,
+  Link2,
+  Package,
+  Loader2,
+  AlertCircle,
+  X,
+  CheckSquare,
+  Edit3,
+  Trash2,
+  Search,
+  Plus,
+} from "lucide-react";
 import Dropdown from "@/components/ui/Dropdown/Dropdown";
 import { uploadFileToR2, validateFile } from "@/lib/uploadToR2";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog/ConfirmDialog";
 import Toast from "@/components/ui/Toast/Toast";
+import {
+  validateCreateMasterContent,
+  validateUpdateMasterContent,
+  formatZodError,
+} from "@/schemas/masterContent.schema";
 
 // FileUploadArea Component - matches ActivityDrawerContent styling
 const FileUploadArea = ({
@@ -46,7 +71,9 @@ const FileUploadArea = ({
       />
       <label htmlFor={id} className="cursor-pointer">
         <Icon className={`size-12 mx-auto mb-3 text-${color}-600`} />
-        <p className="mb-1 text-gray-600 dark:text-zinc-400 font-medium">{description}</p>
+        <p className="mb-1 text-gray-600 dark:text-zinc-400 font-medium">
+          {description}
+        </p>
       </label>
     </div>
   </div>
@@ -59,9 +86,16 @@ const UploadedFile = ({ icon: Icon, name, color, onRemove, badge }: any) => (
   >
     <div className="flex items-center gap-2">
       <Icon className={`size-4 text-${color}-600 dark:text-${color}-400}`} />
-      <span className={`text-${color}-700 dark:text-${color}-300 text-sm font-medium truncate flex-1`}>{name}</span>
+      <span
+        className={`text-${color}-700 dark:text-${color}-300 text-sm font-medium truncate flex-1`}
+      >
+        {name}
+      </span>
       {badge && (
-        <Badge variant="outline" className={`text-xs border-${color}-300 dark:border-${color}-700 text-${color}-700 dark:text-${color}-300`}>
+        <Badge
+          variant="outline"
+          className={`text-xs border-${color}-300 dark:border-${color}-700 text-${color}-700 dark:text-${color}-300`}
+        >
           {badge}
         </Badge>
       )}
@@ -83,14 +117,22 @@ export function BankContent() {
   const pathname = usePathname();
 
   // Local state management instead of URL parameters
-  const [currentPage, setCurrentPage] = useState(Math.max(1, parseInt(searchParams.get('page') || '1')));
-  const [perPage, setPerPage] = useState(Math.max(1, parseInt(searchParams.get('perPage') || '6')));
-  const [searchTitle, setSearchTitle] = useState(searchParams.get('search') || '');
-  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '');
+  const [currentPage, setCurrentPage] = useState(
+    Math.max(1, parseInt(searchParams.get("page") || "1")),
+  );
+  const [perPage, setPerPage] = useState(
+    Math.max(1, parseInt(searchParams.get("perPage") || "6")),
+  );
+  const [searchTitle, setSearchTitle] = useState(
+    searchParams.get("search") || "",
+  );
+  const [typeFilter, setTypeFilter] = useState(searchParams.get("type") || "");
 
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<MasterContent | null>(null);
+  const [editingContent, setEditingContent] = useState<MasterContent | null>(
+    null,
+  );
   const [searchInput, setSearchInput] = useState(searchTitle);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchTitle);
   const [formData, setFormData] = useState({
@@ -114,7 +156,9 @@ export function BankContent() {
   // Toast and confirmation states
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastVariant, setToastVariant] = useState<"info" | "warning" | "success">("success");
+  const [toastVariant, setToastVariant] = useState<
+    "info" | "warning" | "success"
+  >("success");
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     id: string | null;
@@ -125,12 +169,76 @@ export function BankContent() {
     title: "",
   });
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+
+  // Live validation function
+  const validateFormData = (data: {
+    type: string;
+    name: string;
+    description: string;
+    contentUrl: string;
+  }) => {
+    const dataToValidate = {
+      type: data.type,
+      name: data.name,
+      description: data.description || "",
+      contentUrl: data.contentUrl || "",
+    };
+
+    const validationResult = validateCreateMasterContent(dataToValidate);
+
+    if (!validationResult.success && validationResult.error) {
+      const errors = formatZodError(validationResult.error as any);
+      setValidationErrors(errors);
+    } else {
+      setValidationErrors({});
+    }
+  };
+
+  // Live validation on form data changes
+  useEffect(() => {
+    // Only validate if drawer is open and form has some data
+    if ((isCreateDrawerOpen || isEditDrawerOpen) && formData.type) {
+      // Determine contentUrl based on type and source
+      let contentUrl = "";
+      if (formData.type === "LINK") {
+        contentUrl = videoUrl;
+      } else if (formData.type === "VIDEO" && videoSource === "link") {
+        contentUrl = videoUrl;
+      } else {
+        contentUrl = uploadedFileUrl || "";
+      }
+
+      validateFormData({
+        type: formData.type,
+        name: formData.name,
+        description: formData.description,
+        contentUrl,
+      });
+    }
+  }, [
+    formData.type,
+    formData.name,
+    formData.description,
+    videoUrl,
+    uploadedFileUrl,
+    videoSource,
+    isCreateDrawerOpen,
+    isEditDrawerOpen,
+  ]);
+
   // Initialize local state from URL params only on component mount
   useEffect(() => {
-    const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const initialPerPage = Math.max(1, parseInt(searchParams.get('perPage') || '6'));
-    const initialSearch = searchParams.get('search') || '';
-    const initialType = searchParams.get('type') || '';
+    const initialPage = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const initialPerPage = Math.max(
+      1,
+      parseInt(searchParams.get("perPage") || "6"),
+    );
+    const initialSearch = searchParams.get("search") || "";
+    const initialType = searchParams.get("type") || "";
 
     setCurrentPage(initialPage);
     setPerPage(initialPerPage);
@@ -155,7 +263,7 @@ export function BankContent() {
   // Toast helper function
   const showToastMessage = (
     variant: "info" | "warning" | "success",
-    message: string
+    message: string,
   ) => {
     setToastVariant(variant);
     setToastMessage(message);
@@ -163,7 +271,12 @@ export function BankContent() {
     setTimeout(() => setShowToast(false), variant === "success" ? 2000 : 3000);
   };
 
-  const { data: response, isLoading, error, refetch } = useMasterContents({
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch,
+  } = useMasterContents({
     page: currentPage,
     perPage: perPage,
     searchQuery: debouncedSearchQuery,
@@ -181,7 +294,7 @@ export function BankContent() {
     masterContentsLength: masterContents.length,
     shouldShowPagination: pageMeta?.totalPageCount !== undefined && pageMeta.totalPageCount > 1,
     searchQuery: debouncedSearchQuery,
-    typeFilter: typeFilter
+    typeFilter: typeFilter,
   });
 
   // If current page is beyond available pages, reset to page 1
@@ -214,10 +327,14 @@ export function BankContent() {
       setVideoUrl("");
       setVideoSource("upload");
       setUploadError("");
+      setValidationErrors({});
       refetch();
     },
     onError: (error: any) => {
-      showToastMessage("warning", `${error.message || "Gagal memperbarui bank content"}`);
+      showToastMessage(
+        "warning",
+        `${error.message || "Gagal memperbarui bank content"}`,
+      );
     },
   });
 
@@ -227,7 +344,10 @@ export function BankContent() {
       refetch();
     },
     onError: (error: any) => {
-      showToastMessage("warning", `${error.message || "Gagal menghapus bank content"}`);
+      showToastMessage(
+        "warning",
+        `${error.message || "Gagal menghapus bank content"}`,
+      );
     },
   });
 
@@ -250,13 +370,13 @@ export function BankContent() {
 
   // Handle type filter
   const handleTypeFilter = (value: string) => {
-    setTypeFilter(value === 'all' ? '' : value);
+    setTypeFilter(value === "all" ? "" : value);
     setCurrentPage(1); // Reset to first page when filtering
   };
 
-    const createMasterContentMutation = useCreateMasterContent({
+  const createMasterContentMutation = useCreateMasterContent({
     onSuccess: () => {
-      showToastMessage("success", "✅ Bank content berhasil ditambahkan!");
+      showToastMessage("success", "Bank content berhasil ditambahkan!");
       setIsCreateDrawerOpen(false);
       setFormData({ type: "", name: "", description: "", contentUrl: "" });
       setUploadedFileUrl("");
@@ -265,41 +385,82 @@ export function BankContent() {
       setVideoUrl("");
       setVideoSource("upload");
       setUploadError("");
+      setValidationErrors({});
       refetch();
     },
     onError: (error: any) => {
-      showToastMessage("warning", `${error.message || "Gagal menambah bank content"}`);
+      showToastMessage(
+        "warning",
+        `${error.message || "Gagal menambah bank content"}`,
+      );
     },
   });
 
   const handleCreateContent = () => {
-    if (!formData.type || !formData.name) {
-      showToastMessage("warning", "Harap isi semua field yang diperlukan");
+    // Clear previous validation errors
+    setValidationErrors({});
+
+    // Determine contentUrl and type based on source
+    let contentUrl = "";
+    let contentType = formData.type;
+
+    if (formData.type === "LINK") {
+      contentUrl = videoUrl;
+    } else if (formData.type === "VIDEO" && videoSource === "link") {
+      // ✅ Convert VIDEO with link source to LINK type (same as ActivityDrawerContent)
+      contentType = "LINK";
+      contentUrl = videoUrl;
+    } else {
+      contentUrl = uploadedFileUrl || "";
+    }
+
+    // Prepare data for validation
+    const dataToValidate = {
+      type: contentType,
+      name: formData.name,
+      description: formData.description || "",
+      contentUrl,
+    };
+
+    // Validate with Zod schema
+    const validationResult = validateCreateMasterContent(dataToValidate);
+
+    if (!validationResult.success && validationResult.error) {
+      const errors = formatZodError(validationResult.error as any);
+      setValidationErrors(errors);
+
+      // Show first error message
+      const firstError = Object.values(errors)[0];
+      showToastMessage("warning", firstError || "Data tidak valid");
       return;
     }
 
-    // Validate file requirements based on type
-    if (formData.type === "LINK") {
+    // Additional file validation based on original type (before conversion)
+    if (formData.type === "LINK" || (formData.type === "VIDEO" && videoSource === "link")) {
       if (!videoUrl.trim()) {
-        showToastMessage("warning", "Harap masukkan URL yang valid untuk tipe LINK");
+        showToastMessage(
+          "warning",
+          "Harap masukkan URL yang valid",
+        );
         return;
       }
     } else if (formData.type !== "QUIZ" && formData.type !== "TASK") {
-      // For VIDEO, PDF, SCORM - file upload is required
+      // For VIDEO (upload), PDF, SCORM - file upload is required
       if (!uploadedFileUrl) {
-        showToastMessage("warning", `Harap upload file untuk tipe ${formData.type}`);
+        showToastMessage(
+          "warning",
+          `Harap upload file untuk tipe ${formData.type}`,
+        );
         return;
       }
     }
 
-    // Prepare data for API
+    // Prepare data for API (use the converted type and contentUrl)
     const dataToSubmit = {
-      type: formData.type,
+      type: contentType,
       name: formData.name,
       description: formData.description,
-      contentUrl: formData.type === "LINK" && videoSource === "link"
-        ? videoUrl
-        : uploadedFileUrl,
+      contentUrl: contentUrl || uploadedFileUrl,
     };
 
     createMasterContentMutation.mutate(dataToSubmit);
@@ -308,6 +469,7 @@ export function BankContent() {
   const handleEditContent = (content: MasterContent) => {
     setEditingContent(content);
     setIsEditDrawerOpen(true);
+    setValidationErrors({}); // Clear validation errors
 
     // Pre-fill form with existing data
     setFormData({
@@ -321,12 +483,15 @@ export function BankContent() {
     if (content.contentUrl) {
       setUploadedFileUrl(content.contentUrl);
       // Extract filename from URL
-      const fileName = content.contentUrl.split('/').pop() || content.name;
+      const fileName = content.contentUrl.split("/").pop() || content.name;
       setUploadedFileName(fileName);
 
       // Set video source if it's a video type with external URL
       if (content.type === "VIDEO" && content.contentUrl) {
-        if (content.contentUrl.includes('youtube.com') || content.contentUrl.includes('vimeo.com')) {
+        if (
+          content.contentUrl.includes("youtube.com") ||
+          content.contentUrl.includes("vimeo.com")
+        ) {
           setVideoSource("link");
           setVideoUrl(content.contentUrl);
         } else {
@@ -337,36 +502,81 @@ export function BankContent() {
   };
 
   const handleUpdateContent = () => {
-    if (!editingContent || !formData.type || !formData.name) {
-      showToastMessage("warning", "⚠️ Harap isi semua field yang diperlukan");
+    if (!editingContent) {
+      showToastMessage("warning", "Data konten tidak ditemukan");
       return;
     }
 
-    // Validate file requirements based on type
+    // Clear previous validation errors
+    setValidationErrors({});
+
+    // Determine contentUrl and type based on source
+    let contentUrl = "";
+    let contentType = formData.type;
+
     if (formData.type === "LINK") {
+      contentUrl = videoUrl;
+    } else if (formData.type === "VIDEO" && videoSource === "link") {
+      // ✅ Convert VIDEO with link source to LINK type (same as ActivityDrawerContent)
+      contentType = "LINK";
+      contentUrl = videoUrl;
+    } else {
+      contentUrl = uploadedFileUrl || editingContent.contentUrl || "";
+    }
+
+    // Prepare data for validation
+    const dataToValidate = {
+      type: contentType,
+      name: formData.name,
+      description: formData.description || "",
+      contentUrl,
+    };
+
+    // Validate with Zod schema
+    const validationResult = validateUpdateMasterContent(dataToValidate);
+
+    if (!validationResult.success && validationResult.error) {
+      const errors = formatZodError(validationResult.error as any);
+      setValidationErrors(errors);
+
+      // Show first error message
+      const firstError = Object.values(errors)[0];
+      showToastMessage("warning", firstError || "Data tidak valid");
+      return;
+    }
+
+    // Additional file validation based on original type (before conversion)
+    if (formData.type === "LINK" || (formData.type === "VIDEO" && videoSource === "link")) {
       if (!videoUrl.trim()) {
-        showToastMessage("warning", "⚠️ Harap masukkan URL yang valid untuk tipe LINK");
+        showToastMessage(
+          "warning",
+          "Harap masukkan URL yang valid",
+        );
         return;
       }
     } else if (formData.type !== "QUIZ" && formData.type !== "TASK") {
-      // For VIDEO, PDF, SCORM - file upload is required if new file was uploaded
+      // For VIDEO (upload), PDF, SCORM - file upload is required if new file was uploaded
       if (!uploadedFileUrl && !editingContent.contentUrl) {
-        showToastMessage("warning", `⚠️ Harap upload file untuk tipe ${formData.type}`);
+        showToastMessage(
+          "warning",
+          `Harap upload file untuk tipe ${formData.type}`,
+        );
         return;
       }
     }
 
-    // Prepare data for API
+    // Prepare data for API (use the converted type and contentUrl)
     const dataToSubmit = {
-      type: formData.type,
+      type: contentType,
       name: formData.name,
       description: formData.description,
-      contentUrl: formData.type === "LINK" && videoSource === "link"
-        ? videoUrl
-        : uploadedFileUrl || editingContent.contentUrl,
+      contentUrl: contentUrl || editingContent.contentUrl,
     };
 
-    updateMasterContentMutation.mutate({ id: editingContent.id, updatedContent: dataToSubmit });
+    updateMasterContentMutation.mutate({
+      id: editingContent.id,
+      updatedContent: dataToSubmit,
+    });
   };
 
   const handleDeleteContent = (content: MasterContent) => {
@@ -392,16 +602,36 @@ export function BankContent() {
   const handleFileUploadToR2 = async (
     file: File,
     onSuccess: (publicUrl: string, fileName: string) => void,
-    contentType: string
+    contentType: string,
   ) => {
     if (!file) return;
 
     // Validate file based on content type
     const allowedTypes = {
-      VIDEO: ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
-      PDF: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/msword', 'application/vnd.ms-powerpoint'],
-      SCORM: ['application/zip', 'application/x-zip-compressed'],
-      TASK: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/msword', 'application/vnd.ms-powerpoint'],
+      VIDEO: [
+        "video/mp4",
+        "video/mpeg",
+        "video/quicktime",
+        "video/x-msvideo",
+        "video/webm",
+      ],
+      PDF: [
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.ms-powerpoint",
+      ],
+      SCORM: ["application/zip", "application/x-zip-compressed"],
+      TASK: [
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.ms-powerpoint",
+      ],
     };
 
     const maxSizes = {
@@ -412,11 +642,14 @@ export function BankContent() {
     };
 
     const types = allowedTypes[contentType as keyof typeof allowedTypes] || [];
-    const maxSize = maxSizes[contentType as keyof typeof maxSizes] || 5 * 1024 * 1024;
+    const maxSize =
+      maxSizes[contentType as keyof typeof maxSizes] || 5 * 1024 * 1024;
 
     if (!validateFile(file, types, maxSize)) {
       const maxSizeMB = maxSize / (1024 * 1024);
-      setUploadError(`File tidak valid. Pastikan file bertipe yang sesuai dan kurang dari ${maxSizeMB}MB`);
+      setUploadError(
+        `File tidak valid. Pastikan file bertipe yang sesuai dan kurang dari ${maxSizeMB}MB`,
+      );
       return;
     }
 
@@ -430,9 +663,10 @@ export function BankContent() {
       setUploadedFileSize(`${(file.size / (1024 * 1024)).toFixed(2)} MB`);
       onSuccess(uploadResult.publicUrl, uploadResult.fileName);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload gagal";
       setUploadError(errorMessage);
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
     } finally {
       setUploading(false);
     }
@@ -445,20 +679,20 @@ export function BankContent() {
     }
 
     // Open in new tab
-    window.open(content.contentUrl, '_blank', 'noopener,noreferrer');
+    window.open(content.contentUrl, "_blank", "noopener,noreferrer");
   };
 
   const getContentIcon = (type: string) => {
     switch (type) {
-      case 'VIDEO':
+      case "VIDEO":
         return <Video className="w-4 h-4" />;
-      case 'PDF':
+      case "PDF":
         return <FileText className="w-4 h-4" />;
-      case 'QUIZ':
+      case "QUIZ":
         return <HelpCircle className="w-4 h-4" />;
-      case 'LINK':
+      case "LINK":
         return <Link2 className="w-4 h-4" />;
-      case 'TASK':
+      case "TASK":
       default:
         return <Package className="w-4 h-4" />;
     }
@@ -484,10 +718,10 @@ export function BankContent() {
   ];
 
   const perPageOptions = [
-    { value: '6', label: '6' },
-    { value: '12', label: '12' },
-    { value: '24', label: '24' },
-    { value: '48', label: '48' },
+    { value: "6", label: "6" },
+    { value: "12", label: "12" },
+    { value: "24", label: "24" },
+    { value: "48", label: "48" },
   ];
 
   if (isLoading) {
@@ -518,15 +752,18 @@ export function BankContent() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {pageMeta
                 ? `Manage ${pageMeta.totalResultCount} reusable content items for your courses`
-                : 'Manage reusable content for your courses'
-              }
+                : "Manage reusable content for your courses"}
             </p>
           </div>
           <Button
-            onClick={() => setIsCreateDrawerOpen(true)}
+            onClick={() => {
+              setIsCreateDrawerOpen(true);
+              setValidationErrors({}); // Clear validation errors
+            }}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
-            Add New Content
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Content
           </Button>
         </div>
 
@@ -550,7 +787,7 @@ export function BankContent() {
           <div className="w-full sm:w-48">
             <Dropdown
               items={typeFilterOptions}
-              value={typeFilter || 'all'}
+              value={typeFilter || "all"}
               onChange={handleTypeFilter}
               size="sm"
               variant="outline"
@@ -569,9 +806,9 @@ export function BankContent() {
                 Search: "{searchTitle}"
                 <button
                   onClick={() => {
-                    setSearchInput('');
-                    setSearchTitle('');
-                    setDebouncedSearchQuery('');
+                    setSearchInput("");
+                    setSearchTitle("");
+                    setDebouncedSearchQuery("");
                     setCurrentPage(1);
                   }}
                   className="ml-1 text-gray-500 hover:text-gray-700"
@@ -585,7 +822,7 @@ export function BankContent() {
                 Type: {typeFilter}
                 <button
                   onClick={() => {
-                    setTypeFilter('');
+                    setTypeFilter("");
                     setCurrentPage(1);
                   }}
                   className="ml-1 text-gray-500 hover:text-gray-700"
@@ -602,16 +839,25 @@ export function BankContent() {
       {masterContents && masterContents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {masterContents.map((content: MasterContent) => (
-            <Card key={content.id} className="p-6 hover:shadow-lg transition-shadow">
+            <Card
+              key={content.id}
+              className="p-6 hover:shadow-lg transition-shadow"
+            >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    content.type === 'VIDEO' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                    content.type === 'PDF' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                    content.type === 'QUIZ' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                    content.type === 'LINK' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                    'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                  }`}>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      content.type === "VIDEO"
+                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                        : content.type === "PDF"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                          : content.type === "QUIZ"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : content.type === "LINK"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    }`}
+                  >
                     {getContentIcon(content.type)}
                     {content.type}
                   </span>
@@ -646,30 +892,41 @@ export function BankContent() {
 
                 {content.contentUrl && content.contentUrl.trim() !== "" && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-700/50 rounded border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center gap-1 mb-1 font-medium">Document URL:</div>
+                    <div className="flex items-center gap-1 mb-1 font-medium">
+                      Document URL:
+                    </div>
                     <div className="break-all font-mono">
-                      {content.contentUrl.length > 60 ? `${content.contentUrl.substring(0, 60)}...` : content.contentUrl}
+                      {content.contentUrl.length > 60
+                        ? `${content.contentUrl.substring(0, 60)}...`
+                        : content.contentUrl}
                     </div>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Created: {content.createdAt ? new Date(content.createdAt).toLocaleDateString() : 'Unknown'}
+                    Created:{" "}
+                    {content.createdAt
+                      ? new Date(content.createdAt).toLocaleDateString()
+                      : "Unknown"}
                   </span>
                   <Button
                     onClick={() => handleViewDocument(content)}
                     variant="outline"
                     size="sm"
-                    disabled={!content.contentUrl || content.contentUrl.trim() === ""}
+                    disabled={
+                      !content.contentUrl || content.contentUrl.trim() === ""
+                    }
                     className={`${
                       content.contentUrl && content.contentUrl.trim() !== ""
-                        ? 'text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
-                        : 'text-gray-400 border-gray-300 dark:border-gray-600 cursor-not-allowed'
+                        ? "text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                        : "text-gray-400 border-gray-300 dark:border-gray-600 cursor-not-allowed"
                     }`}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
-                    {content.contentUrl && content.contentUrl.trim() !== "" ? 'View Document' : 'No URL'}
+                    {content.contentUrl && content.contentUrl.trim() !== ""
+                      ? "View Document"
+                      : "No URL"}
                   </Button>
                 </div>
               </div>
@@ -680,9 +937,8 @@ export function BankContent() {
         <div className="text-center py-12">
           <div className="text-gray-500 dark:text-gray-400 mb-4">
             {searchTitle || typeFilter
-              ? 'Tidak ada konten bank yang sesuai dengan kriteria pencarian Anda'
-              : 'Tidak ada konten bank yang tersedia'
-            }
+              ? "Tidak ada konten bank yang sesuai dengan kriteria pencarian Anda"
+              : "Tidak ada konten bank yang tersedia"}
           </div>
           <Button
             onClick={() => setIsCreateDrawerOpen(true)}
@@ -695,54 +951,65 @@ export function BankContent() {
       )}
 
       {/* Pagination */}
-      {pageMeta && (pageMeta.totalPageCount > 1 || perPageOptions.length > 0) && masterContents.length > 0 && (
-        <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-6">
-          <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {pageMeta.showingFrom > 0 && pageMeta.showingTo > 0 ? (
-              <>
-                Menampilkan <span className="font-medium">{pageMeta.showingFrom}</span> -{' '}
-                <span className="font-medium">{pageMeta.showingTo}</span> dari{' '}
-                <span className="font-medium">{pageMeta.totalResultCount}</span> konten
-              </>
-            ) : (
-              <>Total {pageMeta.totalResultCount} konten</>
-            )}
-          </div>
+      {pageMeta &&
+        (pageMeta.totalPageCount > 1 || perPageOptions.length > 0) &&
+        masterContents.length > 0 && (
+          <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              {pageMeta.showingFrom > 0 && pageMeta.showingTo > 0 ? (
+                <>
+                  Menampilkan{" "}
+                  <span className="font-medium">{pageMeta.showingFrom}</span> -{" "}
+                  <span className="font-medium">{pageMeta.showingTo}</span> dari{" "}
+                  <span className="font-medium">
+                    {pageMeta.totalResultCount}
+                  </span>{" "}
+                  konten
+                </>
+              ) : (
+                <>Total {pageMeta.totalResultCount} konten</>
+              )}
+            </div>
 
-          <div className="flex items-center gap-4">
-            {pageMeta.totalPageCount > 1 && (
-              <div className="flex-1 flex justify-center">
-                <Pagination
-                  totalPages={pageMeta.totalPageCount}
-                  currentPage={pageMeta.page}
-                  onPageChange={handlePageChange}
-                  showPrevNext
+            <div className="flex items-center gap-4">
+              {pageMeta.totalPageCount > 1 && (
+                <div className="flex-1 flex justify-center">
+                  <Pagination
+                    totalPages={pageMeta.totalPageCount}
+                    currentPage={pageMeta.page}
+                    onPageChange={handlePageChange}
+                    showPrevNext
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Tampilkan:
+                </span>
+                <Dropdown
+                  items={perPageOptions}
+                  value={perPage.toString()}
+                  onChange={handlePerPageChange}
+                  size="sm"
+                  variant="outline"
+                  searchable={false}
+                  placeholder="Pilih"
+                  className="min-w-32"
                 />
               </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Tampilkan:</span>
-              <Dropdown
-                items={perPageOptions}
-                value={perPage.toString()}
-                onChange={handlePerPageChange}
-                size="sm"
-                variant="outline"
-                searchable={false}
-                placeholder="Pilih"
-                className="min-w-32"
-              />
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Create Content Drawer */}
       <Drawer
         isOpen={isCreateDrawerOpen}
-        onClose={() => setIsCreateDrawerOpen(false)}
-        title="Tamnah bank Content"
+        onClose={() => {
+          setIsCreateDrawerOpen(false);
+          setValidationErrors({});
+        }}
+        title="Tambah bank Content"
         size="lg"
         showFooter={false}
       >
@@ -771,6 +1038,11 @@ export function BankContent() {
               placeholder="Select content type"
               className="w-full"
             />
+            {validationErrors.type && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {validationErrors.type}
+              </p>
+            )}
           </div>
 
           {/* Content Name */}
@@ -780,10 +1052,17 @@ export function BankContent() {
             </Label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder="Enter content name"
-              className="w-full"
+              className={`w-full ${validationErrors.name ? "border-red-500" : ""}`}
             />
+            {validationErrors.name && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {validationErrors.name}
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -793,11 +1072,18 @@ export function BankContent() {
             </Label>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Enter content description"
               rows={3}
-              className="w-full"
+              className={`w-full ${validationErrors.description ? "border-red-500" : ""}`}
             />
+            {validationErrors.description && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {validationErrors.description}
+              </p>
+            )}
           </div>
 
           {/* File Upload / URL Input based on type */}
@@ -811,8 +1097,13 @@ export function BankContent() {
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://example.com/resource"
-                className="w-full"
+                className={`w-full ${validationErrors.contentUrl ? "border-red-500" : ""}`}
               />
+              {validationErrors.contentUrl && (
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                  {validationErrors.contentUrl}
+                </p>
+              )}
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Enter the external link URL
               </p>
@@ -864,10 +1155,14 @@ export function BankContent() {
                       const files = e.target.files;
                       if (files && files.length > 0) {
                         const file = files[0];
-                        handleFileUploadToR2(file, (url, name) => {
-                          setUploadedFileUrl(url);
-                          setUploadedFileName(name);
-                        }, "VIDEO");
+                        handleFileUploadToR2(
+                          file,
+                          (url, name) => {
+                            setUploadedFileUrl(url);
+                            setUploadedFileName(name);
+                          },
+                          "VIDEO",
+                        );
                       }
                     }}
                   />
@@ -892,6 +1187,13 @@ export function BankContent() {
                       />
                     </div>
                   )}
+                  {!uploadedFileName &&
+                    !uploading &&
+                    validationErrors.contentUrl && (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                        {validationErrors.contentUrl}
+                      </p>
+                    )}
                 </>
               )}
 
@@ -905,8 +1207,13 @@ export function BankContent() {
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=example"
-                    className="w-full"
+                    className={`w-full ${validationErrors.contentUrl ? "border-red-500" : ""}`}
                   />
+                  {validationErrors.contentUrl && (
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                      {validationErrors.contentUrl}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Enter YouTube, Vimeo, or other video platform URL
                   </p>
@@ -928,10 +1235,14 @@ export function BankContent() {
                   const files = e.target.files;
                   if (files && files.length > 0) {
                     const file = files[0];
-                    handleFileUploadToR2(file, (url, name) => {
-                      setUploadedFileUrl(url);
-                      setUploadedFileName(name);
-                    }, "PDF");
+                    handleFileUploadToR2(
+                      file,
+                      (url, name) => {
+                        setUploadedFileUrl(url);
+                        setUploadedFileName(name);
+                      },
+                      "PDF",
+                    );
                   }
                 }}
               />
@@ -956,13 +1267,20 @@ export function BankContent() {
                   />
                 </div>
               )}
+              {!uploadedFileName &&
+                !uploading &&
+                validationErrors.contentUrl && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                    {validationErrors.contentUrl}
+                  </p>
+                )}
             </>
           )}
 
           {formData.type === "SCORM" && (
             <>
               <div>
-                <Label>SCORM Package</Label>
+                <Label>SCORM Package *</Label>
                 <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 mb-2">
                   Import konten pembelajaran dalam format SCORM 1.2 atau 2004
                   (Max 100MB) - Akan diupload ke Cloud Storage
@@ -979,10 +1297,14 @@ export function BankContent() {
                   const files = e.target.files;
                   if (files && files.length > 0) {
                     const file = files[0];
-                    handleFileUploadToR2(file, (url, name) => {
-                      setUploadedFileUrl(url);
-                      setUploadedFileName(name);
-                    }, "SCORM");
+                    handleFileUploadToR2(
+                      file,
+                      (url, name) => {
+                        setUploadedFileUrl(url);
+                        setUploadedFileName(name);
+                      },
+                      "SCORM",
+                    );
                   }
                 }}
               />
@@ -1007,6 +1329,13 @@ export function BankContent() {
                   />
                 </div>
               )}
+              {!uploadedFileName &&
+                !uploading &&
+                validationErrors.contentUrl && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                    {validationErrors.contentUrl}
+                  </p>
+                )}
             </>
           )}
 
@@ -1025,13 +1354,19 @@ export function BankContent() {
               onClick={() => {
                 setIsCreateDrawerOpen(false);
                 // Reset form
-                setFormData({ type: "", name: "", description: "", contentUrl: "" });
+                setFormData({
+                  type: "",
+                  name: "",
+                  description: "",
+                  contentUrl: "",
+                });
                 setUploadedFileUrl("");
                 setUploadedFileName("");
                 setUploadedFileSize("");
                 setVideoUrl("");
                 setVideoSource("upload");
                 setUploadError("");
+                setValidationErrors({});
               }}
               disabled={createMasterContentMutation.isPending}
             >
@@ -1045,7 +1380,9 @@ export function BankContent() {
               {(createMasterContentMutation.isPending || uploading) && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               )}
-              {createMasterContentMutation.isPending ? "Creating..." : "Create Content"}
+              {createMasterContentMutation.isPending
+                ? "Creating..."
+                : "Create Content"}
             </Button>
           </div>
         </div>
@@ -1054,7 +1391,10 @@ export function BankContent() {
       {/* Edit Content Drawer */}
       <Drawer
         isOpen={isEditDrawerOpen}
-        onClose={() => setIsEditDrawerOpen(false)}
+        onClose={() => {
+          setIsEditDrawerOpen(false);
+          setValidationErrors({});
+        }}
         title="Edit Bank Content"
         size="lg"
         showFooter={false}
@@ -1084,6 +1424,11 @@ export function BankContent() {
               placeholder="Select content type"
               className="w-full"
             />
+            {validationErrors.type && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {validationErrors.type}
+              </p>
+            )}
           </div>
 
           {/* Content Name */}
@@ -1093,10 +1438,17 @@ export function BankContent() {
             </Label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               placeholder="Enter content name"
-              className="w-full"
+              className={`w-full ${validationErrors.name ? "border-red-500" : ""}`}
             />
+            {validationErrors.name && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {validationErrors.name}
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -1106,11 +1458,18 @@ export function BankContent() {
             </Label>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="Enter content description"
               rows={3}
-              className="w-full"
+              className={`w-full ${validationErrors.description ? "border-red-500" : ""}`}
             />
+            {validationErrors.description && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                {validationErrors.description}
+              </p>
+            )}
           </div>
 
           {/* File Upload / URL Input based on type */}
@@ -1124,8 +1483,13 @@ export function BankContent() {
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://example.com/resource"
-                className="w-full"
+                className={`w-full ${validationErrors.contentUrl ? "border-red-500" : ""}`}
               />
+              {validationErrors.contentUrl && (
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                  {validationErrors.contentUrl}
+                </p>
+              )}
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Enter the external link URL
               </p>
@@ -1177,10 +1541,14 @@ export function BankContent() {
                       const files = e.target.files;
                       if (files && files.length > 0) {
                         const file = files[0];
-                        handleFileUploadToR2(file, (url, name) => {
-                          setUploadedFileUrl(url);
-                          setUploadedFileName(name);
-                        }, "VIDEO");
+                        handleFileUploadToR2(
+                          file,
+                          (url, name) => {
+                            setUploadedFileUrl(url);
+                            setUploadedFileName(name);
+                          },
+                          "VIDEO",
+                        );
                       }
                     }}
                   />
@@ -1205,21 +1573,36 @@ export function BankContent() {
                       />
                     </div>
                   )}
-                  {editingContent && editingContent.contentUrl && !uploadedFileUrl && !uploading && videoSource === "upload" && (
-                    <div className="mt-3">
-                      <UploadedFile
-                        icon={Video}
-                        name={editingContent.contentUrl.split('/').pop() || "existing video"}
-                        color="blue"
-                        badge="Existing"
-                        onRemove={() => {
-                          setUploadedFileUrl("");
-                          setUploadedFileName("");
-                          setUploadedFileSize("");
-                        }}
-                      />
-                    </div>
-                  )}
+                  {editingContent &&
+                    editingContent.contentUrl &&
+                    !uploadedFileUrl &&
+                    !uploading &&
+                    videoSource === "upload" && (
+                      <div className="mt-3">
+                        <UploadedFile
+                          icon={Video}
+                          name={
+                            editingContent.contentUrl.split("/").pop() ||
+                            "existing video"
+                          }
+                          color="blue"
+                          badge="Existing"
+                          onRemove={() => {
+                            setUploadedFileUrl("");
+                            setUploadedFileName("");
+                            setUploadedFileSize("");
+                          }}
+                        />
+                      </div>
+                    )}
+                  {!uploadedFileName &&
+                    !uploading &&
+                    !editingContent?.contentUrl &&
+                    validationErrors.contentUrl && (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                        {validationErrors.contentUrl}
+                      </p>
+                    )}
                 </>
               )}
 
@@ -1233,8 +1616,13 @@ export function BankContent() {
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=example"
-                    className="w-full"
+                    className={`w-full ${validationErrors.contentUrl ? "border-red-500" : ""}`}
                   />
+                  {validationErrors.contentUrl && (
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                      {validationErrors.contentUrl}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Enter YouTube, Vimeo, or other video platform URL
                   </p>
@@ -1256,10 +1644,14 @@ export function BankContent() {
                   const files = e.target.files;
                   if (files && files.length > 0) {
                     const file = files[0];
-                    handleFileUploadToR2(file, (url, name) => {
-                      setUploadedFileUrl(url);
-                      setUploadedFileName(name);
-                    }, "PDF");
+                    handleFileUploadToR2(
+                      file,
+                      (url, name) => {
+                        setUploadedFileUrl(url);
+                        setUploadedFileName(name);
+                      },
+                      "PDF",
+                    );
                   }
                 }}
               />
@@ -1284,21 +1676,35 @@ export function BankContent() {
                   />
                 </div>
               )}
-              {editingContent && editingContent.contentUrl && !uploadedFileUrl && !uploading && (
-                <div className="mt-3">
-                  <UploadedFile
-                    icon={FileText}
-                    name={editingContent.contentUrl.split('/').pop() || "existing document"}
-                    color="green"
-                    badge="Existing"
-                    onRemove={() => {
-                      setUploadedFileUrl("");
-                      setUploadedFileName("");
-                      setUploadedFileSize("");
-                    }}
-                  />
-                </div>
-              )}
+              {editingContent &&
+                editingContent.contentUrl &&
+                !uploadedFileUrl &&
+                !uploading && (
+                  <div className="mt-3">
+                    <UploadedFile
+                      icon={FileText}
+                      name={
+                        editingContent.contentUrl.split("/").pop() ||
+                        "existing document"
+                      }
+                      color="green"
+                      badge="Existing"
+                      onRemove={() => {
+                        setUploadedFileUrl("");
+                        setUploadedFileName("");
+                        setUploadedFileSize("");
+                      }}
+                    />
+                  </div>
+                )}
+              {!uploadedFileName &&
+                !uploading &&
+                !editingContent?.contentUrl &&
+                validationErrors.contentUrl && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                    {validationErrors.contentUrl}
+                  </p>
+                )}
             </>
           )}
 
@@ -1322,10 +1728,14 @@ export function BankContent() {
                   const files = e.target.files;
                   if (files && files.length > 0) {
                     const file = files[0];
-                    handleFileUploadToR2(file, (url, name) => {
-                      setUploadedFileUrl(url);
-                      setUploadedFileName(name);
-                    }, "SCORM");
+                    handleFileUploadToR2(
+                      file,
+                      (url, name) => {
+                        setUploadedFileUrl(url);
+                        setUploadedFileName(name);
+                      },
+                      "SCORM",
+                    );
                   }
                 }}
               />
@@ -1350,21 +1760,35 @@ export function BankContent() {
                   />
                 </div>
               )}
-              {editingContent && editingContent.contentUrl && !uploadedFileUrl && !uploading && (
-                <div className="mt-3">
-                  <UploadedFile
-                    icon={Package}
-                    name={editingContent.contentUrl.split('/').pop() || "existing package"}
-                    color="purple"
-                    badge="Existing"
-                    onRemove={() => {
-                      setUploadedFileUrl("");
-                      setUploadedFileName("");
-                      setUploadedFileSize("");
-                    }}
-                  />
-                </div>
-              )}
+              {editingContent &&
+                editingContent.contentUrl &&
+                !uploadedFileUrl &&
+                !uploading && (
+                  <div className="mt-3">
+                    <UploadedFile
+                      icon={Package}
+                      name={
+                        editingContent.contentUrl.split("/").pop() ||
+                        "existing package"
+                      }
+                      color="purple"
+                      badge="Existing"
+                      onRemove={() => {
+                        setUploadedFileUrl("");
+                        setUploadedFileName("");
+                        setUploadedFileSize("");
+                      }}
+                    />
+                  </div>
+                )}
+              {!uploadedFileName &&
+                !uploading &&
+                !editingContent?.contentUrl &&
+                validationErrors.contentUrl && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                    {validationErrors.contentUrl}
+                  </p>
+                )}
             </>
           )}
 
@@ -1384,13 +1808,19 @@ export function BankContent() {
                 setIsEditDrawerOpen(false);
                 // Reset form
                 setEditingContent(null);
-                setFormData({ type: "", name: "", description: "", contentUrl: "" });
+                setFormData({
+                  type: "",
+                  name: "",
+                  description: "",
+                  contentUrl: "",
+                });
                 setUploadedFileUrl("");
                 setUploadedFileName("");
                 setUploadedFileSize("");
                 setVideoUrl("");
                 setVideoSource("upload");
                 setUploadError("");
+                setValidationErrors({});
               }}
               disabled={updateMasterContentMutation.isPending}
             >
@@ -1404,7 +1834,9 @@ export function BankContent() {
               {(updateMasterContentMutation.isPending || uploading) && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               )}
-              {updateMasterContentMutation.isPending ? "Updating..." : "Update Content"}
+              {updateMasterContentMutation.isPending
+                ? "Updating..."
+                : "Update Content"}
             </Button>
           </div>
         </div>

@@ -7,6 +7,7 @@
 
 import React, { useState, useRef } from "react";
 import { X, Upload, AlertTriangle } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -281,9 +282,11 @@ export function FormFileUpload({
                 imageSource.substring(0, 50) + "..."
               );
               return (
-                <img
+                <Image
                   src={imageSource}
                   alt="Preview"
+                  width={640}
+                  height={320}
                   className="w-full h-80 object-cover"
                 />
               );
@@ -373,7 +376,7 @@ export function FormFileUpload({
                 // Process warnings
                 if (file.type.startsWith("image/") && recommendations) {
                   const newWarnings: string[] = [];
-                  const img = new Image();
+                  const img = new window.Image();
                   img.onload = () => {
                     if (
                       recommendations.minWidth &&

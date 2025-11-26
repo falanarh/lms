@@ -2,23 +2,23 @@
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Label";
-import { 
-  X, 
-  Upload, 
-  Download, 
-  FileSpreadsheet, 
+import {
+  X,
+  Upload,
+  Download,
+  FileSpreadsheet,
   AlertCircle,
   CheckCircle,
   FileText,
   Loader2,
   Trash2,
-  Edit
+  Edit,
 } from "lucide-react";
-import { 
-  generateQuizTemplate, 
-  parseQuizExcel, 
+import {
+  generateQuizTemplate,
+  parseQuizExcel,
   excelRowToQuizQuestion,
-  type ExcelQuestionRow 
+  type ExcelQuestionRow,
 } from "@/utils/QuestionTemplateUtils";
 import type { QuizQuestion } from "./QuizQuestionsManager";
 
@@ -28,75 +28,22 @@ interface ImportQuestionsModalProps {
   onImport: (questions: QuizQuestion[]) => void;
 }
 
-export function ImportQuestionsModal({ 
-  isOpen, 
-  onClose, 
-  onImport 
+export function ImportQuestionsModal({
+  isOpen,
+  onClose,
+  onImport,
 }: ImportQuestionsModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [preview, setPreview] = useState<ExcelQuestionRow[]>([]);
-  const [step, setStep] = useState<'upload' | 'preview' | 'success'>('upload');
+  const [step, setStep] = useState<"upload" | "preview" | "success">("upload");
   const [isDragging, setIsDragging] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingRow, setEditingRow] = useState<ExcelQuestionRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
-
-  const handleDownloadTemplate = () => {
-    generateQuizTemplate();
-  };
-
-  const processFile = async (selectedFile: File) => {
-    // Validate file type
-    const validTypes = [
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.oasis.opendocument.spreadsheet', // ODS
-    ];
-    
-    const fileName = selectedFile.name.toLowerCase();
-    const validExtensions = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.ods');
-    
-    if (!validTypes.includes(selectedFile.type) && !validExtensions) {
-      setErrors(['File harus berformat Excel (.xlsx, .xls) atau LibreOffice Calc (.ods)']);
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setErrors(['Ukuran file maksimal 5MB']);
-      return;
-    }
-
-    setFile(selectedFile);
-    setErrors([]);
-    setIsProcessing(true);
-
-    // Parse Excel file
-    const result = await parseQuizExcel(selectedFile);
-    setIsProcessing(false);
-
-    if (!result.success) {
-      setErrors(result.errors || ['Gagal memproses file']);
-      setFile(null);
-      return;
-    }
-
-    setPreview(result.data || []);
-    setStep('preview');
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-    
-    await processFile(selectedFile);
-  };
-
-  // Drag and drop handlers
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -109,27 +56,89 @@ export function ImportQuestionsModal({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      await processFile(droppedFile);
+  const processFile = useCallback(async (selectedFile: File) => {
+    // Validate file type
+    const validTypes = [
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.oasis.opendocument.spreadsheet", // ODS
+    ];
+
+    const fileName = selectedFile.name.toLowerCase();
+    const validExtensions =
+      fileName.endsWith(".xlsx") ||
+      fileName.endsWith(".xls") ||
+      fileName.endsWith(".ods");
+
+    if (!validTypes.includes(selectedFile.type) && !validExtensions) {
+      setErrors([
+        "File harus berformat Excel (.xlsx, .xls) atau LibreOffice Calc (.ods)",
+      ]);
+      return;
     }
+
+    // Validate file size (max 5MB)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      setErrors(["Ukuran file maksimal 5MB"]);
+      return;
+    }
+
+    setFile(selectedFile);
+    setErrors([]);
+    setIsProcessing(true);
+
+    // Parse Excel file
+    const result = await parseQuizExcel(selectedFile);
+    setIsProcessing(false);
+
+    if (!result.success) {
+      setErrors(result.errors || ["Gagal memproses file"]);
+      setFile(null);
+      return;
+    }
+
+    setPreview(result.data || []);
+    setStep("preview");
   }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const droppedFile = e.dataTransfer.files[0];
+        await processFile(droppedFile);
+      }
+    },
+    [processFile],
+  );
+
+  // NOW we can conditionally return after all hooks are defined
+  if (!isOpen) return null;
+
+  const handleDownloadTemplate = () => {
+    generateQuizTemplate();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    await processFile(selectedFile);
+  };
 
   const handleImport = () => {
     if (preview.length === 0) return;
 
     // Convert Excel rows to QuizQuestion format
-    const questions = preview.map((row, index) => 
-      excelRowToQuizQuestion(row, index)
+    const questions = preview.map((row, index) =>
+      excelRowToQuizQuestion(row, index),
     );
 
-    onImport(questions);
-    setStep('success');
+    onImport(questions as any);
+    setStep("success");
 
     // Auto close after success
     setTimeout(() => {
@@ -141,7 +150,7 @@ export function ImportQuestionsModal({
     setFile(null);
     setErrors([]);
     setPreview([]);
-    setStep('upload');
+    setStep("upload");
     onClose();
   };
 
@@ -149,9 +158,9 @@ export function ImportQuestionsModal({
     setFile(null);
     setErrors([]);
     setPreview([]);
-    setStep('upload');
+    setStep("upload");
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -164,7 +173,7 @@ export function ImportQuestionsModal({
   // New functions for editing and deleting rows
   const handleEditRow = (index: number) => {
     setEditingIndex(index);
-    setEditingRow({...preview[index]});
+    setEditingRow({ ...preview[index] });
   };
 
   const handleSaveEdit = () => {
@@ -191,7 +200,7 @@ export function ImportQuestionsModal({
     if (editingRow) {
       setEditingRow({
         ...editingRow,
-        [field]: value
+        [field]: value,
       });
     }
   };
@@ -211,9 +220,9 @@ export function ImportQuestionsModal({
                 Upload file Excel untuk menambahkan banyak soal sekaligus
               </p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleClose}
               className="text-white hover:bg-white/20 h-8 w-8 p-0"
             >
@@ -224,7 +233,7 @@ export function ImportQuestionsModal({
 
         {/* Content */}
         <div className="p-6 overflow-auto max-h-[calc(90vh-180px)] bg-gray-50 dark:bg-zinc-900/50">
-          {step === 'upload' && (
+          {step === "upload" && (
             <div className="space-y-6">
               {/* Download Template Section */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
@@ -237,8 +246,9 @@ export function ImportQuestionsModal({
                       Langkah 1: Download Template
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-zinc-400 mb-4">
-                      Download template Excel terlebih dahulu untuk memastikan format yang benar.
-                      Template sudah dilengkapi dengan contoh pengisian dan panduan.
+                      Download template Excel terlebih dahulu untuk memastikan
+                      format yang benar. Template sudah dilengkapi dengan contoh
+                      pengisian dan panduan.
                     </p>
                     <Button
                       onClick={handleDownloadTemplate}
@@ -255,20 +265,26 @@ export function ImportQuestionsModal({
 
               {/* Upload Section with Drag and Drop */}
               <div
-                className={`bg-white dark:bg-zinc-800 border-2 ${isDragging ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : 'border-dashed border-gray-300 dark:border-zinc-600'} rounded-xl p-8 transition-colors`}
+                className={`bg-white dark:bg-zinc-800 border-2 ${isDragging ? "border-green-400 bg-green-50 dark:bg-green-900/20" : "border-dashed border-gray-300 dark:border-zinc-600"} rounded-xl p-8 transition-colors`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
                 <div className="text-center">
-                  <div className={`inline-flex items-center justify-center w-16 h-16 ${isDragging ? 'bg-green-100 dark:bg-green-900/30' : 'bg-green-50 dark:bg-green-900/20'} rounded-2xl mb-4`}>
-                    <Upload className={`size-8 ${isDragging ? 'text-green-700 dark:text-green-400' : 'text-green-600 dark:text-green-500'}`} />
+                  <div
+                    className={`inline-flex items-center justify-center w-16 h-16 ${isDragging ? "bg-green-100 dark:bg-green-900/30" : "bg-green-50 dark:bg-green-900/20"} rounded-2xl mb-4`}
+                  >
+                    <Upload
+                      className={`size-8 ${isDragging ? "text-green-700 dark:text-green-400" : "text-green-600 dark:text-green-500"}`}
+                    />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-zinc-100 mb-2">
                     Langkah 2: Upload File Excel
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-zinc-400 mb-6">
-                    {isDragging ? 'Lepaskan file untuk mengunggah' : 'Pilih file Excel yang sudah diisi sesuai template atau seret file ke sini'}
+                    {isDragging
+                      ? "Lepaskan file untuk mengunggah"
+                      : "Pilih file Excel yang sudah diisi sesuai template atau seret file ke sini"}
                   </p>
 
                   <input
@@ -298,7 +314,8 @@ export function ImportQuestionsModal({
                   </Button>
 
                   <p className="text-xs text-gray-500 dark:text-zinc-500 mt-4">
-                    Format: .xlsx, .xls, atau .ods | Maksimal: 5MB | Maksimal: 100 soal
+                    Format: .xlsx, .xls, atau .ods | Maksimal: 5MB | Maksimal:
+                    100 soal
                   </p>
                 </div>
               </div>
@@ -314,7 +331,10 @@ export function ImportQuestionsModal({
                       </h4>
                       <ul className="space-y-1">
                         {errors.map((error, index) => (
-                          <li key={index} className="text-sm text-red-700 dark:text-red-300">
+                          <li
+                            key={index}
+                            className="text-sm text-red-700 dark:text-red-300"
+                          >
                             • {error}
                           </li>
                         ))}
@@ -333,19 +353,29 @@ export function ImportQuestionsModal({
                 <ul className="space-y-2 text-sm text-gray-700 dark:text-zinc-300">
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">1.</span>
-                    <span>Download template Excel dengan klik tombol di atas</span>
+                    <span>
+                      Download template Excel dengan klik tombol di atas
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">2.</span>
-                    <span>Isi data soal sesuai contoh yang ada di template</span>
+                    <span>
+                      Isi data soal sesuai contoh yang ada di template
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">3.</span>
-                    <span>Jangan ubah nama kolom atau hapus kolom yang ada</span>
+                    <span>
+                      Untuk Pilihan Ganda: Isi "Jawaban Benar" dan minimal 1
+                      "Jawaban Salah"
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">4.</span>
-                    <span>Upload file Excel yang sudah diisi dengan cara klik tombol atau seret file ke area upload</span>
+                    <span>
+                      Upload file Excel yang sudah diisi dengan cara klik tombol
+                      atau seret file ke area upload
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">5.</span>
@@ -356,7 +386,7 @@ export function ImportQuestionsModal({
             </div>
           )}
 
-          {step === 'preview' && (
+          {step === "preview" && (
             <div className="space-y-6">
               {/* Summary */}
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
@@ -367,7 +397,11 @@ export function ImportQuestionsModal({
                       File Berhasil Diproses!
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
-                      Ditemukan <span className="font-bold text-green-700 dark:text-green-300">{preview.length} soal</span> yang valid
+                      Ditemukan{" "}
+                      <span className="font-bold text-green-700 dark:text-green-300">
+                        {preview.length} soal
+                      </span>{" "}
+                      yang valid
                     </p>
                   </div>
                 </div>
@@ -377,7 +411,9 @@ export function ImportQuestionsModal({
               <div className="bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 bg-gray-50 dark:bg-zinc-700 border-b border-gray-200 dark:border-zinc-600 flex justify-between items-center">
                   <div>
-                    <h4 className="font-bold text-gray-900 dark:text-zinc-100">Preview Soal</h4>
+                    <h4 className="font-bold text-gray-900 dark:text-zinc-100">
+                      Preview Soal
+                    </h4>
                     <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
                       Periksa dan edit data sebelum melakukan import
                     </p>
@@ -390,35 +426,61 @@ export function ImportQuestionsModal({
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-zinc-700 sticky top-0">
                       <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">No</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Tipe</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Pertanyaan</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Opsi A</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Opsi B</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Opsi C</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Opsi D</th>
-                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">Jawaban</th>
-                        <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-zinc-300">Aksi</th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          No
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          Tipe
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          Pertanyaan
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          Jawaban Benar
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          Jawaban Salah 1
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          Jawaban Salah 2
+                        </th>
+                        <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-zinc-300">
+                          Jawaban Salah 3
+                        </th>
+                        <th className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-zinc-300">
+                          Aksi
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-zinc-600">
                       {preview.map((row, index) => (
-                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-zinc-600/50">
-                          <td className="px-4 py-3 text-gray-900 dark:text-zinc-100">{index + 1}</td>
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 dark:hover:bg-zinc-600/50"
+                        >
+                          <td className="px-4 py-3 text-gray-900 dark:text-zinc-100">
+                            {index + 1}
+                          </td>
                           <td className="px-4 py-3">
                             {editingIndex === index ? (
                               <select
                                 className="w-full px-2 py-1 border rounded text-sm"
-                                value={editingRow?.['Tipe Soal'] || ''}
-                                onChange={(e) => handleEditCell('Tipe Soal', e.target.value)}
+                                value={editingRow?.["Tipe Soal"] || ""}
+                                onChange={(e) =>
+                                  handleEditCell("Tipe Soal", e.target.value)
+                                }
                               >
-                                <option value="Pilihan Ganda">Pilihan Ganda</option>
-                                <option value="Essay">Essay</option>
+                                <option value="Pilihan Ganda">
+                                  Pilihan Ganda
+                                </option>
+                                <option value="Jawaban Singkat">
+                                  Jawaban Singkat
+                                </option>
                                 <option value="Benar/Salah">Benar/Salah</option>
                               </select>
                             ) : (
                               <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                                {row['Tipe Soal']}
+                                {row["Tipe Soal"]}
                               </span>
                             )}
                           </td>
@@ -427,12 +489,17 @@ export function ImportQuestionsModal({
                               <textarea
                                 className="w-full px-2 py-1 border rounded text-sm"
                                 rows={2}
-                                value={editingRow?.['Pertanyaan'] || ''}
-                                onChange={(e) => handleEditCell('Pertanyaan', e.target.value)}
+                                value={editingRow?.["Pertanyaan"] || ""}
+                                onChange={(e) =>
+                                  handleEditCell("Pertanyaan", e.target.value)
+                                }
                               />
                             ) : (
-                              <div className="truncate" title={row['Pertanyaan']}>
-                                {row['Pertanyaan']}
+                              <div
+                                className="truncate"
+                                title={row["Pertanyaan"]}
+                              >
+                                {row["Pertanyaan"]}
                               </div>
                             )}
                           </td>
@@ -441,12 +508,20 @@ export function ImportQuestionsModal({
                               <input
                                 type="text"
                                 className="w-full px-2 py-1 border rounded text-sm"
-                                value={editingRow?.['Opsi A'] || ''}
-                                onChange={(e) => handleEditCell('Opsi A', e.target.value)}
+                                value={editingRow?.["Jawaban Benar"] || ""}
+                                onChange={(e) =>
+                                  handleEditCell(
+                                    "Jawaban Benar",
+                                    e.target.value,
+                                  )
+                                }
                               />
                             ) : (
-                              <div className="truncate" title={row['Opsi A']}>
-                                {row['Opsi A'] || '-'}
+                              <div
+                                className="truncate"
+                                title={row["Jawaban Benar"]}
+                              >
+                                {row["Jawaban Benar"] || "-"}
                               </div>
                             )}
                           </td>
@@ -455,12 +530,20 @@ export function ImportQuestionsModal({
                               <input
                                 type="text"
                                 className="w-full px-2 py-1 border rounded text-sm"
-                                value={editingRow?.['Opsi B'] || ''}
-                                onChange={(e) => handleEditCell('Opsi B', e.target.value)}
+                                value={editingRow?.["Jawaban Salah 1"] || ""}
+                                onChange={(e) =>
+                                  handleEditCell(
+                                    "Jawaban Salah 1",
+                                    e.target.value,
+                                  )
+                                }
                               />
                             ) : (
-                              <div className="truncate" title={row['Opsi B']}>
-                                {row['Opsi B'] || '-'}
+                              <div
+                                className="truncate"
+                                title={row["Jawaban Salah 1"]}
+                              >
+                                {row["Jawaban Salah 1"] || "-"}
                               </div>
                             )}
                           </td>
@@ -469,12 +552,20 @@ export function ImportQuestionsModal({
                               <input
                                 type="text"
                                 className="w-full px-2 py-1 border rounded text-sm"
-                                value={editingRow?.['Opsi C'] || ''}
-                                onChange={(e) => handleEditCell('Opsi C', e.target.value)}
+                                value={editingRow?.["Jawaban Salah 2"] || ""}
+                                onChange={(e) =>
+                                  handleEditCell(
+                                    "Jawaban Salah 2",
+                                    e.target.value,
+                                  )
+                                }
                               />
                             ) : (
-                              <div className="truncate" title={row['Opsi C']}>
-                                {row['Opsi C'] || '-'}
+                              <div
+                                className="truncate"
+                                title={row["Jawaban Salah 2"]}
+                              >
+                                {row["Jawaban Salah 2"] || "-"}
                               </div>
                             )}
                           </td>
@@ -483,26 +574,20 @@ export function ImportQuestionsModal({
                               <input
                                 type="text"
                                 className="w-full px-2 py-1 border rounded text-sm"
-                                value={editingRow?.['Opsi D'] || ''}
-                                onChange={(e) => handleEditCell('Opsi D', e.target.value)}
+                                value={editingRow?.["Jawaban Salah 3"] || ""}
+                                onChange={(e) =>
+                                  handleEditCell(
+                                    "Jawaban Salah 3",
+                                    e.target.value,
+                                  )
+                                }
                               />
                             ) : (
-                              <div className="truncate" title={row['Opsi D']}>
-                                {row['Opsi D'] || '-'}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-gray-700 dark:text-zinc-300">
-                            {editingIndex === index ? (
-                              <input
-                                type="text"
-                                className="w-full px-2 py-1 border rounded text-sm"
-                                value={editingRow?.['Jawaban Benar'] || ''}
-                                onChange={(e) => handleEditCell('Jawaban Benar', e.target.value)}
-                              />
-                            ) : (
-                              <div className="truncate" title={row['Jawaban Benar']}>
-                                {row['Jawaban Benar'] || '-'}
+                              <div
+                                className="truncate"
+                                title={row["Jawaban Salah 3"]}
+                              >
+                                {row["Jawaban Salah 3"] || "-"}
                               </div>
                             )}
                           </td>
@@ -558,7 +643,7 @@ export function ImportQuestionsModal({
             </div>
           )}
 
-          {step === 'success' && (
+          {step === "success" && (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
                 <CheckCircle className="size-10 text-green-600 dark:text-green-400" />
@@ -577,34 +662,25 @@ export function ImportQuestionsModal({
         </div>
 
         {/* Footer */}
-        {step !== 'success' && (
+        {step !== "success" && (
           <div className="px-6 py-4 border-t border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 flex justify-between">
-            {step === 'upload' ? (
+            {step === "upload" ? (
               <>
                 <div></div>
-                <Button 
-                  variant="outline" 
-                  onClick={handleClose}
-                >
+                <Button variant="outline" onClick={handleClose}>
                   Tutup
                 </Button>
               </>
             ) : (
               <>
-                <Button 
-                  variant="outline" 
-                  onClick={handleResetFile}
-                >
+                <Button variant="outline" onClick={handleResetFile}>
                   Upload Ulang
                 </Button>
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleClose}
-                  >
+                  <Button variant="outline" onClick={handleClose}>
                     Batal
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleImport}
                     className="bg-green-600 hover:bg-green-700"
                     disabled={preview.length === 0}

@@ -6,7 +6,7 @@
  */
 
 // Get API base URL from environment variables
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api-lms-kappa.vercel.app/api/v1';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://10.101.20.220:3001/api/v1';
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -51,5 +51,5 @@ export const API_CONFIG = {
 } as const;
 
 export default API_ENDPOINTS;
-export const API_COURSE_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://service-courses.vercel.app/api/v1";
+export const API_COURSE_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://10.101.20.220:3001/api/v1";
 export const DUMMY_USER_ID = "0f6224e4-be11-4702-897c-6370ffe8f7c1";

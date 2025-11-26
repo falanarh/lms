@@ -10,7 +10,11 @@ import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
 // Updated query key to support pagination
-export const getQuestionsQueryKey = (idContent: string, page?: number, perPage?: number) => {
+export const getQuestionsQueryKey = (
+  idContent: string,
+  page?: number,
+  perPage?: number,
+) => {
   const key = ["questions", idContent];
   if (page !== undefined && perPage !== undefined) {
     return [...key, page, perPage];
@@ -18,13 +22,17 @@ export const getQuestionsQueryKey = (idContent: string, page?: number, perPage?:
   return key;
 };
 
-export const getQuestionByIdQueryKey = (id: string) => ["questions", "detail", id];
+export const getQuestionByIdQueryKey = (id: string) => [
+  "questions",
+  "detail",
+  id,
+];
 
 // Updated query options to support pagination
 export const getQuestionsQueryOptions = (
   idContent: string,
   page: number = 1,
-  perPage: number = 10
+  perPage: number = 10,
 ) => {
   return queryOptions({
     queryKey: getQuestionsQueryKey(idContent, page, perPage),
@@ -54,7 +62,7 @@ export const useQuestions = (
   idContent: string,
   page: number = 1,
   perPage: number = 10,
-  params: UseQuestionsParams = {}
+  params: UseQuestionsParams = {},
 ) => {
   return useQuery({
     ...getQuestionsQueryOptions(idContent, page, perPage),
@@ -64,7 +72,7 @@ export const useQuestions = (
 
 export const useQuestionById = (
   id: string,
-  params: UseQuestionByIdParams = {}
+  params: UseQuestionByIdParams = {},
 ) => {
   return useQuery({
     ...getQuestionByIdQueryOptions(id),
@@ -73,7 +81,7 @@ export const useQuestionById = (
 };
 
 export const useCreateQuestion = (
-  config: MutationConfig<typeof createQuestion> = {}
+  config: MutationConfig<typeof createQuestion> = {},
 ) => {
   return useMutation({
     mutationFn: createQuestion,
@@ -89,7 +97,7 @@ export const useCreateQuestion = (
 };
 
 export const useUpdateQuestion = (
-  config: MutationConfig<typeof updateQuestion> = {}
+  config: MutationConfig<typeof updateQuestion> = {},
 ) => {
   return useMutation({
     mutationFn: updateQuestion,
@@ -111,7 +119,7 @@ export const useUpdateQuestion = (
 };
 
 export const useDeleteQuestion = (
-  config: MutationConfig<typeof deleteQuestion> = {}
+  config: MutationConfig<typeof deleteQuestion> = {},
 ) => {
   return useMutation({
     mutationFn: deleteQuestion,
@@ -125,7 +133,7 @@ export const useDeleteQuestion = (
 };
 
 export const useCreateBulkQuestions = (
-  config: MutationConfig<typeof createBulkQuestions> = {}
+  config: MutationConfig<typeof createBulkQuestions> = {},
 ) => {
   return useMutation({
     mutationFn: createBulkQuestions,
@@ -134,13 +142,13 @@ export const useCreateBulkQuestions = (
       const uniqueContentIds = [
         ...new Set(data.map((q) => q.idContent).filter(Boolean)),
       ] as string[];
-      
+
       await Promise.all(
         uniqueContentIds.map((idContent) =>
           queryClient.invalidateQueries({
             queryKey: ["questions", idContent],
-          })
-        )
+          }),
+        ),
       );
       await config.onSuccess?.(data, ...args);
     },

@@ -1,5 +1,5 @@
 import { Grid3X3, LayoutGrid, List } from "lucide-react";
-import { Course as ApiCourse } from "@/api/course";
+import { CourseResponse as ApiCourse } from "@/api/course";
 
 export interface Course extends ApiCourse {}
 

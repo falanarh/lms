@@ -64,7 +64,7 @@ interface Section {
   activities: Activity[];
   sequence: number;
   idGroup?: string;
-  listContent?: Content[];
+  listContents?: Content[];
 }
 
 interface SectionActivitiesProps {
@@ -198,7 +198,7 @@ export function SectionActivities({
       try {
         if (editingSectionId.startsWith("local-")) {
           const createData: CreateSectionInput = {
-            idGroup: "b8d1607e-4edf-4f7a-8a0b-0552191bdd71",
+            idCourse: "4a74b0b4-c796-4a2d-8d86-e22c05f29f10",
             name: value.name,
             description: value.description || "",
             sequence: displayedSections.length,
@@ -272,7 +272,7 @@ export function SectionActivities({
     }
 
     const sectionsArray = sectionsData.filter(Boolean);
-    
+
     console.log("📊 Processing sections:", {
       totalSections: sectionsArray.length,
       groupId,
@@ -406,21 +406,21 @@ export function SectionActivities({
       sortableInstanceRef.current.destroy();
       sortableInstanceRef.current = null;
     }
-    
+
     activitiesSortableRefs.current.forEach((sortable) => {
       sortable.destroy();
     });
     activitiesSortableRefs.current.clear();
-    
+
     setSequenceConfirm({
       isOpen: false,
       type: "activity",
       pendingUpdates: [],
       description: "",
     });
-    
+
     setLocalSections([]);
-    
+
     queryClient.refetchQueries({ queryKey: getSectionQueryKey() }).then(() => {
       setTimeout(() => {
         setRefreshKey(prev => prev + 1);
@@ -483,11 +483,11 @@ export function SectionActivities({
 
   const handleEditActivity = (sectionId: string, activityId: string) => {
     console.log("✏️ Editing activity:", { sectionId, activityId });
-    
+
     // ✅ Find activity from section's listContent
     const section = sectionsData?.find(s => s.id === sectionId);
     const activityData = section?.listContents?.find(content => content.id === activityId);
-    
+
     if (activityData && onEditActivity) {
       onEditActivity(sectionId, activityId, activityData as Content);
     } else {
@@ -745,7 +745,7 @@ export function SectionActivities({
           Tambah Section Baru
         </Button>
       </div>
-      
+
       <div ref={sectionsContainerRef} className="space-y-4" key={refreshKey}>
         {displayedSections.map((section, index) => (
           <div
@@ -938,7 +938,7 @@ export function SectionActivities({
                     >
                       <GripVertical size={14} />
                     </button>
-                    
+
                     <div className="flex-1">
                       <ActivityCard
                         key={activity.id}
@@ -974,7 +974,7 @@ export function SectionActivities({
                         } : undefined}
                       />
                     </div>
-                    
+
                     {/* Action buttons container - FIXED WIDTH */}
                     <div className="flex items-center gap-1 flex-shrink-0 w-[120px] justify-end">
                       {/* View button - only show if has contentUrl and not QUIZ type */}
@@ -1000,7 +1000,7 @@ export function SectionActivities({
                       ) : (
                         <div className="w-10" />
                       )}
-                      
+
                       {/* Edit button */}
                       <button
                         className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
@@ -1012,7 +1012,7 @@ export function SectionActivities({
                       >
                         <Pencil size={16} />
                       </button>
-                      
+
                       {/* Delete button */}
                       <button
                         className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 transition-colors"

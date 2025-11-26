@@ -80,6 +80,7 @@ const nextConfig: NextConfig = {
     ],
     domains: [
       'via.placeholder.com',
+      'http://10.101.20.220:3001',
       'api-lms-kappa.vercel.app',
       'res.cloudinary.com',
       'pub-b50c5924d2c64c1397f8e200306b9bfb.r2.dev',

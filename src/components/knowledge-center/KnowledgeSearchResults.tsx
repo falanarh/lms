@@ -11,6 +11,7 @@ import { Search, BookOpen, Calendar, Eye, ThumbsUp, ExternalLink } from 'lucide-
 import { useKnowledgeCenterSearch } from '@/hooks/useKnowledgeCenter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { KnowledgeSubject } from '@/types';
+import { ensureArray, safeFilter } from '@/utils/array-fix-utils';
 
 interface KnowledgeSearchResultsProps {
   searchQuery: string;
@@ -31,7 +32,7 @@ export default function KnowledgeSearchResults({
   const apiSubjects = searchResults?.data?.knowledgeSubjects || [];
   
   // Combine local subjects with API subjects, removing duplicates by ID
-  const subjectMap = new Map();
+  const subjectMap = new Map<string, KnowledgeSubject & { source: string }>();
   
   // Add local subjects first
   subjects.forEach(subject => {
@@ -45,10 +46,14 @@ export default function KnowledgeSearchResults({
     }
   });
   
-  // Convert back to array and filter based on search query
-  const allSubjects = Array.from(subjectMap.values());
-  const filteredSubjects = allSubjects.filter(subject =>
-    subject.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Convert back to array and filter based on search query safely
+  const allSubjects = ensureArray<KnowledgeSubject & { source: string }>(
+    Array.from(subjectMap.values())
+  );
+  const filteredSubjects = safeFilter<KnowledgeSubject & { source: string }>(
+    allSubjects,
+    (subject) =>
+      subject.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (!isVisible || searchQuery.length < 2) {

@@ -43,7 +43,7 @@ export const sectionGetResponseSchema = z.object({
 
 
 export const createSectionSchema = z.object({
-  idGroup: z.uuidv4("Invalid group ID format"),
+  idCourse: z.uuidv4("Invalid group ID format"),
   name: z.string().min(3, {
     message: "Nama section minimal 3 karakter",
   }),

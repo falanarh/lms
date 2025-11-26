@@ -79,7 +79,7 @@ export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: 
     <div className={`grid gap-6 ${gridClass}`}>
       {courses.map((course) => (
         <CourseCard 
-          key={course.id} 
+          key={(course as any).id} 
           course={course} 
           viewMode={viewMode as ViewModeValue} 
         />
