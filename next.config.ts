@@ -125,10 +125,7 @@ const nextConfig: NextConfig = {
   },
 
  
-  experimental: {
-    allowedDevOrigins: ["http://10.101.20.220:3001"],
-  },
-  reactStrictMode: false,
+reactStrictMode: false,
 };
 
 export default nextConfig;
