@@ -92,7 +92,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     return flattened;
   }, [sections, expandedSectionsData]);
 
-  const unlockedContentId = useMemo(() => {
+  const firstAccessibleUnfinishedId = useMemo(() => {
+    for (const c of orderedContents) {
+      const finished = Boolean((c as any)?.userStatus?.isFinished);
+      const access = Boolean((c as any)?.userStatus?.hasAccess);
+      if (access && !finished) return c.id;
+    }
     for (const c of orderedContents) {
       const finished = Boolean((c as any)?.userStatus?.isFinished);
       if (!finished) return c.id;
@@ -148,11 +153,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     const locked: string[] = [];
     orderedContents.forEach((c: any) => {
       const finished = Boolean(c?.userStatus?.isFinished);
-      const isUnlocked = unlockedContentId && c.id === unlockedContentId;
-      if (!finished && !isUnlocked) locked.push(c.id);
+      const access = Boolean(c?.userStatus?.hasAccess);
+      const isFallbackUnlocked = firstAccessibleUnfinishedId === c.id;
+      if (!finished && !(access || isFallbackUnlocked)) locked.push(c.id);
     });
     setLockedContentIds(locked);
-  }, [orderedContents, unlockedContentId]);
+  }, [orderedContents, firstAccessibleUnfinishedId]);
 
   useEffect(() => {
     if (isSidebarOpen && activeTab === "course_contents") {
@@ -209,9 +215,9 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     if (!isUrlResolved) return;
     if (!selectedContent && !activeContentId) {
       let contentToSelect: Content | null = null;
-      if (unlockedContentId) {
+      if (firstAccessibleUnfinishedId) {
         contentToSelect =
-          orderedContents.find((c) => c.id === unlockedContentId) || null;
+          orderedContents.find((c) => c.id === firstAccessibleUnfinishedId) || null;
       } else if (orderedContents.length > 0) {
         contentToSelect = orderedContents[0] || null;
       }
@@ -222,7 +228,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [
     orderedContents,
-    unlockedContentId,
+    firstAccessibleUnfinishedId,
     selectedContent,
     activeContentId,
     updateContentInUrl,
@@ -281,11 +287,10 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       }
 
       const isCompleted = completedContentIds.includes(content.id);
-      const isUnlocked = unlockedContentId
-        ? content.id === unlockedContentId
-        : false;
+      const hasAccess = Boolean((content as any)?.userStatus?.hasAccess);
+      const isFallbackUnlocked = firstAccessibleUnfinishedId === content.id;
 
-      if (!isCompleted && !isUnlocked) {
+      if (!isCompleted && !(hasAccess || isFallbackUnlocked)) {
         toastState.showError(
           "Anda harus menyelesaikan content sebelumnya terlebih dahulu."
         );
@@ -298,8 +303,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     [
       updateContentInUrl,
       completedContentIds,
-      unlockedContentId,
       lockedContentIds,
+      firstAccessibleUnfinishedId,
       toastState,
     ]
   );
@@ -331,19 +336,21 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       selectedContent,
       expandedSectionsData,
       orderedContents,
-      unlockedContentId,
       onContentSelect: handleContentSelect,
       onSectionDataUpdate: handleSectionDataUpdate,
     });
 
   const handleMarkContentDone = () => {
     if (!selectedContent) return;
+    const isCompleted = completedContentIds.includes(selectedContent.id);
 
-    if (selectedContent.type === "TASK") {
-      const hasSubmitted = taskSubmissionStatus[selectedContent.id];
-      if (!hasSubmitted) {
-        toastState.showError("Anda harus mengumpulkan tugas terlebih dahulu!");
-        return;
+    if (!isCompleted) {
+      if (selectedContent.type === "TASK") {
+        const hasSubmitted = taskSubmissionStatus[selectedContent.id];
+        if (!hasSubmitted) {
+          toastState.showError("Anda harus mengumpulkan tugas terlebih dahulu!");
+          return;
+        }
       }
     }
 
@@ -351,7 +358,13 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       idCourse: id,
       idUser: DUMMY_USER_ID,
       idContent: selectedContent.id,
-      isFinished: true,
+      isFinished: !isCompleted,
+    });
+
+    setCompletedContentIds((prev) => {
+      return isCompleted
+        ? prev.filter((cid) => cid !== selectedContent.id)
+        : [...prev, selectedContent.id];
     });
   };
 

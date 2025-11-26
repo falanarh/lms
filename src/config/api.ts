@@ -8,9 +8,10 @@
 // Get API base URL from environment variables
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://10.101.20.220:3001/api/v1";
-  
+
 export const API_QUIZ_BASE_URL =
-  process.env.NEXT_PUBLIC_API_QUIZ_BASE_URL || "http://10.101.20.220:3002/api/v1";
+  process.env.NEXT_PUBLIC_API_QUIZ_BASE_URL ||
+  "http://10.101.20.220:3002/api/v1";
 
 // API Endpoints
 export const API_ENDPOINTS = {

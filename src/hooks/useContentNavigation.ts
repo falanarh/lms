@@ -7,7 +7,6 @@ interface UseContentNavigationProps {
   selectedContent: Content | null;
   expandedSectionsData: Record<string, Content[]>;
   orderedContents: Content[];
-  unlockedContentId: string | null;
   onContentSelect: (content: Content) => void;
   onSectionDataUpdate: (sectionId: string, contents: Content[]) => void;
 }
@@ -27,7 +26,6 @@ interface NavigationState {
 const findNextContent = (
   currentContent: Content,
   orderedContents: Content[],
-  unlockedContentId: string | null
 ): Content | null => {
   const currIndex = orderedContents.findIndex(
     (c) => c.id === currentContent.id
@@ -36,10 +34,8 @@ const findNextContent = (
   for (let i = currIndex + 1; i < orderedContents.length; i++) {
     const candidate = orderedContents[i];
     const finished = Boolean((candidate as any)?.userStatus?.isFinished);
-    const isUnlocked = unlockedContentId
-      ? candidate.id === unlockedContentId
-      : false;
-    if (finished || isUnlocked) return candidate || null;
+    const access = Boolean((candidate as any)?.userStatus?.hasAccess);
+    if (finished || access) return candidate || null;
   }
   return null;
 };
@@ -63,16 +59,11 @@ const findPreviousContent = (
 const getNavigationState = (
   currentContent: Content | null,
   orderedContents: Content[],
-  unlockedContentId: string | null
 ): NavigationState => {
   if (!currentContent || !orderedContents.length) {
     return { hasPrevious: false, hasNext: false };
   }
-  const next = findNextContent(
-    currentContent,
-    orderedContents,
-    unlockedContentId
-  );
+  const next = findNextContent(currentContent, orderedContents);
   const prev = findPreviousContent(currentContent, orderedContents);
   return { hasPrevious: Boolean(prev), hasNext: Boolean(next) };
 };
@@ -82,19 +73,14 @@ export const useContentNavigation = ({
   selectedContent,
   expandedSectionsData,
   orderedContents,
-  unlockedContentId,
   onContentSelect,
   onSectionDataUpdate,
 }: UseContentNavigationProps): UseContentNavigationReturn => {
   const [isNavigating, setIsNavigating] = useState(false);
 
   const navigationState = useMemo(() => {
-    return getNavigationState(
-      selectedContent,
-      orderedContents,
-      unlockedContentId
-    );
-  }, [selectedContent, orderedContents, unlockedContentId]);
+    return getNavigationState(selectedContent, orderedContents);
+  }, [selectedContent, orderedContents]);
 
   const handleNext = async () => {
     if (!selectedContent || !navigationState.hasNext || isNavigating) {
@@ -104,11 +90,7 @@ export const useContentNavigation = ({
     setIsNavigating(true);
 
     try {
-      const nextContent = findNextContent(
-        selectedContent,
-        orderedContents,
-        unlockedContentId
-      );
+      const nextContent = findNextContent(selectedContent, orderedContents);
 
       if (nextContent) {
         onContentSelect(nextContent);

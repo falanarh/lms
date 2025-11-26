@@ -79,7 +79,7 @@ export const ContentNavigation = ({
           <>
             {isCompleted && <CheckIcon className="w-5 h-5 mr-1" />}
             <span className="mr-1">
-              {isCompleted ? "Completed" : "Mark as done"}
+              {isCompleted ? "Unmark as done" : "Mark as done"}
             </span>
           </>
         )}
