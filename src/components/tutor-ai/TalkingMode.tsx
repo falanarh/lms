@@ -8,30 +8,99 @@
 import { X, Mic, MicOff, Sun, Moon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Aurora from './Aurora';
+import { useVoiceChat } from '@/hooks/useVoiceChat';
 
 interface TalkingModeProps {
   onClose: () => void;
   userName?: string;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  threadId: string;
 }
 
-export default function TalkingMode({ onClose, userName = 'User', theme, onToggleTheme }: TalkingModeProps) {
-  const [isListening, setIsListening] = useState(true);
-  const [orbState, setOrbState] = useState<'idle' | 'listening' | 'speaking'>('listening');
+export default function TalkingMode({ onClose, userName = 'User', theme, onToggleTheme, threadId }: TalkingModeProps) {
+  // Voice chat hook integration
+  const {
+    state,
+    isRecording,
+    isProcessing,
+    isSpeaking,
+    transcribedText,
+    aiResponse,
+    error,
+    connect,
+    disconnect,
+    startRecording,
+    stopRecording,
+  } = useVoiceChat({
+    wsUrl: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/api/ws/voice',
+    threadId: "13679bd8-fb87-443f-979e-08d87fed1121", // threadId, // Use static threadId temporarily
+    autoConnect: true,
+    onTranscription: (text) => console.log('Transcription:', text),
+    onResponse: (text) => console.log('AI Response:', text),
+    onError: (error) => console.error('Voice chat error:', error),
+  });
 
-  // Simulate orb animation states
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Randomly switch states for demo purposes
-      const states: ('idle' | 'listening' | 'speaking')[] = ['idle', 'listening', 'speaking'];
-      setOrbState(states[Math.floor(Math.random() * states.length)]);
-    }, 3000);
+  // Map voice state to orb state
+  const getOrbState = (): 'idle' | 'listening' | 'speaking' => {
+    if (isRecording) return 'listening';
+    if (isSpeaking) return 'speaking';
+    if (isProcessing) return 'listening'; // Use listening visual for processing too
+    return 'idle';
+  };
 
-    return () => clearInterval(interval);
-  }, []);
-
+  const orbState = getOrbState();
   const isDark = theme === 'dark';
+
+  // Determine Aurora visuals based on state and theme
+  const getAuroraProps = () => {
+    let colorStops = ['#1D4ED8', '#BBF7D0', '#FEF9C3']; // Default Blue/Indigo
+    let amplitude = 1.0;
+    let speed = 1.0;
+
+    if (orbState === 'listening') {
+      // Red/Orange for listening
+      colorStops = isDark
+        ? ["#7F1D1D", "#DC2626", "#FCA5A5"]
+        : ["#FCA5A5", "#EF4444", "#991B1B"];
+      amplitude = 1.5;
+      speed = 2.0;
+    } else if (orbState === 'speaking') {
+      // Green/Cyan for speaking
+      colorStops = isDark
+        ? ["#064E3B", "#10B981", "#6EE7B7"]
+        : ["#6EE7B7", "#10B981", "#065F46"];
+      amplitude = 1.2;
+      speed = 1.5;
+    } else {
+      // Idle Blue/Indigo
+      colorStops = isDark
+        ? ["#1E3A8A", "#3B82F6", "#93C5FD"]
+        : ["#BFDBFE", "#3B82F6", "#1E40AF"];
+      amplitude = 0.8;
+      speed = 0.5;
+    }
+
+    return { colorStops, amplitude, speed };
+  };
+
+  const auroraProps = getAuroraProps();
+
+  // Handle mic toggle
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
+    };
+  }, [disconnect]);
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden animate-fade-in transition-colors duration-500 ${isDark ? 'bg-[#0a0e17]' : 'bg-gray-50'
@@ -98,10 +167,10 @@ export default function TalkingMode({ onClose, userName = 'User', theme, onToggl
             {/* Aurora Layer 1 - Flowing wave */}
             <div className="absolute inset-0 rounded-full overflow-hidden">
               <Aurora
-                colorStops={['#1D4ED8', '#BBF7D0', '#FEF9C3']}
-                amplitude={1.0}
+                colorStops={auroraProps.colorStops}
+                amplitude={auroraProps.amplitude}
                 blend={0.5}
-                speed={1.0}
+                speed={auroraProps.speed}
               />
             </div>
 
@@ -139,12 +208,18 @@ export default function TalkingMode({ onClose, userName = 'User', theme, onToggl
         {/* Text Prompts */}
         <h2 className={`text-2xl md:text-3xl font-medium mb-3 tracking-tight transition-colors duration-500 ${isDark ? 'text-white' : 'text-gray-900'
           }`}>
-          {orbState === 'listening' ? `I'm listening, ${userName}...` :
-            orbState === 'speaking' ? 'Speaking...' : 'Tap microphone to speak'}
+          {isRecording ? `I'm listening, ${userName}...` :
+            isProcessing ? 'Processing...' :
+              isSpeaking ? 'Speaking...' :
+                error ? 'Something went wrong' :
+                  'Tap microphone to speak'}
         </h2>
         <p className={`text-lg transition-colors duration-500 ${isDark ? 'text-blue-200/60' : 'text-gray-500'
           }`}>
-          What's on your mind?
+          {transcribedText ? `"${transcribedText}"` :
+            aiResponse && !isSpeaking ? aiResponse :
+              error ? error :
+                "What's on your mind?"}
         </p>
       </div>
 
@@ -161,13 +236,14 @@ export default function TalkingMode({ onClose, userName = 'User', theme, onToggl
           </button>
 
           <button
-            onClick={() => setIsListening(!isListening)}
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isListening
+            onClick={handleMicToggle}
+            disabled={state === 'connecting' || state === 'processing'}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isRecording
               ? (isDark ? 'bg-white text-black shadow-lg shadow-white/20' : 'bg-blue-600 text-white shadow-lg shadow-blue-600/20')
               : (isDark ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-200 text-gray-600 hover:bg-gray-300')
-              }`}
+              } ${state === 'connecting' || state === 'processing' ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isListening ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+            {isRecording ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
           </button>
         </div>
       </div>
@@ -277,3 +353,4 @@ export default function TalkingMode({ onClose, userName = 'User', theme, onToggl
     </div>
   );
 }
+

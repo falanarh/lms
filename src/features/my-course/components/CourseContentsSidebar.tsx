@@ -14,6 +14,7 @@ interface CourseContentsSidebarProps {
   onClose: () => void;
   completedContentIds?: string[];
   onSectionDataUpdate?: (sectionId: string, contents: Content[]) => void;
+  lockedContentIds?: string[];
 }
 
 export const CourseContentsSidebar = ({
@@ -25,6 +26,7 @@ export const CourseContentsSidebar = ({
   onClose,
   completedContentIds = [],
   onSectionDataUpdate,
+  lockedContentIds = [],
 }: CourseContentsSidebarProps) => {
 
   return (
@@ -80,6 +82,7 @@ export const CourseContentsSidebar = ({
               variant="sidebar"
               completedContentIds={completedContentIds}
               onSectionDataUpdate={onSectionDataUpdate}
+              lockedContentIds={lockedContentIds}
             />
             ))}
           </div>

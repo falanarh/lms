@@ -1,5 +1,5 @@
-import { Course, VIEW_MODES, ViewModeValue } from '../types';
-import { CourseCard } from './CourseCard';
+import { Course, VIEW_MODES, ViewModeValue } from "../types";
+import { CourseCard } from "./CourseCard";
 
 interface CourseGridProps {
   courses: Course[];
@@ -7,9 +7,14 @@ interface CourseGridProps {
   viewMode?: string;
 }
 
-export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: CourseGridProps) {
-  const gridClass = VIEW_MODES.find(mode => mode.value === viewMode)?.gridClass || 
-                   'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+export function CourseGrid({
+  courses,
+  isLoading = false,
+  viewMode = "grid-4",
+}: CourseGridProps) {
+  const gridClass =
+    VIEW_MODES.find((mode) => mode.value === viewMode)?.gridClass ||
+    "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
   if (isLoading) {
     return (
@@ -27,7 +32,10 @@ export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: 
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="w-4 h-4 bg-zinc-200 dark:bg-zinc-700 rounded" />
+                    <div
+                      key={i}
+                      className="w-4 h-4 bg-zinc-200 dark:bg-zinc-700 rounded"
+                    />
                   ))}
                 </div>
                 <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-16" />
@@ -78,10 +86,10 @@ export function CourseGrid({ courses, isLoading = false, viewMode = 'grid-4' }: 
   return (
     <div className={`grid gap-6 ${gridClass}`}>
       {courses.map((course) => (
-        <CourseCard 
-          key={(course as any).id} 
-          course={course} 
-          viewMode={viewMode as ViewModeValue} 
+        <CourseCard
+          key={course.id}
+          course={course}
+          viewMode={viewMode as ViewModeValue}
         />
       ))}
     </div>

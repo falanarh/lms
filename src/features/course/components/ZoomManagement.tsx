@@ -46,7 +46,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
       onError: (error: any) => {
         showToastMessage(
           "warning",
-          error?.message || "Gagal menyimpan link Zoom!",
+          error?.message || "Gagal menyimpan link Zoom!"
         );
       },
     },
@@ -61,7 +61,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
       onError: (error: any) => {
         showToastMessage(
           "warning",
-          error?.message || "Gagal menghapus link Zoom!",
+          error?.message || "Gagal menghapus link Zoom!"
         );
       },
     },
@@ -78,7 +78,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
 
   const form = useForm({
     defaultValues: {
-      zoomUrl: courseData?.[0]?.zoomUrl || "",
+      zoomUrl: courseData?.zoomUrl || "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -95,7 +95,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
 
   const showToastMessage = (
     variant: "success" | "warning" | "info",
-    message: string,
+    message: string
   ) => {
     setToastVariant(variant);
     setToastMessage(message);
@@ -113,7 +113,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
   };
 
   const handleEdit = () => {
-    form.setFieldValue("zoomUrl", courseData?.[0]?.zoomUrl || "");
+    form.setFieldValue("zoomUrl", courseData?.zoomUrl || "");
     setIsEditing(true);
   };
 
@@ -127,8 +127,8 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
   };
 
   const handleJoinMeeting = () => {
-    if (courseData?.[0]?.zoomUrl) {
-      window.open(courseData[0].zoomUrl, "_blank");
+    if (courseData?.zoomUrl) {
+      window.open(courseData.zoomUrl, "_blank");
     }
   };
 
@@ -140,7 +140,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
     );
   }
 
-  const hasZoomUrl = courseData?.[0]?.zoomUrl && courseData[0].zoomUrl.trim() !== "";
+  const hasZoomUrl = courseData?.zoomUrl && courseData.zoomUrl.trim() !== "";
 
   // Empty State
   if (!hasZoomUrl && !isEditing) {
@@ -344,11 +344,11 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
                 Link Meeting
               </p>
               <p className="text-sm text-gray-700 dark:text-zinc-300 break-all font-mono bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg">
-                {courseData?.[0]?.zoomUrl}
+                {courseData?.zoomUrl}
               </p>
             </div>
             <button
-              onClick={() => handleCopy(courseData?.[0]?.zoomUrl || "")}
+              onClick={() => handleCopy(courseData?.zoomUrl || "")}
               className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg text-gray-600 dark:text-zinc-400 transition-colors flex-shrink-0"
               aria-label="Copy meeting URL"
               title="Salin Link"

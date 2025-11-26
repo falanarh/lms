@@ -27,15 +27,18 @@ export const WriteReviewModal = ({
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [review, setReview] = useState<string>("");
+  const [ratingError, setRatingError] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const handleSubmit = () => {
-    console.log("Submit clicked - Rating:", rating, "Review length:", review.trim().length);
+    setRatingError(null);
+    setReviewError(null);
     if (rating === 0) {
-      alert("Silakan berikan rating terlebih dahulu");
+      setRatingError("Rating wajib diisi");
       return;
     }
     if (review.trim() === "") {
-      alert("Silakan tulis ulasan Anda");
+      setReviewError("Ulasan wajib diisi");
       return;
     }
     onSubmit(rating, review);
@@ -92,7 +95,10 @@ export const WriteReviewModal = ({
                   <button
                     key={star}
                     type="button"
-                    onClick={() => setRating(star)}
+                    onClick={() => {
+                      setRating(star);
+                      setRatingError(null);
+                    }}
                     onMouseEnter={() => setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
                     className="transition-transform hover:scale-110 focus:outline-none"
@@ -108,6 +114,9 @@ export const WriteReviewModal = ({
                   </button>
                 ))}
               </div>
+              {ratingError && (
+                <p className="mt-2 text-xs text-red-600">{ratingError}</p>
+              )}
             </div>
 
             {/* Review Section */}
@@ -122,18 +131,16 @@ export const WriteReviewModal = ({
                 id="review"
                 rows={6}
                 value={review}
-                onChange={(e) => setReview(e.target.value)}
+                onChange={(e) => {
+                  setReview(e.target.value);
+                  if (e.target.value.trim() !== "") setReviewError(null);
+                }}
                 placeholder="Ceritakan pengalaman Anda mengikuti kursus ini. Apa yang Anda sukai? Apa yang bisa ditingkatkan?"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm ${reviewError ? "border-red-500" : "border-gray-300"}`}
               />
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-xs text-gray-500">
-                  Minimal 10 karakter
-                </p>
-                <p className="text-xs text-gray-500">
-                  {review.length} karakter
-                </p>
-              </div>
+              {reviewError && (
+                <p className="mt-2 text-xs text-red-600">{reviewError}</p>
+              )}
             </div>
           </div>
 
@@ -147,7 +154,7 @@ export const WriteReviewModal = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={rating === 0 || review.trim().length < 10}
+              disabled={isLoading}
               className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               Kirim Ulasan

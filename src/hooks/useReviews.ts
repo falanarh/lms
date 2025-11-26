@@ -80,20 +80,20 @@ export const useInfiniteReviews = (
 };
 
 // Create review mutation
-export const useCreateReview = (courseId: string) => {
+export const useCreateReview = (idCourse: string, idUser?: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (reviewData: CreateReviewRequest) => 
-      createReview(courseId, reviewData),
+      createReview(idCourse, reviewData, idUser),
     onSuccess: () => {
       // Invalidate and refetch reviews after successful creation
       queryClient.invalidateQueries({
-        queryKey: ["reviews", courseId]
+        queryKey: ["reviews", idCourse]
       });
       // Also invalidate rating summary
       queryClient.invalidateQueries({
-        queryKey: ["rating-summary", courseId]
+        queryKey: ["rating-summary", idCourse]
       });
   },
   });

@@ -20,7 +20,7 @@ export const CourseInfoCards = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Metode */}
-      <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
+      <div className="w-full bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
             <BookOpen className="w-6 h-6 text-white" strokeWidth={2} />
@@ -37,7 +37,7 @@ export const CourseInfoCards = ({
       </div>
 
       {/* Silabus */}
-      <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
+      <div className="w-full bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center flex-shrink-0">
             <Download className="w-6 h-6 text-white" strokeWidth={2} />
@@ -55,7 +55,10 @@ export const CourseInfoCards = ({
                 className=" flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 truncate hover:underline block"
               >
                 Download Silabus
-                <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                <Download
+                  className="w-4 h-4 text-blue-600 dark:text-blue-400"
+                  strokeWidth={2}
+                />
               </a>
             ) : (
               <span className="text-sm font-semibold text-gray-400 dark:text-zinc-500 truncate block">
@@ -67,7 +70,7 @@ export const CourseInfoCards = ({
       </div>
 
       {/* Total Jam Pelajaran */}
-      <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
+      <div className="w-full bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center flex-shrink-0">
             <Book className="w-6 h-6 text-white" strokeWidth={2} />
@@ -84,7 +87,7 @@ export const CourseInfoCards = ({
       </div>
 
       {/* Kuota Peserta */}
-      <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
+      <div className="w-full bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-pink-500 flex items-center justify-center flex-shrink-0">
             <Users className="w-6 h-6 text-white" strokeWidth={2} />
@@ -101,7 +104,7 @@ export const CourseInfoCards = ({
       </div>
 
       {zoomUrl && (
-        <div className="col-span-2 bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+        <div className="col-span-1 md:col-span-2 w-full bg-white dark:bg-zinc-800 rounded-xl p-4 border border-gray-200 dark:border-zinc-700 hover:shadow-md dark:hover:shadow-lg transition-shadow duration-200">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
               <Video className="w-6 h-6 text-white" strokeWidth={2} />
