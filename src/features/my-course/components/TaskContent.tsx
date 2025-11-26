@@ -31,7 +31,7 @@ interface TaskContentProps {
 
 export const TaskContent = ({
   content,
-  isSidebarOpen,
+  isSidebarOpen: _isSidebarOpen,
   onTaskSubmitted,
 }: TaskContentProps) => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -39,10 +39,8 @@ export const TaskContent = ({
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [taskStatus, setTaskStatus] = useState<TaskStatus>("NOT_SUBMITTED");
   const [taskScore, setTaskScore] = useState<number | null>(null);
-  const [taskMaxScore, setTaskMaxScore] = useState<number | null>(null);
   const [taskFeedback, setTaskFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
   const [isLocalUnsubmit, setIsLocalUnsubmit] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
@@ -91,7 +89,6 @@ export const TaskContent = ({
     submittedUrl !== null &&
     submittedUrl !== "";
 
-  // Display submitted file name (with timestamp from server)
   const submittedFileName = useMemo(() => {
     if (!submittedUrl) return null;
 
@@ -112,7 +109,6 @@ export const TaskContent = ({
     }
   }, [submittedUrl]);
 
-  // Generate preview URL untuk file yang diupload
   useEffect(() => {
     if (uploadedFiles.length > 0) {
       const url = URL.createObjectURL(uploadedFiles[0]);
@@ -128,32 +124,26 @@ export const TaskContent = ({
       setTaskStatus("NOT_SUBMITTED");
       setTaskScore(null);
       setTaskFeedback(null);
-      // Keep submitted file visible during unsubmit
       return;
     }
 
-    // Handle case when attemptData is undefined (404 - belum pernah submit)
     if (typedAttemptData === undefined || typedAttemptData === null) {
       setTaskStatus("NOT_SUBMITTED");
       setTaskScore(null);
       setTaskFeedback(null);
-      setHasSubmitted(false);
-      setKeepSubmittedFile(false); // No submitted file to keep
+      setKeepSubmittedFile(false);
       return;
     }
 
-    // Handle case when attempt exists but urlFile is null
     if (typedAttemptData.urlFile === null || typedAttemptData.urlFile === "") {
       setTaskStatus("NOT_SUBMITTED");
       setTaskScore(null);
       setTaskFeedback(null);
-      setHasSubmitted(false);
-      setKeepSubmittedFile(false); // No submitted file to keep
+      setKeepSubmittedFile(false);
       return;
     }
 
-    setHasSubmitted(true);
-    setKeepSubmittedFile(true); // Has submitted file
+    setKeepSubmittedFile(true);
 
     if (
       typedAttemptData.status === "GRADED" ||
@@ -194,7 +184,6 @@ export const TaskContent = ({
     try {
       const { publicUrl, fileName } = await uploadToR2(file);
 
-      // Set data setelah upload berhasil
       setUploadedFiles([file]);
       setUploadedFileUrl(publicUrl);
       setUploadedFileName(fileName);
@@ -237,14 +226,22 @@ export const TaskContent = ({
     }
   };
 
+  const assignmentFiles = useMemo(() => {
+    const taskUrl = typedTaskDetail?.taskUrl || content.contentUrl || "";
+    if (!taskUrl) return [] as Array<{ name: string; url: string }>;
+    const urls = taskUrl.includes(",")
+      ? taskUrl.split(",").map((u) => u.trim()).filter(Boolean)
+      : [taskUrl];
+    return urls.map((url, index) => ({
+      name: urls.length > 1 ? `Assignment Document ${index + 1}` : "Assignment Document",
+      url,
+    }));
+  }, [typedTaskDetail?.taskUrl, content.contentUrl]);
+
+  const assignmentGridColsClass = assignmentFiles.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2";
+
   return (
-    <div
-      className={`relative w-full bg-white rounded-md overflow-y-auto transition-all duration-500 border border-gray-200 shadow-sm flex flex-col ${
-        isSidebarOpen
-          ? "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
-          : "aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]"
-      }`}
-    >
+    <div className={`relative w-full bg-white rounded-md overflow-y-auto transition-all duration-500 border border-gray-200 shadow-sm flex flex-col aspect-3/4 md:aspect-auto md:h-[520px] md:min-h-[520px] md:max-h-[520px]`}>
       <div className="hidden md:block absolute md:top-4 md:right-4 z-10">
         <div className="px-2 py-1 md:px-3 md:py-1 rounded-full md:text-base font-medium">
           Deadline: {deadlineLabel}
@@ -272,53 +269,33 @@ export const TaskContent = ({
         </p>
       </div>
 
-      {(typedTaskDetail?.taskUrl || content.contentUrl) && (
+      {assignmentFiles.length > 0 && (
         <div className="px-3 md:px-4 pb-2 flex-shrink-0">
-          {(() => {
-            const taskUrl =
-              typedTaskDetail?.taskUrl || content.contentUrl || "";
-            const assignmentFiles = taskUrl.includes(",")
-              ? taskUrl.split(",").map((url, index) => ({
-                  name: `Assignment Document ${index + 1}`,
-                  url: url.trim(),
-                }))
-              : [{ name: "Assignment Document", url: taskUrl }];
-
-            const getGridCols = (count: number) => {
-              if (count === 1) return "grid-cols-1";
-              return "grid-cols-1 md:grid-cols-2";
-            };
-
-            return (
+          <div className={`grid gap-2 ${assignmentGridColsClass}`}>
+            {assignmentFiles.map((file, index) => (
               <div
-                className={`grid gap-2 ${getGridCols(assignmentFiles.length)}`}
+                key={index}
+                className="bg-gray-50 rounded-lg p-2 md:p-3 border border-gray-200"
               >
-                {assignmentFiles.map((file, index) => (
-                  <div
-                    key={index}
-                    className="bg-gray-50 rounded-lg p-2 md:p-3 border border-gray-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-sm bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 text-xs md:text-base truncate">
-                          {file.name}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => window.open(file.url, "_blank")}
-                        className="px-2 py-1 md:px-3 md:py-1.5 bg-blue-600 text-white rounded text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        View
-                      </button>
-                    </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-sm bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   </div>
-                ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-xs md:text-base truncate">
+                      {file.name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => window.open(file.url, "_blank")}
+                    className="px-2 py-1 md:px-3 md:py-1.5 bg-blue-600 text-white rounded text-xs md:text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    View
+                  </button>
+                </div>
               </div>
-            );
-          })()}
+            ))}
+          </div>
         </div>
       )}
 
@@ -395,12 +372,6 @@ export const TaskContent = ({
               </p>
               <p className="text-xl font-semibold text-gray-800 leading-none">
                 {taskScore !== null ? taskScore : "--"}
-                {taskMaxScore !== null && (
-                  <span className="text-sm font-semibold text-gray-700">
-                    {" "}
-                    / {taskMaxScore}
-                  </span>
-                )}
               </p>
             </div>
             <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
@@ -482,7 +453,6 @@ export const TaskContent = ({
                 className="flex-1 px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium text-xs md:text-sm transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 onClick={() => {
                   (async () => {
-                    // Case 1: Resubmit after unsubmit without uploading new file
                     if (
                       uploadedFiles.length === 0 &&
                       isLocalUnsubmit &&
@@ -526,7 +496,6 @@ export const TaskContent = ({
                       return;
                     }
 
-                    // Case 2: Submit with newly uploaded file
                     if (!uploadedFileUrl) {
                       setShowToast(true);
                       setToastMessage(

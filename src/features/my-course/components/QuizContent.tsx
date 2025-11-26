@@ -5,7 +5,6 @@ import { Toast } from "@/components/ui/Toast/Toast";
 
 import { Content } from "@/api/contents";
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
 import {
   Calendar,
   CheckCircle,
@@ -34,14 +33,6 @@ import type {
   QuizAttemptDetail,
 } from "@/api/quiz-attempts";
 
-type QuizQuestionType = "multiple_choice" | "true_false" | "short_answer";
-
-interface QuizQuestion {
-  id: number;
-  type: QuizQuestionType;
-  question: string;
-  options?: string[];
-}
 
 interface QuizSession {
   attemptId: string;
@@ -62,7 +53,7 @@ interface QuizContentProps {
   onFinishContent?: (contentId: string) => void;
 }
 
-// Session storage helpers
+ 
 const getSessionKey = (contentId: string) => `quiz_session_${contentId}`;
 
 const saveQuizSession = (session: QuizSession) => {
@@ -96,7 +87,7 @@ const clearQuizSession = (contentId: string) => {
 
 export const QuizContent = ({
   content,
-  isSidebarOpen,
+  isSidebarOpen: _isSidebarOpen,
   onStartContent,
   onFinishContent,
 }: QuizContentProps) => {
@@ -108,6 +99,22 @@ export const QuizContent = ({
   const [toastKey, setToastKey] = useState(0);
   const toastTimeoutRef = useRef<number | null>(null);
   const TOAST_HIDE_MS = 2000;
+  const openToast = (
+    message: string,
+    variant: "info" | "warning" | "success" = "success"
+  ) => {
+    setToastMessage(message);
+    setToastVariant(variant);
+    setToastKey((prev) => prev + 1);
+    setShowToast(true);
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setShowToast(false);
+      toastTimeoutRef.current = null;
+    }, TOAST_HIDE_MS);
+  };
   const [isQuizStarted, setIsQuizStarted] = useState(false);
   const [inProgressAttempt, setInProgressAttempt] =
     useState<QuizAttemptDetail | null>(null);
@@ -128,19 +135,16 @@ export const QuizContent = ({
   const hasAutoSubmittedRef = useRef(false);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Fetch quiz detail from API (info kuis statis)
   const { data: quizDetail, isLoading: isQuizDetailLoading } = useQuizDetail(
     content.id,
     { retry: false }
   );
 
-  // Fetch attempt history from API (data dinamis)
   const { data: attemptHistory, isLoading: isHistoryLoading } =
     useQuizAttemptHistory(DUMMY_USER_ID, content.id, {
       retry: false,
     });
 
-  // Fetch current attempt detail (if exists)
   const { data: currentAttempt, refetch: refetchCurrentAttempt } =
     useQuizAttemptById(currentAttemptId || "", {
       enabled: !!currentAttemptId,
@@ -163,28 +167,14 @@ export const QuizContent = ({
     | QuizAttemptHistoryResponse
     | undefined;
 
-  const router = useRouter();
-
-  const [isMobile, setIsMobile] = useState(false);
+  
 
   useEffect(() => {
-    // Treat tablets and smaller (width < 1024) as "mobile" for back behaviour
-    const check = () =>
-      setIsMobile(typeof window !== "undefined" && window.innerWidth < 1024);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
-  // Detect IN_PROGRESS attempt on mount
-  useEffect(() => {
-    if (isQuizStarted) return; // Already started, skip
+    if (isQuizStarted) return;
     if (!typedAttemptHistory) return;
 
-    // Check sessionStorage first (for instant restore after refresh)
     const savedSession = loadQuizSession(content.id);
     if (savedSession) {
-      // INSTANT RESTORE - No delay, no API call
       setCurrentAttemptId(savedSession.attemptId);
       setQuestionIds(savedSession.questionIds);
       setAnswerCodeMap(savedSession.answerCodeMap);
@@ -192,7 +182,6 @@ export const QuizContent = ({
       setCurrentQuestionIndex(savedSession.currentQuestionIndex);
       quizStartTimeRef.current = savedSession.quizStartTime;
 
-      // Calculate remaining time
       if (savedSession.durationLimit) {
         const elapsed =
           (Date.now() - new Date(savedSession.quizStartTime).getTime()) / 1000;
@@ -202,13 +191,11 @@ export const QuizContent = ({
         setQuizTimeLeft(null);
       }
 
-      setIsQuizStarted(true); // Show quiz immediately
+      setIsQuizStarted(true);
       setIsReviewMode(false);
-      return; // Done, skip pending detection
+      return;
     }
 
-    // No session (close tab case), check backend for pending attempt
-    // Workaround: attempt is PENDING if quizEnd is empty/null or totalScore is null
     const pendingAttempt = typedAttemptHistory.attempts?.find(
       (attempt) => !attempt.quizEnd || attempt.totalScore === null
     );
@@ -222,7 +209,6 @@ export const QuizContent = ({
     if (!inProgressAttempt) return;
 
     try {
-      // Fetch full attempt detail dari backend
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/quiz-attempts/${inProgressAttempt.id}`,
         { credentials: "include" }
@@ -234,22 +220,19 @@ export const QuizContent = ({
 
       const attemptDetail = (await response.json()) as QuizAttemptDetail;
 
-      // Check if still pending
       if (
         attemptDetail.status === "SUBMITTED" ||
         attemptDetail.status === "GRADED"
       ) {
         clearQuizSession(content.id);
         setInProgressAttempt(null);
-        alert("Kuis ini sudah dikumpulkan.");
+        openToast("Kuis ini sudah dikumpulkan.", "info");
         return;
       }
 
-      // Restore state dari backend
       setCurrentAttemptId(attemptDetail.id);
       setQuestionIds(attemptDetail.questionOrder);
 
-      // Populate answers dari backend
       const newCodeMap: Record<string, string> = {};
       const newAnsweredMap: Record<string, boolean> = {};
       attemptDetail.questionOrder.forEach((qId, index) => {
@@ -262,11 +245,9 @@ export const QuizContent = ({
       setAnswerCodeMap(newCodeMap);
       setAnsweredQuestions(newAnsweredMap);
 
-      // Find first unanswered question
       const firstUnanswered = attemptDetail.answer.findIndex((a) => !a);
       setCurrentQuestionIndex(firstUnanswered >= 0 ? firstUnanswered : 0);
 
-      // Calculate remaining time dari quizStart backend (timer tetap jalan)
       quizStartTimeRef.current = attemptDetail.quizStart;
       if (typedQuizDetail?.durationLimit) {
         const startTime = new Date(attemptDetail.quizStart).getTime();
@@ -282,7 +263,6 @@ export const QuizContent = ({
       setIsReviewMode(false);
       setInProgressAttempt(null);
 
-      // Save to sessionStorage untuk next refresh
       saveQuizSession({
         attemptId: attemptDetail.id,
         contentId: content.id,
@@ -296,12 +276,11 @@ export const QuizContent = ({
       });
     } catch (error) {
       console.error("Failed to resume quiz:", error);
-      alert("Gagal melanjutkan kuis. Silakan coba lagi.");
+      openToast("Gagal melanjutkan kuis. Silakan coba lagi.", "warning");
     }
   };
 
   const handleBackToInfo = () => {
-    // Di tablet/iPad dan desktop, kembali ke info kuis (reset state)
     clearQuizSession(content.id);
     setIsQuizStarted(false);
     setIsReviewMode(false);
@@ -327,18 +306,14 @@ export const QuizContent = ({
 
   const typedCurrentQuestion = currentQuestion as QuestionDetail | undefined;
 
-  // Computed values from API data - attempts dari API terpisah
   const attempts = typedAttemptHistory?.attempts || [];
   const hasAttempts = attempts.length > 0;
-  const attemptsUsed = attempts.length;
-  const attemptsRemaining = (typedQuizDetail?.attemptLimit || 0) - attemptsUsed;
-  const latestAttempt = hasAttempts ? attempts[0] : null;
+  const attemptsRemaining = (typedQuizDetail?.attemptLimit || 0) - attempts.length;
   const totalQuestions =
     questionIds.length || typedQuizDetail?.totalQuestions || 0;
   const isFirstQuestion = currentQuestionIndex === 0;
   const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
 
-  // Format dates
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Not specified";
     try {
@@ -388,8 +363,7 @@ export const QuizContent = ({
       setIsReviewMode(false);
       setCurrentQuestionIndex(0);
 
-      // Save to sessionStorage
-      saveQuizSession({
+  saveQuizSession({
         attemptId: response.attemptId,
         contentId: content.id,
         questionIds: newQuestionIds,
@@ -402,7 +376,7 @@ export const QuizContent = ({
       });
     } catch (error) {
       console.error("Failed to start quiz:", error);
-      alert("Gagal memulai kuis. Silakan coba lagi.");
+      openToast("Gagal memulai kuis. Silakan coba lagi.", "warning");
     }
   };
 
@@ -418,11 +392,8 @@ export const QuizContent = ({
       const currentFlag =
         typedCurrentAttempt?.flag?.[currentQuestionIndex] || false;
 
-      // For multiple choice/true-false, use codeAnswer from mapping
-      // For short answer/essay, use the value directly as code
       let codeToSend = codeAnswer || value;
 
-      // Save the mapping for display purposes
       setAnswerCodeMap((prev) => ({ ...prev, [questionId]: codeToSend }));
 
       await handleAnswer(
@@ -435,22 +406,8 @@ export const QuizContent = ({
         isUpdate
       );
 
-      // Mark question as answered
       setAnsweredQuestions((prev) => ({ ...prev, [questionId]: true }));
-
-      // Show toast on success with new key to force re-render
-      // Show toast on success and auto-hide after TOAST_HIDE_MS
-      setToastMessage("Jawaban tersimpan");
-      setToastVariant("success");
-      setToastKey((prev) => prev + 1);
-      setShowToast(true);
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-      toastTimeoutRef.current = window.setTimeout(() => {
-        setShowToast(false);
-        toastTimeoutRef.current = null;
-      }, TOAST_HIDE_MS);
+      openToast("Jawaban tersimpan", "success");
     } catch (error) {
       console.error("Failed to save answer:", error);
     }
@@ -479,19 +436,7 @@ export const QuizContent = ({
         setAnsweredQuestions((prev) => ({ ...prev, [questionId]: true }));
       }
 
-      // Show toast on success with new key to force re-render
-      // Show toast on success and auto-hide after TOAST_HIDE_MS
-      setToastMessage("Jawaban tersimpan");
-      setToastVariant("success");
-      setToastKey((prev) => prev + 1);
-      setShowToast(true);
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-      toastTimeoutRef.current = window.setTimeout(() => {
-        setShowToast(false);
-        toastTimeoutRef.current = null;
-      }, TOAST_HIDE_MS);
+      openToast("Jawaban tersimpan", "success");
     } catch (error) {
       console.error("Failed to toggle flag:", error);
     }
@@ -505,14 +450,12 @@ export const QuizContent = ({
     return `${mm}:${ss}`;
   };
 
-  // Effect to set question IDs when entering review mode
   useEffect(() => {
     if (isReviewMode && typedReviewAttempt?.questionOrder) {
       setQuestionIds(typedReviewAttempt.questionOrder);
     }
   }, [isReviewMode, typedReviewAttempt]);
 
-  // Sync sessionStorage when quiz state changes
   useEffect(() => {
     if (
       !isQuizStarted ||
@@ -545,7 +488,6 @@ export const QuizContent = ({
     typedQuizDetail?.durationLimit,
   ]);
 
-  // Beforeunload warning
   useEffect(() => {
     if (!isQuizStarted || isReviewMode) return;
 
@@ -559,7 +501,6 @@ export const QuizContent = ({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isQuizStarted, isReviewMode]);
 
-  // Effect to populate answerCodeMap from current attempt when it changes
   useEffect(() => {
     if (
       !isQuizStarted ||
@@ -617,7 +558,6 @@ export const QuizContent = ({
     handleSubmitQuiz();
   }, [isQuizStarted, isReviewMode, quizTimeLeft]);
 
-  // Cleanup toast timer on unmount
   useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) {
@@ -658,7 +598,6 @@ export const QuizContent = ({
         onFinishContent(content.id);
       }
 
-      // Clear sessionStorage
       clearQuizSession(content.id);
 
       setIsQuizStarted(false);
@@ -671,18 +610,7 @@ export const QuizContent = ({
       setCurrentQuestionIndex(0);
       quizStartTimeRef.current = null;
 
-      // Show success toast
-      setToastMessage("Kuis berhasil dikumpulkan!");
-      setToastVariant("success");
-      setToastKey((prev) => prev + 1);
-      setShowToast(true);
-      if (toastTimeoutRef.current) {
-        clearTimeout(toastTimeoutRef.current);
-      }
-      toastTimeoutRef.current = window.setTimeout(() => {
-        setShowToast(false);
-        toastTimeoutRef.current = null;
-      }, TOAST_HIDE_MS);
+      openToast("Kuis berhasil dikumpulkan!", "success");
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         clearQuizSession(content.id);
@@ -697,20 +625,10 @@ export const QuizContent = ({
         quizStartTimeRef.current = null;
         setInProgressAttempt(null);
 
-        setToastMessage("Percobaan kuis tidak ditemukan. Sesi ditutup.");
-        setToastVariant("warning");
-        setToastKey((prev) => prev + 1);
-        setShowToast(true);
-        if (toastTimeoutRef.current) {
-          clearTimeout(toastTimeoutRef.current);
-        }
-        toastTimeoutRef.current = window.setTimeout(() => {
-          setShowToast(false);
-          toastTimeoutRef.current = null;
-        }, TOAST_HIDE_MS);
+        openToast("Percobaan kuis tidak ditemukan. Sesi ditutup.", "warning");
       } else {
         console.error("Failed to submit quiz:", error);
-        alert("Gagal mengumpulkan kuis. Silakan coba lagi.");
+        openToast("Gagal mengumpulkan kuis. Silakan coba lagi.", "warning");
       }
     }
   };
@@ -1280,7 +1198,6 @@ export const QuizContent = ({
                 toastTimeoutRef.current = null;
               }
               setShowToast(false);
-              // Reset after close to ensure next toast can appear
               setTimeout(() => setToastKey((prev) => prev + 1), 100);
             }}
             autoDismiss
@@ -1288,10 +1205,9 @@ export const QuizContent = ({
           />
         </div>
       )}
-      {/* ...existing code... */}
+      
       <div className={wrapperClasses}>
         <div className="flex-1 flex flex-col p-3 md:p-4 md:pr-3">
-          {/* Timer badge moved inside content so it doesn't overlap the question */}
           {!isReviewMode && (
             <div className="sticky top-0 z-10 mb-3 flex items-center justify-between gap-2 bg-white/90 backdrop-blur-sm px-2 py-1 border-b border-gray-200">
               <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-sm border border-gray-200 w-fit">
@@ -1423,14 +1339,12 @@ export const QuizContent = ({
                 const attemptToUse = isReviewMode
                   ? typedReviewAttempt
                   : typedCurrentAttempt;
-                // Check if answered from our local map
                 const isAnsweredLocal = !!answerCodeMap[qId];
                 const isAnswered = isReviewMode
                   ? !!attemptToUse?.answer?.[index]
                   : isAnsweredLocal;
                 const isUnsure = !!attemptToUse?.flag?.[index];
 
-                // For review mode, determine if answer is correct
                 let isCorrect = false;
                 let isWrong = false;
                 if (isReviewMode && attemptToUse) {
