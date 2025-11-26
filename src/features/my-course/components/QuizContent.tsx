@@ -41,6 +41,7 @@ interface QuizSession {
   currentQuestionIndex: number;
   answerCodeMap: Record<string, string>;
   answeredQuestions: Record<string, boolean>;
+  unsureFlags: Record<string, boolean>;
   quizStartTime: string;
   durationLimit: number | null;
   timestamp: number;
@@ -129,6 +130,7 @@ export const QuizContent = ({
   const [answerCodeMap, setAnswerCodeMap] = useState<Record<string, string>>(
     {}
   );
+  const [unsureFlags, setUnsureFlags] = useState<Record<string, boolean>>({});
   const [quizTimeLeft, setQuizTimeLeft] = useState<number | null>(null);
   const [showQuizSubmitConfirm, setShowQuizSubmitConfirm] = useState(false);
   const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null);
@@ -179,6 +181,7 @@ export const QuizContent = ({
       setQuestionIds(savedSession.questionIds);
       setAnswerCodeMap(savedSession.answerCodeMap);
       setAnsweredQuestions(savedSession.answeredQuestions);
+      setUnsureFlags(savedSession.unsureFlags || {});
       setCurrentQuestionIndex(savedSession.currentQuestionIndex);
       quizStartTimeRef.current = savedSession.quizStartTime;
 
@@ -244,6 +247,12 @@ export const QuizContent = ({
       });
       setAnswerCodeMap(newCodeMap);
       setAnsweredQuestions(newAnsweredMap);
+      const newUnsureMap: Record<string, boolean> = {};
+      attemptDetail.questionOrder.forEach((qId, index) => {
+        const f = attemptDetail.flag?.[index];
+        if (typeof f === "boolean") newUnsureMap[qId] = f;
+      });
+      setUnsureFlags(newUnsureMap);
 
       const firstUnanswered = attemptDetail.answer.findIndex((a) => !a);
       setCurrentQuestionIndex(firstUnanswered >= 0 ? firstUnanswered : 0);
@@ -270,6 +279,7 @@ export const QuizContent = ({
         currentQuestionIndex: firstUnanswered >= 0 ? firstUnanswered : 0,
         answerCodeMap: newCodeMap,
         answeredQuestions: newAnsweredMap,
+        unsureFlags: newUnsureMap,
         quizStartTime: attemptDetail.quizStart,
         durationLimit: typedQuizDetail?.durationLimit || null,
         timestamp: Date.now(),
@@ -351,6 +361,7 @@ export const QuizContent = ({
       setQuestionIds(newQuestionIds);
       setAnsweredQuestions({});
       setAnswerCodeMap({});
+      setUnsureFlags({});
       quizStartTimeRef.current = startTime;
 
       if (typedQuizDetail?.durationLimit) {
@@ -363,13 +374,14 @@ export const QuizContent = ({
       setIsReviewMode(false);
       setCurrentQuestionIndex(0);
 
-  saveQuizSession({
+      saveQuizSession({
         attemptId: response.attemptId,
         contentId: content.id,
         questionIds: newQuestionIds,
         currentQuestionIndex: 0,
         answerCodeMap: {},
         answeredQuestions: {},
+        unsureFlags: {},
         quizStartTime: startTime,
         durationLimit: typedQuizDetail?.durationLimit || null,
         timestamp: Date.now(),
@@ -389,8 +401,7 @@ export const QuizContent = ({
 
     try {
       const isUpdate = answeredQuestions[questionId];
-      const currentFlag =
-        typedCurrentAttempt?.flag?.[currentQuestionIndex] || false;
+      const currentFlag = (unsureFlags[questionId] ?? typedCurrentAttempt?.flag?.[currentQuestionIndex]) || false;
 
       let codeToSend = codeAnswer || value;
 
@@ -417,26 +428,27 @@ export const QuizContent = ({
     if (!currentAttemptId) return;
 
     try {
-      const currentFlag =
-        typedCurrentAttempt?.flag?.[currentQuestionIndex] || false;
+      const currentFlagLocal = (unsureFlags[questionId] ?? typedCurrentAttempt?.flag?.[currentQuestionIndex]) || false;
       const currentAnswerCode = answerCodeMap[questionId] || "";
       const isUpdate = answeredQuestions[questionId];
 
-      await handleAnswer(
-        {
-          idAttempt: currentAttemptId,
-          idQuestion: questionId,
-          answer: currentAnswerCode,
-          flag: !currentFlag,
-        },
-        isUpdate || !!currentAnswerCode
-      );
+      if (currentAnswerCode) {
+        await handleAnswer(
+          {
+            idAttempt: currentAttemptId,
+            idQuestion: questionId,
+            answer: currentAnswerCode,
+            flag: !currentFlagLocal,
+          },
+          isUpdate || !!currentAnswerCode
+        );
+      } else {
+        setUnsureFlags((prev) => ({ ...prev, [questionId]: !currentFlagLocal }));
+      }
 
       if (!answeredQuestions[questionId] && currentAnswerCode) {
         setAnsweredQuestions((prev) => ({ ...prev, [questionId]: true }));
       }
-
-      openToast("Jawaban tersimpan", "success");
     } catch (error) {
       console.error("Failed to toggle flag:", error);
     }
@@ -472,6 +484,7 @@ export const QuizContent = ({
       currentQuestionIndex,
       answerCodeMap,
       answeredQuestions,
+      unsureFlags,
       quizStartTime: quizStartTimeRef.current,
       durationLimit: typedQuizDetail?.durationLimit || null,
       timestamp: Date.now(),
@@ -480,6 +493,7 @@ export const QuizContent = ({
     currentQuestionIndex,
     answerCodeMap,
     answeredQuestions,
+    unsureFlags,
     isQuizStarted,
     isReviewMode,
     currentAttemptId,
@@ -512,6 +526,7 @@ export const QuizContent = ({
 
     const newCodeMap: Record<string, string> = {};
     const newAnsweredMap: Record<string, boolean> = {};
+    const newUnsureMap: Record<string, boolean> = {};
 
     questionIds.forEach((qId, index) => {
       const answerCode = typedCurrentAttempt.answer?.[index];
@@ -519,10 +534,13 @@ export const QuizContent = ({
         newCodeMap[qId] = answerCode;
         newAnsweredMap[qId] = true;
       }
+      const f = typedCurrentAttempt.flag?.[index];
+      if (typeof f === "boolean") newUnsureMap[qId] = f;
     });
 
     setAnswerCodeMap(newCodeMap);
     setAnsweredQuestions(newAnsweredMap);
+    setUnsureFlags(newUnsureMap);
   }, [typedCurrentAttempt, questionIds, isQuizStarted, isReviewMode]);
 
   useEffect(() => {
@@ -894,9 +912,32 @@ export const QuizContent = ({
   if (!isQuizStarted && !isReviewMode) {
     if (isQuizDetailLoading || isHistoryLoading) {
       return (
-        <div className={wrapperClasses}>
-          <div className="flex items-center justify-center w-full h-full">
-            <p className="text-gray-500">Loading quiz...</p>
+        <div>
+          {showToast && (
+            <div
+              key={toastKey}
+              className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5"
+            >
+              <Toast
+                message={toastMessage}
+                variant={toastVariant}
+                onClose={() => {
+                  if (toastTimeoutRef.current) {
+                    clearTimeout(toastTimeoutRef.current);
+                    toastTimeoutRef.current = null;
+                  }
+                  setShowToast(false);
+                  setTimeout(() => setToastKey((prev) => prev + 1), 100);
+                }}
+                autoDismiss
+                duration={TOAST_HIDE_MS}
+              />
+            </div>
+          )}
+          <div className={wrapperClasses}>
+            <div className="flex items-center justify-center w-full h-full">
+              <p className="text-gray-500">Loading quiz...</p>
+            </div>
           </div>
         </div>
       );
@@ -904,32 +945,77 @@ export const QuizContent = ({
 
     if (!typedQuizDetail) {
       return (
-        <div className={wrapperClasses}>
-          <div className="flex items-center justify-center w-full h-full">
-            <p className="text-red-600">Failed to load quiz</p>
+        <div>
+          {showToast && (
+            <div
+              key={toastKey}
+              className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5"
+            >
+              <Toast
+                message={toastMessage}
+                variant={toastVariant}
+                onClose={() => {
+                  if (toastTimeoutRef.current) {
+                    clearTimeout(toastTimeoutRef.current);
+                    toastTimeoutRef.current = null;
+                  }
+                  setShowToast(false);
+                  setTimeout(() => setToastKey((prev) => prev + 1), 100);
+                }}
+                autoDismiss
+                duration={TOAST_HIDE_MS}
+              />
+            </div>
+          )}
+          <div className={wrapperClasses}>
+            <div className="flex items-center justify-center w-full h-full">
+              <p className="text-red-600">Failed to load quiz</p>
+            </div>
           </div>
         </div>
       );
     }
     return (
-      <div className={wrapperClasses}>
-        <div className="flex-1 p-3 md:p-4 md:pr-3 flex flex-col gap-4">
-          <div className="flex items-center gap-3 md:mb-2">
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-              <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600 leading-none" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm md:text-lg font-semibold text-gray-900 mb-1 truncate">
-                {content.name}
-              </p>
-            </div>
+      <div>
+        {showToast && (
+          <div
+            key={toastKey}
+            className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5"
+          >
+            <Toast
+              message={toastMessage}
+              variant={toastVariant}
+              onClose={() => {
+                if (toastTimeoutRef.current) {
+                  clearTimeout(toastTimeoutRef.current);
+                  toastTimeoutRef.current = null;
+                }
+                setShowToast(false);
+                setTimeout(() => setToastKey((prev) => prev + 1), 100);
+              }}
+              autoDismiss
+              duration={TOAST_HIDE_MS}
+            />
           </div>
+        )}
+        <div className={wrapperClasses}>
+          <div className="flex-1 p-3 md:p-4 md:pr-3 flex flex-col gap-4">
+            <div className="flex items-center gap-3 md:mb-2">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600 leading-none" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm md:text-lg font-semibold text-gray-900 mb-1 truncate">
+                  {content.name}
+                </p>
+              </div>
+            </div>
 
-          <p className="text-xs md:text-base text-gray-600 whitespace-pre-line break-words">
-            {content.description}
-          </p>
+            <p className="text-xs md:text-base text-gray-600 whitespace-pre-line break-words">
+              {content.description}
+            </p>
 
-          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5 flex items-start gap-2">
               <div className="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-4 h-4 text-blue-600" />
@@ -1015,28 +1101,28 @@ export const QuizContent = ({
             </div>
           </div>
 
-          {!inProgressAttempt && (
-            <div className="md:hidden px-1 pt-2">
-              <button
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                onClick={handleStartQuiz}
-                disabled={attemptsRemaining <= 0 || startQuizMutation.isPending}
-              >
-                <span className="inline-flex items-center justify-center">
-                  {startQuizMutation.isPending ? "Starting..." : "Mulai Kuis"}
-                </span>
-              </button>
-              <p className="mt-1.5 text-[11px] text-gray-500 text-center">
-                {attemptsRemaining > 0
-                  ? `Anda memiliki ${attemptsRemaining} attempt tersisa.`
-                  : "Anda sudah menggunakan semua attempt."}
-              </p>
-            </div>
-          )}
-        </div>
+            {!inProgressAttempt && (
+              <div className="md:hidden px-1 pt-2">
+                <button
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  onClick={handleStartQuiz}
+                  disabled={attemptsRemaining <= 0 || startQuizMutation.isPending}
+                >
+                  <span className="inline-flex items-center justify-center">
+                    {startQuizMutation.isPending ? "Starting..." : "Mulai Kuis"}
+                  </span>
+                </button>
+                <p className="mt-1.5 text-[11px] text-gray-500 text-center">
+                  {attemptsRemaining > 0
+                    ? `Anda memiliki ${attemptsRemaining} attempt tersisa.`
+                    : "Anda sudah menggunakan semua attempt."}
+                </p>
+              </div>
+            )}
+          </div>
 
-        <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex flex-col p-3 md:p-4 gap-3 max-h-[80vh] md:max-h-none overflow-hidden">
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="w-full md:w-72 border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50 flex flex-col p-3 md:p-4 gap-3 max-h-[80vh] md:max-h-none overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex-shrink-0">
               Riwayat pengerjaan
             </p>
@@ -1179,11 +1265,12 @@ export const QuizContent = ({
           </div>
         </div>
       </div>
+    </div>
     );
   }
 
   return (
-    <>
+    <div>
       {showToast && (
         <div
           key={toastKey}
@@ -1264,13 +1351,13 @@ export const QuizContent = ({
                 onClick={() => toggleUnsure(typedCurrentQuestion.id)}
                 disabled={isSavingAnswer}
                 className={`inline-flex items-center justify-center gap-1 rounded-md border px-3 md:px-4 py-2 text-xs md:text-sm font-medium shadow-sm transition-colors disabled:opacity-50 ${
-                  typedCurrentAttempt?.flag?.[currentQuestionIndex]
+                  (unsureFlags[typedCurrentQuestion.id] ?? typedCurrentAttempt?.flag?.[currentQuestionIndex])
                     ? "border-amber-500 bg-amber-50 text-amber-700"
                     : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <Flag className="w-4 h-4 text-amber-700 mr-1" />
-                {typedCurrentAttempt?.flag?.[currentQuestionIndex]
+                {(unsureFlags[typedCurrentQuestion.id] ?? typedCurrentAttempt?.flag?.[currentQuestionIndex])
                   ? "Ditandai Ragu-ragu"
                   : "Tandai ragu-ragu"}
               </button>
@@ -1343,7 +1430,9 @@ export const QuizContent = ({
                 const isAnswered = isReviewMode
                   ? !!attemptToUse?.answer?.[index]
                   : isAnsweredLocal;
-                const isUnsure = !!attemptToUse?.flag?.[index];
+                const isUnsure = isReviewMode
+                  ? !!attemptToUse?.flag?.[index]
+                  : !!(unsureFlags[qId] ?? attemptToUse?.flag?.[index]);
 
                 let isCorrect = false;
                 let isWrong = false;
@@ -1469,6 +1558,6 @@ export const QuizContent = ({
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
