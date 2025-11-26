@@ -265,6 +265,7 @@ From a current scientific and technological standpoint, androids do not dream of
           userName="Student"
           theme={theme}
           onToggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          threadId={activeRoomId || 'default-thread'}
         />
       )}
 
