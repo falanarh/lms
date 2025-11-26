@@ -1,7 +1,7 @@
 import { Grid3X3, LayoutGrid, List } from "lucide-react";
-import { CourseResponse as ApiCourse } from "@/api/course";
+import { CourseApiItem } from "@/api/course";
 
-export interface Course extends ApiCourse {}
+export interface Course extends CourseApiItem {}
 
 export type ViewModeValue = "grid-4" | "grid-2" | "list";
 

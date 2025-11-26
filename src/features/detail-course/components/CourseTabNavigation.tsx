@@ -1,4 +1,4 @@
-import { Info, List, MessageSquare, Star, ChevronDown, FileText, Sparkles } from "lucide-react";
+import { Info, List, MessageSquare, Star, ChevronDown, FileText, Sparkles, Calendar } from "lucide-react";
 import { CourseTabType, TabConfig } from "../types/tab";
 
 interface CourseTabNavigationProps {

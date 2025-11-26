@@ -18,6 +18,7 @@ export type CourseDescription = {
 };
 
 export type CourseGroup = {
+  id?: string;
   isOpen: boolean;
   name: string;
   description: string;
@@ -41,7 +42,7 @@ export type Course = {
   id: string;
   idCourse: string;
   idTeacher: string;
-  teacherName: string; 
+  teacherName: string;
   isOpen: boolean;
   name: string;
   description: string;
@@ -97,8 +98,30 @@ const BASE_URL =
 // };
 
 export type CoursesResponse = {
-  data: Course[];
+  data: CourseApiItem[];
   pageMeta: PageMeta;
+};
+
+// New API item type for the list response — separate from `CourseResponse` (owned by a teammate)
+export type CourseApiItem = {
+  id: string;
+  idTeacher?: string;
+  zoomUrl?: string | null;
+  rating?: number;
+  totalUserRating?: number;
+  _count?: {
+    listActivity?: number;
+  };
+  groupCourse?: {
+    id?: string;
+    title?: string;
+    thumbnail?: string | null;
+    description?: {
+      category?: string;
+      description?: string;
+    };
+  };
+  teacherName?: string;
 };
 
 export const getCourses = async (
@@ -119,7 +142,10 @@ export const getCourses = async (
   }
 
   if (selectedCategory && selectedCategory !== "All Categories") {
-    params.append("groupCourse[description][category][contains]", selectedCategory);
+    params.append(
+      "groupCourse[description][category][contains]",
+      selectedCategory
+    );
     params.append("groupCourse[description][category][mode]", "insensitive");
   }
 
@@ -145,49 +171,70 @@ export const getCourses = async (
   const response = await axios.get(url);
 
   return {
-    data: response.data.data as Course[],
+    data: response.data.data as CourseApiItem[],
     pageMeta: response.data.pageMeta,
   };
 };
 
-export const getCourseById = async (id: string): Promise<CourseResponse[]> => {
+export const getCourseById = async (id: string): Promise<CourseDetail> => {
   const response = await axios.get(`${BASE_URL}/courses/${id}`);
   const course = response.data.data;
-  return course;
+  // Handle both array and object responses from API
+  return Array.isArray(course) ? course[0] : course;
 };
 
 export type CourseDetail = {
   id: string;
-  idTeacher: string;
-  teacherName: string; 
+  idTeacher?: string;
+  teacherName?: string;
   zoomUrl?: string | null;
-  rating: number;
-  totalUserRating: number;
-  _count: {
-    listActivity: number;
+  rating?: number;
+  averageRating?: number;
+  totalUserRating?: number;
+  totalUsers?: number;
+  title?: string;
+  typeCourse?: string;
+  description?: {
+    method?: string;
+    silabus?: string;
+    totalJp?: number;
+    quota?: number;
+    category?: string;
+    description?: string;
   };
-  groupCourse: {
-    id: string;
-    title: string;
-    thumbnail: string | null;
-    typeCourse: string;
-    description: {
-      method: string;
-      silabus: string;
-      totalJp: number;
-      quota: number;
-      category: string;
-      description: string;
+  _count?: {
+    listActivity?: number;
+  };
+  groupCourse?: {
+    id?: string;
+    title?: string;
+    thumbnail?: string | null;
+    typeCourse?: string;
+    description?: {
+      method?: string;
+      silabus?: string;
+      totalJp?: number;
+      quota?: number;
+      category?: string;
+      description?: string;
     };
   };
 };
 
-export const updateCourseZoomUrl = async (courseId: string, data: UpdateZoomUrlInput): Promise<any> => {
-  const response = await axios.patch(`${BASE_URL}/courses/${courseId}/zoom-url`, data);
+export const updateCourseZoomUrl = async (
+  courseId: string,
+  data: UpdateZoomUrlInput
+): Promise<any> => {
+  const response = await axios.patch(
+    `${BASE_URL}/courses/${courseId}/zoom-url`,
+    data
+  );
   return response.data.data;
 };
 
 export const deleteCourseZoomUrl = async (courseId: string): Promise<any> => {
-  const response = await axios.delete(`${BASE_URL}/courses/${courseId}/zoom-url`);
+  const response = await axios.delete(
+    `${BASE_URL}/courses/${courseId}/zoom-url`
+  );
   return response.data.data;
 };

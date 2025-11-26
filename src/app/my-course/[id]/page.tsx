@@ -26,7 +26,7 @@ import {
   SummaryTab,
   SummaryFloatingButton,
 } from "@/features/my-course/components";
- 
+
 import { Toast } from "@/components/ui/Toast/Toast";
 import { createToastState } from "@/utils/toastUtils";
 import type { Content } from "@/api/contents";
@@ -109,7 +109,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const startContentMutation = useStartActivityContent();
   const finishContentMutation = useFinishActivityContent();
 
-  const course = courseDetail!;
+  const course = courseDetail;
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -154,8 +154,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [isSidebarOpen]);
 
-  
-
   useEffect(() => {
     const allData: Record<string, Content[]> = {};
     if (Array.isArray(sections)) {
@@ -199,7 +197,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       let contentToSelect: Content | null = null;
       if (firstAccessibleUnfinishedId) {
         contentToSelect =
-          orderedContents.find((c) => c.id === firstAccessibleUnfinishedId) || null;
+          orderedContents.find((c) => c.id === firstAccessibleUnfinishedId) ||
+          null;
       } else if (orderedContents.length > 0) {
         contentToSelect = orderedContents[0] || null;
       }
@@ -326,7 +325,9 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       if (selectedContent.type === "TASK") {
         const hasSubmitted = taskSubmissionStatus[selectedContent.id];
         if (!hasSubmitted) {
-          toastState.showError("Anda harus mengumpulkan tugas terlebih dahulu!");
+          toastState.showError(
+            "Anda harus mengumpulkan tugas terlebih dahulu!"
+          );
           return;
         }
       }
@@ -474,12 +475,14 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
             {activeTab === "information" && (
               <CourseInformationTab
-                method={course.groupCourse.description.method}
-                syllabusFile={course.groupCourse.description.silabus}
-                totalJP={course.groupCourse.description.totalJp}
-                quota={course.groupCourse.description.quota}
-                description={course.groupCourse.description.description}
-                zoomUrl={course.zoomUrl || undefined}
+                method={course?.groupCourse?.description?.method || ""}
+                syllabusFile={course?.groupCourse?.description?.silabus || ""}
+                totalJP={course?.groupCourse?.description?.totalJp || 0}
+                quota={course?.groupCourse?.description?.quota || 0}
+                description={
+                  course?.groupCourse?.description?.description || ""
+                }
+                zoomUrl={course?.zoomUrl || undefined}
                 isEnrolled={true}
               />
             )}
@@ -498,7 +501,9 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
             )}
 
             {activeTab === "summary" && (
-              <SummaryTab text={course.groupCourse.description.description} />
+              <SummaryTab
+                text={course?.groupCourse?.description?.description || ""}
+              />
             )}
 
             {activeTab === "discussion_forum" && <DiscussionForumTab />}

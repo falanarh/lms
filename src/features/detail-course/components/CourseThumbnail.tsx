@@ -9,15 +9,29 @@ interface CourseThumbnailProps {
 export const CourseThumbnail = ({ thumbnail, title }: CourseThumbnailProps) => {
   // Render image thumbnail
   if (thumbnail) {
+    const isExternal = /^https?:\/\//i.test(thumbnail);
+
     return (
       <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-gray-200 dark:border-zinc-700">
-        <Image
-          src={thumbnail}
-          alt={title}
-          width={640}
-          height={360}
-          className="w-full h-full object-cover"
-        />
+        {isExternal ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={thumbnail}
+            alt={title}
+            width={640}
+            height={360}
+            loading="lazy"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Image
+            src={thumbnail}
+            alt={title}
+            width={640}
+            height={360}
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
     );
   }
