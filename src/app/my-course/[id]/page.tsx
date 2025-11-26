@@ -24,8 +24,9 @@ import {
   WriteReviewModal,
   MyCoursePageSkeleton,
   SummaryTab,
+  SummaryFloatingButton,
 } from "@/features/my-course/components";
-import { Sparkles } from "lucide-react";
+ 
 import { Toast } from "@/components/ui/Toast/Toast";
 import { createToastState } from "@/utils/toastUtils";
 import type { Content } from "@/api/contents";
@@ -119,19 +120,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     const firstSection = sections?.[0];
     if (firstSection && expandedSections.length === 0) {
       setExpandedSections([firstSection.id]);
-      const contents =
-        (firstSection as any).listContents ||
-        (firstSection as any).listContent ||
-        [];
-      if (contents.length > 0) {
-        const sortedContents = [...contents].sort(
-          (a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0)
-        );
-        setExpandedSectionsData((prev) => ({
-          ...prev,
-          [firstSection.id]: sortedContents,
-        }));
-      }
     }
   }, [sections]);
 
@@ -166,10 +154,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [isSidebarOpen]);
 
-  const firstSectionContents = useMemo(() => {
-    const s0 = sections?.[0] as any;
-    return s0?.listContents || s0?.listContent || [];
-  }, [sections]);
+  
 
   useEffect(() => {
     const allData: Record<string, Content[]> = {};
@@ -191,10 +176,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [sections]);
 
-  // Restore content from URL on page load
   useEffect(() => {
     if (activeContentId && expandedSectionsData) {
-      // Find content by ID across all sections
       for (const sectionContents of Object.values(expandedSectionsData)) {
         const foundContent = sectionContents.find(
           (content) => content.id === activeContentId
@@ -210,7 +193,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [activeContentId, expandedSectionsData, selectedContent?.id]);
 
-  // Auto-select first content if no content is selected and no URL content ID
   useEffect(() => {
     if (!isUrlResolved) return;
     if (!selectedContent && !activeContentId) {
@@ -252,7 +234,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     setStartedContentIds((prev) => [...prev, selectedContent.id]);
   }, [selectedContent?.id, completedContentIds, startedContentIds, id]);
 
-  // Handle expand/collapse section
   const handleToggleSection = (sectionId: string) => {
     setExpandedSections((prev) => {
       const next = prev.includes(sectionId)
@@ -276,7 +257,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     });
   };
 
-  // Enhanced content selection handler that syncs with URL
   const handleContentSelect = useCallback(
     (content: Content) => {
       if (lockedContentIds.includes(content.id)) {
@@ -309,11 +289,9 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     ]
   );
 
-  // Navigation system
   const handleSectionDataUpdate = useCallback(
     (sectionId: string, contents: Content[]) => {
       setExpandedSectionsData((prev) => {
-        // Prevent unnecessary updates if data is the same
         if (prev[sectionId] && prev[sectionId].length === contents.length) {
           const isSame = prev[sectionId].every(
             (content, index) => content.id === contents[index]?.id
@@ -382,7 +360,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
       toastState.showSuccess("Ulasan berhasil dikirim!");
     } catch (error) {
       console.error("Error submitting review:", error);
-      alert("Gagal mengirim ulasan. Silakan coba lagi.");
+      toastState.showError("Gagal mengirim ulasan. Silakan coba lagi.");
     }
   };
 
@@ -424,6 +402,14 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     setIsSidebarOpen(true);
   };
 
+  const handleOpenSummary = () => {
+    setActiveTab("summary");
+    setTimeout(() => {
+      const el = document.getElementById("course-tabs-top");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
   return (
     <>
       <div
@@ -438,18 +424,11 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           <ContentPlayer
             content={selectedContent}
             isSidebarOpen={isSidebarOpen}
-            onTaskSubmitted={(contentId, isRequired) => {
-              if (!isRequired) {
-                setTaskSubmissionStatus((prev) => ({
-                  ...prev,
-                  [contentId]: true,
-                }));
-              } else {
-                setTaskSubmissionStatus((prev) => ({
-                  ...prev,
-                  [contentId]: true,
-                }));
-              }
+            onTaskSubmitted={(contentId, _isRequired) => {
+              setTaskSubmissionStatus((prev) => ({
+                ...prev,
+                [contentId]: true,
+              }));
             }}
             onStartContent={(contentId) => {
               if (!startedContentIds.includes(contentId)) {
@@ -486,7 +465,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           <CourseTitle title={course.groupCourse.title} />
 
-          {/* Tabs & Content */}
           <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
             <CourseTabNavigation
               activeTab={activeTab}
@@ -550,10 +528,8 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         />
       )}
 
-      {/* Floating Toggle Button */}
       {!isSidebarOpen && <SidebarToggleButton onClick={handleOpenSidebar} />}
 
-      {/* Write Review Modal */}
       <WriteReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
@@ -562,26 +538,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         isLoading={createReviewMutation.isPending}
       />
 
-      <button
-        type="button"
-        aria-label="Lihat Summary"
-        title="Lihat Summary"
-        onClick={() => {
-          setActiveTab("summary");
-          setTimeout(() => {
-            const el = document.getElementById("course-tabs-top");
-            el?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 0);
-        }}
-        className="fixed right-6 bottom-24 md:right-8 md:bottom-24 z-50 group"
-      >
-        <div className="inline-flex items-center rounded-full bg-blue-600 text-white shadow-lg overflow-hidden transition-all duration-300 w-12 group-hover:w-40 h-12 px-3 hover:bg-blue-700">
-          <Sparkles className="w-6 h-6 flex-shrink-0" />
-          <span className="ml-2 text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-            Lihat Summary
-          </span>
-        </div>
-      </button>
+      <SummaryFloatingButton onClick={handleOpenSummary} />
 
       {toastState.toast && (
         <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
