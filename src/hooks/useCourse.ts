@@ -1,4 +1,5 @@
-import { deleteCourseZoomUrl, getCourseById, updateCourseZoomUrl, UpdateZoomUrlInput } from "@/api/course";
+import { deleteCourseZoomUrl, getCourseById, updateCourseZoomUrl } from "@/api/course";
+import { UpdateZoomUrlInput } from "@/schemas/course.schema";
 import { MutationConfig, queryClient, QueryConfig } from "@/lib/queryClient";
 import { queryOptions, useMutation, UseMutationOptions, useQuery } from "@tanstack/react-query";
 

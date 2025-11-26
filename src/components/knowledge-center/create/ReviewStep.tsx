@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Eye } from "lucide-react";
+import Image from "next/image";
 import KnowledgePreviewModal from "./KnowledgePreviewModal";
 import { ContentType, KNOWLEDGE_TYPES, KnowledgeCenter } from "@/types";
 
@@ -76,10 +77,12 @@ export default function ReviewStep({
               Thumbnail
             </span>
             <div className="rounded-lg overflow-hidden border-2 border-blue-200">
-              <img
+              <Image
                 src={thumbnailPreview}
                 alt="Thumbnail"
                 className="w-full h-48 object-cover"
+                width={400}
+                height={200}
               />
             </div>
           </div>

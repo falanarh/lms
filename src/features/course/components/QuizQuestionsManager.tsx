@@ -200,7 +200,7 @@ const convertBackendQuestionToFrontend = (
     });
 
     // Extract the correct answer text
-    const correctOption = options.find((opt) => opt.isCorrect);
+    const correctOption = options?.find((opt) => opt.isCorrect);
     if (correctOption) {
       correctAnswer = correctOption.text;
     } else {
@@ -243,7 +243,7 @@ const convertBackendQuestionToFrontend = (
     })),
   });
 
-  return converted;
+  return converted as any;
 };
 
 const handleBankSoalSelect = (bankQuestion: any) => {
@@ -355,7 +355,7 @@ const handleBankSoalSelect = (bankQuestion: any) => {
     questionText: bankQuestion.questionText || "",
     questionType: convertedQuestionType,
     points: bankQuestion.maxScore || 1,
-    order: questions.length,
+    order: 0,
     explanation: bankQuestion.description || "",
     correctAnswer: finalCorrectAnswer,
     options: options,
@@ -380,19 +380,9 @@ const handleBankSoalSelect = (bankQuestion: any) => {
   });
 
   console.log(
-    "🔧 About to setEditingQuestion with correctAnswer:",
+    "🔧 Created new question with correctAnswer:",
     newQuestion.correctAnswer,
   );
-
-  setEditingQuestion(newQuestion);
-  setIsCreatingQuestion(true);
-  setQuestionFormSource("bank");
-  setShowBankSoalModal(false);
-
-  // Debug: Check what was actually set
-  setTimeout(() => {
-    console.log("🔧 editingQuestion after setState:", editingQuestion);
-  }, 100);
 };
 
 export function QuizQuestionsManager({
@@ -573,6 +563,8 @@ export function QuizQuestionsManager({
       const createRequest: QuestionRequest = {
         idContent: "550e8400-e29b-41d4-a716-446655440600",
         name: `Question ${questions.length + 1}`, // Generate a name for the question
+        idQuestionTag: "",
+        shuffleOptions: false,
         questionType: mapQuestionTypeToAPI(generatedQ.question_type),
         questionText: generatedQ.question_text,
         maxScore: 10,
@@ -582,7 +574,7 @@ export function QuizQuestionsManager({
           generatedQ.question_type === "multiple_choice" && generatedQ.options
             ? generatedQ.options
                 .map((opt: string) => opt)
-                .filter((text) => text.trim())
+                .filter((text: string) => text.trim())
             : generatedQ.question_type === "true_false"
               ? ["True", "False"]
               : [],
@@ -612,7 +604,7 @@ export function QuizQuestionsManager({
       if (!requestValidation.success) {
         console.error(
           "❌ AI Question API request validation failed:",
-          requestValidation.errors,
+          requestValidation.error,
         );
         showToastMessage("warning", "AI question data is invalid");
         return;
@@ -851,6 +843,8 @@ export function QuizQuestionsManager({
       const createRequest: QuestionRequest = {
         idContent: "f2a4b4ec-4e94-4bd8-a44e-22a9af311a81",
         name: `Question ${questions.length + 1} (Edited)`, // Generate a name for the question
+        idQuestionTag: "",
+        shuffleOptions: false,
         questionType: mapQuestionTypeToAPI(editedQ.question_type),
         questionText: editedQ.question_text,
         maxScore: 10,
@@ -860,7 +854,7 @@ export function QuizQuestionsManager({
           editedQ.question_type === "multiple_choice" && editedQ.options
             ? editedQ.options
                 .map((opt: string) => opt)
-                .filter((text) => text.trim())
+                .filter((text: string) => text.trim())
             : editedQ.question_type === "true_false"
               ? ["True", "False"]
               : [],
@@ -1395,6 +1389,8 @@ export function QuizQuestionsManager({
         const createRequest: QuestionRequest = {
           idContent: quizId,
           name: questionName,
+          idQuestionTag: "",
+          shuffleOptions: false,
           questionType: mapQuestionTypeToAPI(question.questionType),
           questionText: question.questionText,
           maxScore: question.points,
@@ -1525,7 +1521,7 @@ export function QuizQuestionsManager({
 
         const createRequest: QuestionRequest = {
           idContent: quizId,
-          idQuestionTag: questionData.questionTagId, // Add question tag ID
+          idQuestionTag: questionData.questionTagId || "", // Add question tag ID
           name: questionName,
           questionType: mapQuestionTypeToAPI(questionData.questionType),
           questionText: questionData.questionText,
@@ -2466,7 +2462,7 @@ export function QuizQuestionsManager({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {bankSoalData.map((question) => {
+                  {bankSoalData.map((question: any) => {
                     const getQuestionTypeIcon = (type: string) => {
                       switch (type) {
                         case "multiple_choice":
@@ -2553,7 +2549,7 @@ export function QuizQuestionsManager({
                                   <span>
                                     {
                                       question.optionsText.filter(
-                                        (opt) =>
+                                        (opt: any) =>
                                           opt === question.answer?.answer,
                                       ).length
                                     }{" "}
@@ -2926,7 +2922,7 @@ export function QuizQuestionsManager({
                       "multiple_choice"
                     }
                     onChange={(e) =>
-                      setEditingGeneratedQuestion((prev) => ({
+                      setEditingGeneratedQuestion((prev: any) => ({
                         ...prev,
                         question_type: e.target.value,
                         answer_text:
@@ -2955,7 +2951,7 @@ export function QuizQuestionsManager({
                     id="ai-question-text"
                     value={editingGeneratedQuestion.question_text || ""}
                     onChange={(e) =>
-                      setEditingGeneratedQuestion((prev) => ({
+                      setEditingGeneratedQuestion((prev: any) => ({
                         ...prev,
                         question_text: e.target.value,
                       }))
@@ -2989,7 +2985,7 @@ export function QuizQuestionsManager({
                                 editingGeneratedQuestion.answer_text
                               }
                               onChange={() =>
-                                setEditingGeneratedQuestion((prev) => ({
+                                setEditingGeneratedQuestion((prev: any) => ({
                                   ...prev,
                                   answer_text: index.toString(),
                                 }))
@@ -3006,7 +3002,7 @@ export function QuizQuestionsManager({
                                   ...(editingGeneratedQuestion.options || []),
                                 ];
                                 newOptions[index] = e.target.value;
-                                setEditingGeneratedQuestion((prev) => ({
+                                setEditingGeneratedQuestion((prev: any) => ({
                                   ...prev,
                                   options: newOptions,
                                 }));
@@ -3043,7 +3039,7 @@ export function QuizQuestionsManager({
                             editingGeneratedQuestion.answer_text === "true"
                           }
                           onChange={() =>
-                            setEditingGeneratedQuestion((prev) => ({
+                            setEditingGeneratedQuestion((prev: any) => ({
                               ...prev,
                               answer_text: "true",
                             }))
@@ -3067,7 +3063,7 @@ export function QuizQuestionsManager({
                             editingGeneratedQuestion.answer_text === "false"
                           }
                           onChange={() =>
-                            setEditingGeneratedQuestion((prev) => ({
+                            setEditingGeneratedQuestion((prev: any) => ({
                               ...prev,
                               answer_text: "false",
                             }))
@@ -3102,7 +3098,7 @@ export function QuizQuestionsManager({
                       type="text"
                       value={editingGeneratedQuestion.answer_text || ""}
                       onChange={(e) =>
-                        setEditingGeneratedQuestion((prev) => ({
+                        setEditingGeneratedQuestion((prev: any) => ({
                           ...prev,
                           answer_text: e.target.value,
                         }))
@@ -3126,7 +3122,7 @@ export function QuizQuestionsManager({
                     id="ai-explanation"
                     value={editingGeneratedQuestion.explanation || ""}
                     onChange={(e) =>
-                      setEditingGeneratedQuestion((prev) => ({
+                      setEditingGeneratedQuestion((prev: any) => ({
                         ...prev,
                         explanation: e.target.value,
                       }))

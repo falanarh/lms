@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { TeacherAvatar } from "@/features/course/components/TeacherAvatar";
 import { renderStars } from "@/features/course/hooks/stars";
 import Link from "next/link";
+import Image from "next/image";
 
 interface MyCourseCardProps {
   course: EnrolledCourse;
@@ -49,12 +50,14 @@ export function MyCourseCard({ course, viewMode = "grid-4" }: MyCourseCardProps)
         <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg dark:hover:shadow-xl hover:cursor-pointer group">
           {/* Thumbnail */}
           <div className="aspect-video relative overflow-hidden">
-            <img
+            <Image
               src={
                 course.course.thumbnail ||
                 "https://dummyimage.com/600x400/000/fff&text=Course"
               }
               alt={course.course.title}
+              width={400}
+              height={225}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
 
@@ -175,12 +178,14 @@ export function MyCourseCard({ course, viewMode = "grid-4" }: MyCourseCardProps)
       <Link href={`/my-course/${course.id}`}>
         <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg dark:hover:shadow-xl group hover:cursor-pointer flex flex-col md:flex-row">
           <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
-            <img
+            <Image
               src={
                 course.course.thumbnail ||
                 "https://dummyimage.com/600x400/000/fff&text=Course"
               }
               alt={course.course.title}
+              width={192}
+              height={192}
               className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
 
@@ -295,12 +300,14 @@ export function MyCourseCard({ course, viewMode = "grid-4" }: MyCourseCardProps)
               {/* Thumbnail */}
               <div className="w-full md:w-48 flex-shrink-0">
                 <div className="relative aspect-video rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={
                       course.course.thumbnail ||
                       "https://dummyimage.com/600x400/000/fff&text=Course"
                     }
                     alt={course.course.title}
+                    width={192}
+                    height={108}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
 

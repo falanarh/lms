@@ -33,7 +33,7 @@ export default function QuizPage({ params }: QuizPageProps) {
   const { data: questionsResponse, isLoading: isLoadingQuestions } =
     useQuestions(resolvedParams.quizId, currentPage, perPage);
 
-  const updateQuizMutation = useUpdateQuiz();
+  const updateQuizMutation = useUpdateQuizWithContent();
 
   const isLoading = isLoadingQuiz || isLoadingQuestions;
   const error = quizError ? "Failed to load quiz data" : null;
@@ -48,13 +48,16 @@ export default function QuizPage({ params }: QuizPageProps) {
         id: resolvedParams.quizId,
         data: {
           content: {
+            idSection: resolvedParams.id,
+            type: "quiz",
             name: quizInfo.title,
             description: quizInfo.description || "",
+            sequence: 0,
           },
           quiz: {
-            timeLimit: quizInfo.timeLimit,
-            shuffleQuestions: quizInfo.shuffleQuestions,
-            passingScore: quizInfo.passingScore,
+            durationLimit: quizInfo.timeLimit || 0,
+            passingScore: quizInfo.passingScore || 0,
+            shuffleQuestions: quizInfo.shuffleQuestions || false,
           },
         },
       });
@@ -278,18 +281,14 @@ export default function QuizPage({ params }: QuizPageProps) {
         q.optionsText &&
         q.optionsText.length > 0
       ) {
-        // Fix: Use q.answers.answer to match API response structure
-        const correctAnswerText = q.answers?.answer || "";
-        const correctAnswerCode = q.answers?.codeAnswer;
+        // Fix: Use q.answers[0] to access first answer in array
+        const correctAnswerText = q.answers?.[0]?.answer || "";
+        const correctAnswerCode = q.answers?.[0]?.codeAnswer;
 
         options = q.optionsText.map((text, idx) => {
-          // First check by option code if available
+          // Check by text comparison
           let isCorrect = false;
-          if (correctAnswerCode && q.optionsCode && q.optionsCode[idx]) {
-            isCorrect = q.optionsCode[idx] === correctAnswerCode;
-          }
-          // Fallback to text comparison
-          else if (correctAnswerText) {
+          if (correctAnswerText) {
             isCorrect =
               text.trim().toLowerCase() ===
               correctAnswerText.trim().toLowerCase();
@@ -307,12 +306,12 @@ export default function QuizPage({ params }: QuizPageProps) {
         const correctOption = options.find((opt) => opt.isCorrect);
         correctAnswer = correctOption ? correctOption.text : correctAnswerText;
       } else if (questionType === "true_false") {
-        // Fix: Use q.answers.answer to match API response structure
-        const answerValue = q.answers?.answer?.toLowerCase();
+        // Fix: Use q.answers[0].answer to access first answer in array
+        const answerValue = q.answers?.[0]?.answer?.toLowerCase();
         correctAnswer = answerValue === "true" ? "true" : "false";
       } else if (questionType === "essay") {
         // For essay questions, the answer is the expected answer text
-        correctAnswer = q.answers?.answer || "";
+        correctAnswer = q.answers?.[0]?.answer || "";
       }
 
       return {
@@ -342,14 +341,12 @@ export default function QuizPage({ params }: QuizPageProps) {
           <div className="py-4">
             <Breadcrumb
               items={[
-                { key: "courses", label: "Courses", href: "/course" },
+                { label: "Courses", href: "/course" },
                 {
-                  key: "manage",
                   label: "Manage Course",
                   href: "/course/manage",
                 },
                 {
-                  key: "quiz",
                   label: quiz.content?.name || "Quiz",
                   href: `/course/${resolvedParams.id}/quiz/${resolvedParams.quizId}`,
                 },

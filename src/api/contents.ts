@@ -55,6 +55,14 @@ export const getContents = async (): Promise<Content[]> => {
   return response.data;
 };
 
+export const getContentsBySectionId = async (sectionId: string): Promise<Content[]> => {
+  const response = await axios.get<Content[]>(`${BASE_URL}/contents/section/${sectionId}`, {
+    withCredentials: false,
+  });
+  console.log(response.data);
+  return response.data;
+};
+
 export const createContent = async (
   newContent: Omit<Content, "id" | "createdAt" | "updatedAt">,
 ): Promise<Content> => {

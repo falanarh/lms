@@ -7,6 +7,7 @@
 
 import { Star } from "lucide-react";
 import React from "react";
+import Image from "next/image";
 import { renderStars } from "../hooks/stars";
 
 interface ReviewCardProps {
@@ -47,9 +48,11 @@ export function ReviewCard({
       <div className="flex items-start gap-4">
         {/* Avatar with Star Badge */}
         <div className="relative flex-shrink-0">
-          <img 
-            src={reviewerAvatar} 
+          <Image
+            src={reviewerAvatar}
             alt={reviewerName}
+            width={56}
+            height={56}
             className="w-14 h-14 rounded-xl object-cover border-2 border-gray-200 shadow-md"
           />
           <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-500 rounded-lg border-2 border-white flex items-center justify-center shadow-sm">

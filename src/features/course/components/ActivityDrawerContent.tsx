@@ -238,14 +238,14 @@ export function ActivityDrawerContent({
   const calculateNextSequence = (sectionId: string): number => {
     if (!sectionsData || sectionsData.length === 0) return 1;
 
-    const section = sectionsData.data.find(
+    const section = sectionsData.find(
       (section) => section.id === sectionId,
     );
-    if (!section?.listContent || section.listContent.length === 0) return 1;
+    if (!section?.listContents || section.listContents.length === 0) return 1;
 
     // Find the highest sequence number and add 1
     const maxSequence = Math.max(
-      ...section.listContent.map((content) => content.sequence || 0),
+      ...section.listContents.map((content) => content.sequence || 0),
     );
     return maxSequence + 1;
   };
@@ -2272,9 +2272,8 @@ export function ActivityDrawerContent({
               )}
             />
 
-            {/* Only show completion sections for TASK and QUIZ */}
-            {(selectedActivityType === "TASK" ||
-              selectedActivityType === "QUIZ") && <CompletionSection />}
+            {/* Only show completion sections for TASK */}
+            {selectedActivityType === "TASK" && <CompletionSection />}
 
             {showMaterialsList && (
               <div className="mt-6">
@@ -3256,10 +3255,10 @@ export function ActivityDrawerContent({
           // Store questions to save when quiz is created (for create mode)
           if (questions && !contentId) {
             // Save questions to state for later use when quiz is created
-            (window as any).tempQuestionsToSave = questionsToSave;
+            (window as any).tempQuestionsToSave = questions;
             console.log(
               "Questions prepared for bulk creation:",
-              questionsToSave,
+              questions,
             );
           }
 

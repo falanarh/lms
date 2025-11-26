@@ -64,7 +64,7 @@ interface Section {
   activities: Activity[];
   sequence: number;
   idGroup?: string;
-  listContent?: Content[];
+  listContents?: Content[];
 }
 
 interface SectionActivitiesProps {
@@ -271,7 +271,7 @@ export function SectionActivities({
       return [];
     }
 
-    const sectionsArray = sectionsData.data.filter(Boolean);
+    const sectionsArray = sectionsData.filter(Boolean);
 
     console.log("📊 Processing sections:", {
       totalSections: sectionsArray.length,
@@ -485,8 +485,8 @@ export function SectionActivities({
     console.log("✏️ Editing activity:", { sectionId, activityId });
 
     // ✅ Find activity from section's listContent
-    const section = sectionsData?.data.find(s => s.id === sectionId);
-    const activityData = section?.listContent?.find(content => content.id === activityId);
+    const section = sectionsData?.find(s => s.id === sectionId);
+    const activityData = section?.listContents?.find(content => content.id === activityId);
 
     if (activityData && onEditActivity) {
       onEditActivity(sectionId, activityId, activityData as Content);

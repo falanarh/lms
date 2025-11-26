@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   useMasterContents,
@@ -190,7 +191,7 @@ export function BankContent() {
     const validationResult = validateCreateMasterContent(dataToValidate);
 
     if (!validationResult.success && validationResult.error) {
-      const errors = formatZodError(validationResult.error);
+      const errors = formatZodError(validationResult.error as any);
       setValidationErrors(errors);
     } else {
       setValidationErrors({});
@@ -425,7 +426,7 @@ export function BankContent() {
     const validationResult = validateCreateMasterContent(dataToValidate);
 
     if (!validationResult.success && validationResult.error) {
-      const errors = formatZodError(validationResult.error);
+      const errors = formatZodError(validationResult.error as any);
       setValidationErrors(errors);
 
       // Show first error message
@@ -535,7 +536,7 @@ export function BankContent() {
     const validationResult = validateUpdateMasterContent(dataToValidate);
 
     if (!validationResult.success && validationResult.error) {
-      const errors = formatZodError(validationResult.error);
+      const errors = formatZodError(validationResult.error as any);
       setValidationErrors(errors);
 
       // Show first error message

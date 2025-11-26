@@ -72,7 +72,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
     );
   }
 
-  const course = courseDetail;
+  const course = courseDetail?.[0];
 
   const handleEnrollToggle = () => {
     if (isEnrolling) return;
@@ -123,7 +123,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "All Courses", href: "/course" },
-    { label: course.groupCourse.title, isActive: true },
+    { label: course?.title || "Course", isActive: true },
   ];
 
   return (
@@ -140,21 +140,21 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 space-y-4">
           <CourseThumbnail 
-            thumbnail={course.groupCourse.thumbnail || undefined}
-            title={course.groupCourse.title}
+            thumbnail={course?.thumbnail || undefined}
+            title={course?.title}
           />
-          <CourseTitle title={course.groupCourse.title} />
+          <CourseTitle title={course?.title} />
         </div>
 
         <div className="space-y-4">
           <CourseInfoCard
-            category={course.groupCourse.description?.category}
-            rating={course.rating}
-            totalRatings={course.totalUserRating}
-            type={course.groupCourse.typeCourse}
+            category={course?.description?.category}
+            rating={course?.averageRating}
+            totalRatings={course?.totalUsers}
+            type={course?.typeCourse}
             isEnrolled={isEnrolled}
             onToggle={handleEnrollToggle}
-            courseId={course.id}
+            courseId={course?.id}
             buttonLabel={
               justEnrolled
                 ? "Start Learning"
@@ -177,12 +177,12 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
         {activeTab === "information" && (
           <CourseInformationTab
-            method={course.groupCourse.description.method}
-            syllabusFile={course.groupCourse.description.silabus}
-            totalJP={course.groupCourse.description.totalJp}
-            quota={course.groupCourse.description.quota}
-            description={course.groupCourse.description.description}
-            zoomUrl={course.zoomUrl || undefined}
+            method={course?.description?.method}
+            syllabusFile={course?.description?.silabus}
+            totalJP={course?.description?.totalJp}
+            quota={course?.description?.quota}
+            description={course?.description?.description}
+            zoomUrl={undefined}
             isEnrolled={false}
           />
         )}

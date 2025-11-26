@@ -607,12 +607,12 @@ export function BankSoal() {
     page: currentPage,
     perPage: perPage,
     searchQuery: debouncedSearchQuery,
-    type: typeFilter ? mapQuestionTypeToApi(typeFilter) : undefined,
+    type: typeFilter ? (mapQuestionTypeToApi(typeFilter) as any) : undefined,
   });
 
   // Convert API data to BankQuestion format
   const masterQuestions =
-    response?.data?.map((question) => {
+    response?.data?.map((question: any) => {
       // Map API question types to our frontend types
       let mappedQuestionType: BankQuestion["questionType"];
       switch (question.questionType) {
@@ -635,7 +635,7 @@ export function BankSoal() {
 
       // Map options with correct answer detection
       const mappedOptions =
-        question.optionsText?.map((option, index) => ({
+        question.optionsText?.map((option: any, index: number) => ({
           id: `${question.id}-${index}`,
           text: option || "",
           isCorrect: question.optionsCode?.[index] === correctAnswerCode, // Match by codeAnswer
@@ -655,7 +655,7 @@ export function BankSoal() {
           finalCorrectAnswer = question.optionsText[correctIndex];
         } else {
           // Fallback: find from mapped options
-          const correctOption = mappedOptions.find((opt) => opt.isCorrect);
+          const correctOption = mappedOptions.find((opt: any) => opt.isCorrect);
           finalCorrectAnswer = correctOption?.text || correctAnswerText;
         }
       } else {
@@ -682,6 +682,7 @@ export function BankSoal() {
         questionText: question.questionText || "",
         questionType: mappedQuestionType,
         order: 0,
+        points: question.maxScore || 1, // Use maxScore from API or default to 1
         title: question.name || "Soal",
         timeLimit: 60,
         explanation: question.description || "", // Use description as explanation
@@ -892,7 +893,7 @@ export function BankSoal() {
     }
 
     console.log("📤 Updating question with data:", apiData);
-    updateMasterQuestionMutation.mutate({
+    (updateMasterQuestionMutation.mutate as any)({
       id: editingQuestion.id,
       data: apiData,
     });
@@ -909,7 +910,7 @@ export function BankSoal() {
 
   const handleConfirmDelete = () => {
     if (deleteConfirm.id) {
-      deleteMasterQuestionMutation.mutate(deleteConfirm.id);
+      (deleteMasterQuestionMutation.mutate as any)(deleteConfirm.id);
     }
     setDeleteConfirm({ isOpen: false, id: null, title: "" });
   };

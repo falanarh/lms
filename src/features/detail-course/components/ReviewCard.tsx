@@ -1,4 +1,5 @@
 import { Review } from "@/api/review";
+import Image from "next/image";
 import { renderStars } from "@/features/course/hooks/stars";
 
 const getFormattedDate = (createdAt?: string): string => {
@@ -28,9 +29,11 @@ export const ReviewCard = ({ review }: ReviewCardProps) => {
   return (
     <div className="bg-white rounded-xl p-6 border border-gray-200">
       <div className="flex items-start gap-4">
-        <img
+        <Image
           src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face&auto=format"
           alt="Profile"
+          width={48}
+          height={48}
           className="w-12 h-12 rounded-full object-cover flex-shrink-0"
         />
         <div className="flex-1 min-w-0">

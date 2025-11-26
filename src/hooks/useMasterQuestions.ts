@@ -6,8 +6,10 @@ import {
   deleteMasterQuestion,
   GetMasterQuestionsParams,
   QuestionType,
+  MasterQuestionResponse,
+  MasterQuestionsListResponse,
 } from "@/api/masterQuestions";
-import { MutationConfig, queryClient } from "@/lib/queryClient";
+import { MutationConfig, QueryConfig, queryClient } from "@/lib/queryClient";
 import { queryOptions, useMutation, useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
 // Query keys with proper typing
@@ -116,9 +118,11 @@ export const useCreateMasterQuestion = ({
         queryKey: ["master-questions"],
       });
       // Call the custom onSuccess if provided
-      await mutationConfig?.onSuccess?.(data, variables, context);
+      if (mutationConfig?.onSuccess) {
+        await mutationConfig.onSuccess(data as any, variables as any, context as any, undefined as any);
+      }
     },
-    ...config,
+    ...mutationConfig,
   })
 };
 
@@ -133,16 +137,18 @@ export const useUpdateMasterQuestion = ({
     onSuccess: async (data, variables, context) => {
       // Invalidate the specific question detail
       await queryClient.invalidateQueries({
-        queryKey: getMasterQuestionByIdQueryKey(variables.id),
+        queryKey: getMasterQuestionByIdQueryKey((variables as any).id),
       });
       // Invalidate all master questions list queries
       await queryClient.invalidateQueries({
         queryKey: ["master-questions"],
       });
       // Call the custom onSuccess if provided
-      await mutationConfig?.onSuccess?.(data, variables, context);
+      if (mutationConfig?.onSuccess) {
+        await mutationConfig.onSuccess(data as MasterQuestionResponse, variables as any, context, undefined as any);
+      }
     },
-    ...config,
+    ...mutationConfig,
   })
 };
 
@@ -160,8 +166,10 @@ export const useDeleteMasterQuestion = ({
         queryKey: ["master-questions"],
       });
       // Call the custom onSuccess if provided
-      await mutationConfig?.onSuccess?.(data, variables, context);
+      if (mutationConfig?.onSuccess) {
+        await mutationConfig.onSuccess(data as any, variables as any, context, undefined as any);
+      }
     },
-    ...config,
+    ...mutationConfig,
   })
 };

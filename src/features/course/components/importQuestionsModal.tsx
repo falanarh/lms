@@ -137,7 +137,7 @@ export function ImportQuestionsModal({
       excelRowToQuizQuestion(row, index),
     );
 
-    onImport(questions);
+    onImport(questions as any);
     setStep("success");
 
     // Auto close after success

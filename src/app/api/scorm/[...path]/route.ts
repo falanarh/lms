@@ -7,10 +7,10 @@ const SCORM_BASE_URL = "https://pub-b50c5924d2c64c1397f8e200306b9bfb.r2.dev";
 
 export async function GET(
   req: NextRequest,
-  context: { params: { path: string[] } },
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
   try {
-    const { path } = context.params;
+    const { path } = await params;
 
     // Build the full remote URL
     const remoteUrl = new URL(path.join("/"), SCORM_BASE_URL).toString();

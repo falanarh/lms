@@ -38,7 +38,7 @@ export function ScormPlayer({
       { scormUrl },
     );
     return "";
-  }
+  }, [scormUrl]);
 
   // Check if the URL is from a different domain
   const isCrossDomain = React.useMemo(() => {
@@ -51,7 +51,6 @@ export function ScormPlayer({
     } catch {
       return false;
     }
-  }, [scormUrl]);
   }, [scormUrl]);
 
   useEffect(() => {

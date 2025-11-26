@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronsRight, Edit2 } from "lucide-react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Forum } from "./ForumList";
@@ -70,9 +71,11 @@ export function ForumCard({ forum, className, onEdit }: ForumCardProps) {
     >
       {/* Card Image */}
       <div className="relative h-[200px] overflow-hidden">
-        <img
+        <Image
           src={meta.image}
           alt={forum.title}
+          width={400}
+          height={200}
           className={`w-full h-full object-cover rounded-t-2xl transition-transform duration-300 ease-out ${
             isHovered ? 'scale-110' : 'scale-100'
           }`}

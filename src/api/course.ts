@@ -1,4 +1,5 @@
 import axios from "axios";
+import { UpdateZoomUrlInput } from "@/schemas/course.schema";
 
 export type CourseDescription = {
   id: string;
@@ -40,6 +41,7 @@ export type CourseResponse = {
   groups: CourseGroup[];
   averageRating: number;
   totalUsers: number;
+  zoomUrl?: string;
 };
 
 // export const getCourses = async (): Promise<Course[]> => {
@@ -53,8 +55,21 @@ export type CourseResponse = {
 const BASE_URL =
   process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000";
 
-export const getCourses = async (): Promise<CourseResponse[]> => {
-  const response = await axios.get(`${BASE_URL}/courses`);
+export const getCourses = async (
+  searchQuery?: string,
+  selectedCategory?: string,
+  sortBy?: string,
+  page: number = 1,
+  perPage: number = 8
+): Promise<CourseResponse[]> => {
+  const params = new URLSearchParams();
+  if (searchQuery) params.append('search', searchQuery);
+  if (selectedCategory) params.append('category', selectedCategory);
+  if (sortBy) params.append('sortBy', sortBy);
+  params.append('page', page.toString());
+  params.append('perPage', perPage.toString());
+
+  const response = await axios.get(`${BASE_URL}/courses?${params.toString()}`);
   const course = response.data.data;
   return course;
 };
@@ -63,4 +78,14 @@ export const getCourseById = async (id: string): Promise<CourseResponse[]> => {
   const response = await axios.get(`${BASE_URL}/courses/${id}`);
   const course = response.data.data;
   return course;
+};
+
+export const updateCourseZoomUrl = async (courseId: string, data: UpdateZoomUrlInput): Promise<any> => {
+  const response = await axios.patch(`${BASE_URL}/courses/${courseId}/zoom-url`, data);
+  return response.data.data;
+};
+
+export const deleteCourseZoomUrl = async (courseId: string): Promise<any> => {
+  const response = await axios.delete(`${BASE_URL}/courses/${courseId}/zoom-url`);
+  return response.data.data;
 };

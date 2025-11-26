@@ -50,18 +50,16 @@ export const QuestionTagSelector = ({
 
   // Create tag mutation
   const createTagMutation = useCreateQuestionTag({
-    mutationConfig: {
-      onSuccess: (newTag) => {
-        onTagSelect(newTag.id, newTag.name);
-        setSearchQuery("");
-        setDebouncedSearch("");
-        setPage(1);
-        setIsOpen(false);
-      },
-      onError: (error: any) => {
-        console.error("Error creating tag:", error);
-        alert(`Gagal membuat tag: ${error.message || "Unknown error"}`);
-      },
+    onSuccess: (newTag) => {
+      onTagSelect(newTag.id, newTag.name);
+      setSearchQuery("");
+      setDebouncedSearch("");
+      setPage(1);
+      setIsOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("Error creating tag:", error);
+      alert(`Gagal membuat tag: ${error.message || "Unknown error"}`);
     },
   });
 

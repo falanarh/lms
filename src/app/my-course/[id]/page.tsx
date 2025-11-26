@@ -39,7 +39,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
-  const course = courseDetail!;
+  const course = courseDetail?.[0];
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -220,7 +220,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "My Courses", href: "/my-course" },
-    { label: course.groupCourse.title, isActive: true },
+    { label: course?.title || "Course", isActive: true },
   ];
 
   const handleCloseSidebar = () => {
@@ -256,7 +256,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
             />
           )}
 
-          <CourseTitle title={course.groupCourse.title} />
+          <CourseTitle title={course?.title || ""} />
 
           {/* Tabs & Content */}
           <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
@@ -268,12 +268,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
 
           {activeTab === "information" && (
             <CourseInformationTab
-              method={course.groupCourse.description.method}
-              syllabusFile={course.groupCourse.description.silabus}
-              totalJP={course.groupCourse.description.totalJp}
-              quota={course.groupCourse.description.quota}
-              description={course.groupCourse.description.description}
-              zoomUrl={course.zoomUrl || undefined}
+              method={course?.description?.method || ""}
+              syllabusFile={course?.description?.silabus || ""}
+              totalJP={course?.description?.totalJp || 0}
+              quota={course?.description?.quota || 0}
+              description={course?.description?.description || ""}
+              zoomUrl={undefined}
               isEnrolled={true}
             />
           )}
@@ -291,7 +291,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           )}
 
           {activeTab === "summary" && (
-              <SummaryTab text={course.groupCourse.description.description} />
+              <SummaryTab text={course?.description?.description || ""} />
           )}
 
           {activeTab === "discussion_forum" && <DiscussionForumTab />}
@@ -333,7 +333,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         onSubmit={handleSubmitReview}
-        courseName={course.groupCourse.title}
+        courseName={course?.title || ""}
         isLoading={createReviewMutation.isPending}
       />
 

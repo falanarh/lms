@@ -78,7 +78,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
 
   const form = useForm({
     defaultValues: {
-      zoomUrl: courseData?.zoomUrl || "",
+      zoomUrl: courseData?.[0]?.zoomUrl || "",
     },
     onSubmit: async ({ value }) => {
       try {
@@ -113,7 +113,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
   };
 
   const handleEdit = () => {
-    form.setFieldValue("zoomUrl", courseData?.zoomUrl || "");
+    form.setFieldValue("zoomUrl", courseData?.[0]?.zoomUrl || "");
     setIsEditing(true);
   };
 
@@ -127,8 +127,8 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
   };
 
   const handleJoinMeeting = () => {
-    if (courseData?.zoomUrl) {
-      window.open(courseData.zoomUrl, "_blank");
+    if (courseData?.[0]?.zoomUrl) {
+      window.open(courseData[0].zoomUrl, "_blank");
     }
   };
 
@@ -140,7 +140,7 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
     );
   }
 
-  const hasZoomUrl = courseData?.zoomUrl && courseData.zoomUrl.trim() !== "";
+  const hasZoomUrl = courseData?.[0]?.zoomUrl && courseData[0].zoomUrl.trim() !== "";
 
   // Empty State
   if (!hasZoomUrl && !isEditing) {
@@ -344,11 +344,11 @@ export function ZoomManagement({ courseId }: ZoomManagementProps) {
                 Link Meeting
               </p>
               <p className="text-sm text-gray-700 dark:text-zinc-300 break-all font-mono bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg">
-                {courseData?.zoomUrl}
+                {courseData?.[0]?.zoomUrl}
               </p>
             </div>
             <button
-              onClick={() => handleCopy(courseData?.zoomUrl || "")}
+              onClick={() => handleCopy(courseData?.[0]?.zoomUrl || "")}
               className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded-lg text-gray-600 dark:text-zinc-400 transition-colors flex-shrink-0"
               aria-label="Copy meeting URL"
               title="Salin Link"

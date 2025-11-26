@@ -195,8 +195,10 @@ export function ScormPlayer({
 
       try {
         // Inject API proxies into the inner iframe
-        inner.contentWindow.API = (window as any).API;
-        inner.contentWindow.API_1484_11 = (window as any).API_1484_11;
+        if (inner.contentWindow) {
+          (inner.contentWindow as any).API = (window as any).API;
+          (inner.contentWindow as any).API_1484_11 = (window as any).API_1484_11;
+        }
 
         console.log("🎉 Injected SCORM API into inner iframe successfully");
       } catch (err) {
