@@ -1,4 +1,4 @@
-import { Info, List, MessageSquare, Star, ChevronDown, FileText, Calendar } from "lucide-react";
+import { Info, List, MessageSquare, Star, ChevronDown, FileText, Sparkles } from "lucide-react";
 import { CourseTabType, TabConfig } from "../types/tab";
 
 interface CourseTabNavigationProps {
@@ -73,6 +73,16 @@ export const CourseTabNavigation = ({
             {visibleTabs.map((tab) => {
               const isActive = activeTab === tab.key;
 
+              const iconEl = tab.key === "summary"
+                ? (
+                    <div
+                      className={`w-5 h-5 rounded-md bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 ${isActive ? "ring-2 ring-offset-1 ring-pink-300/60" : ""} animate-pulse flex items-center justify-center shadow-sm`}
+                    >
+                      <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                  )
+                : tab.icon;
+
               return (
                 <button
                   key={tab.key}
@@ -90,11 +100,11 @@ export const CourseTabNavigation = ({
                   />
                   <div className="h-[38px] relative w-full flex items-center justify-center gap-2">
                     <span
-                      className={`flex-shrink-0 [&>svg]:size-4 [&>svg]:stroke-2 ${
+                      className={`flex-shrink-0 ${
                         isActive ? "text-zinc-900 dark:text-zinc-100" : "text-[#717182] dark:text-zinc-400"
                       }`}
                     >
-                      {tab.icon}
+                      {iconEl}
                     </span>
                     <span
                       className={`

@@ -39,12 +39,11 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const toastState = createToastState();
 
-  const scheduleTabRef = useRef<HTMLDivElement>(null);
-
-  const { data: sectionContent, isLoading: isSectionsLoading } = useSectionContent({
-    courseId: id,
-    enabled: activeTab === "course_contents",
-  });
+  const { data: sectionContent, isLoading: isSectionsLoading } =
+    useSectionContent({
+      courseId: id,
+      enabled: activeTab === "course_contents",
+    });
 
   const { mutate: enroll, isPending: isEnrolling } = useStartActivity(id);
   const { data: enrollStatus } = useCheckEnroll({ courseId: id });
@@ -64,7 +63,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Error Loading Course
+            </h2>
             <p className="text-gray-600">{error.message}</p>
           </div>
         </div>
@@ -76,13 +77,20 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
   const handleEnrollToggle = () => {
     if (isEnrolling) return;
-    const enrolled = justEnrolled || Boolean(enrollStatus?.data);
+    const enrolledData = enrollStatus?.data as any;
+    const enrolledFlag =
+      typeof enrolledData === "object"
+        ? Boolean(enrolledData?.isEnroll)
+        : Boolean(enrolledData);
+    const enrolled = justEnrolled || enrolledFlag;
     if (!enrolled) {
       enroll(undefined, {
         onSuccess: () => {
           setIsEnrolled(true);
           setJustEnrolled(true);
-          toastState.showSuccess("Berhasil enroll. Klik Start Learning untuk mulai.");
+          toastState.showSuccess(
+            "Berhasil enroll. Klik Start Learning untuk mulai."
+          );
         },
       });
       return;
@@ -91,9 +99,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   };
 
   const handleToggleSection = (sectionId: string) => {
-    setExpandedSections(prev =>
+    setExpandedSections((prev) =>
       prev.includes(sectionId)
-        ? prev.filter(id => id !== sectionId)
+        ? prev.filter((id) => id !== sectionId)
         : [...prev, sectionId]
     );
   };
@@ -139,9 +147,9 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2 space-y-4">
-          <CourseThumbnail 
-            thumbnail={course?.thumbnail || undefined}
-            title={course?.title}
+          <CourseThumbnail
+            thumbnail={course.groupCourse.thumbnail || undefined}
+            title={course.groupCourse.title}
           />
           <CourseTitle title={course?.title} />
         </div>
@@ -154,41 +162,44 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             type={course?.typeCourse}
             isEnrolled={isEnrolled}
             onToggle={handleEnrollToggle}
-            courseId={course?.id}
-            buttonLabel={
-              justEnrolled
-                ? "Start Learning"
-                : enrollStatus?.data !== undefined && enrollStatus?.data !== null
-                ? "Continue Learning"
-                : "Enroll Now"
-            }
+            courseId={course.id}
+            buttonLabel={(() => {
+              if (justEnrolled) return "Start Learning";
+              const d: any = enrollStatus?.data;
+              const isEnrolledFlag =
+                typeof d === "object" ? d?.isEnroll === true : Boolean(d);
+              return isEnrolledFlag ? "Continue Learning" : "Enroll Now";
+            })()}
             isProcessing={isEnrolling}
+            teacherName={course.teacherName}
           />
+        </div>
+      </div>
         </div>
       </div>
 
       {/* Tabs & Content */}
-      <div ref={scheduleTabRef} className="space-y-6 pb-8">
-        <CourseTabNavigation 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-          hiddenTabs={["summary"]} 
+      <div className="space-y-6 pb-8">
+        <CourseTabNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          hiddenTabs={["summary"]}
         />
 
         {activeTab === "information" && (
           <CourseInformationTab
-            method={course?.description?.method}
-            syllabusFile={course?.description?.silabus}
-            totalJP={course?.description?.totalJp}
-            quota={course?.description?.quota}
-            description={course?.description?.description}
-            zoomUrl={undefined}
+            method={course.groupCourse.description.method}
+            syllabusFile={course.groupCourse.description.silabus}
+            totalJP={course.groupCourse.description.totalJp}
+            quota={course.groupCourse.description.quota}
+            description={course.groupCourse.description.description}
+            zoomUrl={course.zoomUrl || undefined}
             isEnrolled={false}
           />
         )}
 
-        {activeTab === "course_contents" && (
-          isSectionsLoading ? (
+        {activeTab === "course_contents" &&
+          (isSectionsLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-gray-500">Loading sections...</div>
             </div>
@@ -198,22 +209,13 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
               expandedSections={expandedSections}
               onToggleSection={handleToggleSection}
             />
-          )
-        )}
-
-        {activeTab === "schedule_attendance" && (
-          <ScheduleAttendanceTab courseId={id} />
-        )}
+          ))}
 
         {activeTab === "discussion_forum" && <DiscussionForumTab />}
+        {activeTab === "discussion_forum" && <DiscussionForumTab />}
 
-        {activeTab === "ratings_reviews" && (
-          <RatingsReviewsTab
-            courseId={id}
-          />
-        )}
+        {activeTab === "ratings_reviews" && <RatingsReviewsTab courseId={id} />}
       </div>
-
       {/* Toast */}
       {toastState.toast && (
         <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
@@ -228,6 +230,5 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         </div>
       )}
     </PageContainer>
-    </>
   );
 }

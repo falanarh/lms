@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL } from "@/config/api";
+import { API_BASE_URL, DUMMY_USER_ID } from "@/config/api";
 
 export type ReviewUser = {
   name: string;
@@ -63,14 +63,17 @@ export const getReviewById = async (id: string): Promise<Review> => {
 };
 
 export const createReview = async (
-  courseId: string,
-  reviewData: CreateReviewRequest
+  idCourse: string,
+  reviewData: CreateReviewRequest,
+  idUser: string = DUMMY_USER_ID
 ): Promise<CreateReviewResponse> => {
-  const dummyActivityId = "dummy-activity-id";
-  
-  const response = await axios.post(
-    `${API_BASE_URL}/activities/${dummyActivityId}/rating`,
-    reviewData,
+  const response = await axios.patch(
+    `${API_BASE_URL}/activities/rating`,
+    {
+      ...reviewData,
+      idCourse,
+      idUser,
+    },
     {
       headers: {
         'Content-Type': 'application/json',
