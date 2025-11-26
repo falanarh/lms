@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ensureArray, safeFilter } from '@/utils/array-fix-utils';
 import { X, ChevronDown, Filter, Search } from 'lucide-react';
 import {
   ContentType,
@@ -39,10 +40,10 @@ export default function KnowledgeFilters({
     value: string,
     isChecked: boolean
   ) => {
-    const currentArray = (filters[key] as string[]) || [];
+    const currentArray = ensureArray<string>(filters[key]);
     const newArray = isChecked
       ? [...currentArray, value]
-      : currentArray.filter(item => item !== value);
+      : safeFilter<string>(currentArray, (item) => item !== value);
 
     onFiltersChange({
       ...filters,
