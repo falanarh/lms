@@ -71,6 +71,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const [taskSubmissionStatus, setTaskSubmissionStatus] = useState<
     Record<string, boolean>
   >({});
+  const [isUrlResolved, setIsUrlResolved] = useState(false);
   const toastState = createToastState();
   const orderedContents = useMemo(() => {
     const secList: any[] = Array.isArray(sections) ? [...sections] : [];
@@ -198,10 +199,14 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         }
       }
     }
+    if (!isUrlResolved) {
+      setIsUrlResolved(true);
+    }
   }, [activeContentId, expandedSectionsData, selectedContent?.id]);
 
   // Auto-select first content if no content is selected and no URL content ID
   useEffect(() => {
+    if (!isUrlResolved) return;
     if (!selectedContent && !activeContentId) {
       let contentToSelect: Content | null = null;
       if (unlockedContentId) {
@@ -221,6 +226,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     selectedContent,
     activeContentId,
     updateContentInUrl,
+    isUrlResolved,
   ]);
 
   useEffect(() => {

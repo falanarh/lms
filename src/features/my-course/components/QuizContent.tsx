@@ -42,12 +42,56 @@ interface QuizQuestion {
   options?: string[];
 }
 
+interface QuizSession {
+  attemptId: string;
+  contentId: string;
+  questionIds: string[];
+  currentQuestionIndex: number;
+  answerCodeMap: Record<string, string>;
+  answeredQuestions: Record<string, boolean>;
+  quizStartTime: string;
+  durationLimit: number | null;
+  timestamp: number;
+}
+
 interface QuizContentProps {
   content: Content;
   isSidebarOpen: boolean;
   onStartContent?: (contentId: string) => void;
   onFinishContent?: (contentId: string) => void;
 }
+
+// Session storage helpers
+const getSessionKey = (contentId: string) => `quiz_session_${contentId}`;
+
+const saveQuizSession = (session: QuizSession) => {
+  try {
+    sessionStorage.setItem(
+      getSessionKey(session.contentId),
+      JSON.stringify(session)
+    );
+  } catch (e) {
+    console.error("Failed to save quiz session:", e);
+  }
+};
+
+const loadQuizSession = (contentId: string): QuizSession | null => {
+  try {
+    const saved = sessionStorage.getItem(getSessionKey(contentId));
+    return saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    console.error("Failed to load quiz session:", e);
+    return null;
+  }
+};
+
+const clearQuizSession = (contentId: string) => {
+  try {
+    sessionStorage.removeItem(getSessionKey(contentId));
+  } catch (e) {
+    console.error("Failed to clear quiz session:", e);
+  }
+};
 
 export const QuizContent = ({
   content,
@@ -64,6 +108,9 @@ export const QuizContent = ({
   const toastTimeoutRef = useRef<number | null>(null);
   const TOAST_HIDE_MS = 2000;
   const [isQuizStarted, setIsQuizStarted] = useState(false);
+  const [inProgressAttempt, setInProgressAttempt] =
+    useState<QuizAttemptDetail | null>(null);
+  const quizStartTimeRef = useRef<string | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
@@ -77,6 +124,7 @@ export const QuizContent = ({
   const [quizTimeLeft, setQuizTimeLeft] = useState<number | null>(null);
   const [showQuizSubmitConfirm, setShowQuizSubmitConfirm] = useState(false);
   const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null);
+  const hasAutoSubmittedRef = useRef(false);
 
   // Fetch quiz detail from API (info kuis statis)
   const { data: quizDetail, isLoading: isQuizDetailLoading } = useQuizDetail(
@@ -126,8 +174,133 @@ export const QuizContent = ({
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Detect IN_PROGRESS attempt on mount
+  useEffect(() => {
+    if (isQuizStarted) return; // Already started, skip
+    if (!typedAttemptHistory) return;
+
+    // Check sessionStorage first (for instant restore after refresh)
+    const savedSession = loadQuizSession(content.id);
+    if (savedSession) {
+      // INSTANT RESTORE - No delay, no API call
+      setCurrentAttemptId(savedSession.attemptId);
+      setQuestionIds(savedSession.questionIds);
+      setAnswerCodeMap(savedSession.answerCodeMap);
+      setAnsweredQuestions(savedSession.answeredQuestions);
+      setCurrentQuestionIndex(savedSession.currentQuestionIndex);
+      quizStartTimeRef.current = savedSession.quizStartTime;
+
+      // Calculate remaining time
+      if (savedSession.durationLimit) {
+        const elapsed =
+          (Date.now() - new Date(savedSession.quizStartTime).getTime()) / 1000;
+        const remaining = savedSession.durationLimit * 60 - elapsed;
+        setQuizTimeLeft(remaining > 0 ? Math.floor(remaining) : 0);
+      } else {
+        setQuizTimeLeft(null);
+      }
+
+      setIsQuizStarted(true); // Show quiz immediately
+      setIsReviewMode(false);
+      return; // Done, skip pending detection
+    }
+
+    // No session (close tab case), check backend for pending attempt
+    // Workaround: attempt is PENDING if quizEnd is empty/null or totalScore is null
+    const pendingAttempt = typedAttemptHistory.attempts?.find(
+      (attempt) => !attempt.quizEnd || attempt.totalScore === null
+    );
+
+    if (pendingAttempt) {
+      setInProgressAttempt(pendingAttempt as any);
+    }
+  }, [typedAttemptHistory, content.id, isQuizStarted]);
+
+  const handleResumeQuiz = async () => {
+    if (!inProgressAttempt) return;
+
+    try {
+      // Fetch full attempt detail dari backend
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/api/quiz-attempts/${inProgressAttempt.id}`,
+        { credentials: "include" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attempt detail");
+      }
+
+      const attemptDetail = (await response.json()) as QuizAttemptDetail;
+
+      // Check if still pending
+      if (
+        attemptDetail.status === "SUBMITTED" ||
+        attemptDetail.status === "GRADED"
+      ) {
+        clearQuizSession(content.id);
+        setInProgressAttempt(null);
+        alert("Kuis ini sudah dikumpulkan.");
+        return;
+      }
+
+      // Restore state dari backend
+      setCurrentAttemptId(attemptDetail.id);
+      setQuestionIds(attemptDetail.questionOrder);
+
+      // Populate answers dari backend
+      const newCodeMap: Record<string, string> = {};
+      const newAnsweredMap: Record<string, boolean> = {};
+      attemptDetail.questionOrder.forEach((qId, index) => {
+        const answerCode = attemptDetail.answer?.[index];
+        if (answerCode) {
+          newCodeMap[qId] = answerCode;
+          newAnsweredMap[qId] = true;
+        }
+      });
+      setAnswerCodeMap(newCodeMap);
+      setAnsweredQuestions(newAnsweredMap);
+
+      // Find first unanswered question
+      const firstUnanswered = attemptDetail.answer.findIndex((a) => !a);
+      setCurrentQuestionIndex(firstUnanswered >= 0 ? firstUnanswered : 0);
+
+      // Calculate remaining time dari quizStart backend (timer tetap jalan)
+      quizStartTimeRef.current = attemptDetail.quizStart;
+      if (typedQuizDetail?.durationLimit) {
+        const startTime = new Date(attemptDetail.quizStart).getTime();
+        const elapsed = (Date.now() - startTime) / 1000;
+        const totalTime = typedQuizDetail.durationLimit * 60;
+        const remaining = totalTime - elapsed;
+        setQuizTimeLeft(remaining > 0 ? Math.floor(remaining) : 0);
+      } else {
+        setQuizTimeLeft(null);
+      }
+
+      setIsQuizStarted(true);
+      setIsReviewMode(false);
+      setInProgressAttempt(null);
+
+      // Save to sessionStorage untuk next refresh
+      saveQuizSession({
+        attemptId: attemptDetail.id,
+        contentId: content.id,
+        questionIds: attemptDetail.questionOrder,
+        currentQuestionIndex: firstUnanswered >= 0 ? firstUnanswered : 0,
+        answerCodeMap: newCodeMap,
+        answeredQuestions: newAnsweredMap,
+        quizStartTime: attemptDetail.quizStart,
+        durationLimit: typedQuizDetail?.durationLimit || null,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error("Failed to resume quiz:", error);
+      alert("Gagal melanjutkan kuis. Silakan coba lagi.");
+    }
+  };
+
   const handleBackToInfo = () => {
     // Di tablet/iPad dan desktop, kembali ke info kuis (reset state)
+    clearQuizSession(content.id);
     setIsQuizStarted(false);
     setIsReviewMode(false);
     setReviewAttemptId(null);
@@ -191,10 +364,14 @@ export const QuizContent = ({
         idContent: content.id,
       })) as any;
 
+      const newQuestionIds = response.questions.map((q: any) => q.question_id);
+      const startTime = new Date().toISOString();
+
       setCurrentAttemptId(response.attemptId);
-      setQuestionIds(response.questions.map((q: any) => q.question_id));
+      setQuestionIds(newQuestionIds);
       setAnsweredQuestions({});
       setAnswerCodeMap({});
+      quizStartTimeRef.current = startTime;
 
       if (typedQuizDetail?.durationLimit) {
         setQuizTimeLeft(typedQuizDetail.durationLimit * 60);
@@ -205,6 +382,19 @@ export const QuizContent = ({
       setIsQuizStarted(true);
       setIsReviewMode(false);
       setCurrentQuestionIndex(0);
+
+      // Save to sessionStorage
+      saveQuizSession({
+        attemptId: response.attemptId,
+        contentId: content.id,
+        questionIds: newQuestionIds,
+        currentQuestionIndex: 0,
+        answerCodeMap: {},
+        answeredQuestions: {},
+        quizStartTime: startTime,
+        durationLimit: typedQuizDetail?.durationLimit || null,
+        timestamp: Date.now(),
+      });
     } catch (error) {
       console.error("Failed to start quiz:", error);
       alert("Gagal memulai kuis. Silakan coba lagi.");
@@ -317,6 +507,53 @@ export const QuizContent = ({
     }
   }, [isReviewMode, typedReviewAttempt]);
 
+  // Sync sessionStorage when quiz state changes
+  useEffect(() => {
+    if (
+      !isQuizStarted ||
+      isReviewMode ||
+      !currentAttemptId ||
+      !quizStartTimeRef.current
+    )
+      return;
+
+    saveQuizSession({
+      attemptId: currentAttemptId,
+      contentId: content.id,
+      questionIds,
+      currentQuestionIndex,
+      answerCodeMap,
+      answeredQuestions,
+      quizStartTime: quizStartTimeRef.current,
+      durationLimit: typedQuizDetail?.durationLimit || null,
+      timestamp: Date.now(),
+    });
+  }, [
+    currentQuestionIndex,
+    answerCodeMap,
+    answeredQuestions,
+    isQuizStarted,
+    isReviewMode,
+    currentAttemptId,
+    questionIds,
+    content.id,
+    typedQuizDetail?.durationLimit,
+  ]);
+
+  // Beforeunload warning
+  useEffect(() => {
+    if (!isQuizStarted || isReviewMode) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue =
+        "Jawaban Anda sudah tersimpan, tapi kuis belum selesai. Yakin keluar?";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isQuizStarted, isReviewMode]);
+
   // Effect to populate answerCodeMap from current attempt when it changes
   useEffect(() => {
     if (
@@ -365,6 +602,16 @@ export const QuizContent = ({
     return () => window.clearInterval(interval);
   }, [isQuizStarted, isReviewMode, quizTimeLeft]);
 
+  useEffect(() => {
+    if (!isQuizStarted) return;
+    if (isReviewMode) return;
+    if (quizTimeLeft !== 0) return;
+    if (hasAutoSubmittedRef.current) return;
+    hasAutoSubmittedRef.current = true;
+    setShowQuizSubmitConfirm(false);
+    handleSubmitQuiz();
+  }, [isQuizStarted, isReviewMode, quizTimeLeft]);
+
   // Cleanup toast timer on unmount
   useEffect(() => {
     return () => {
@@ -400,6 +647,9 @@ export const QuizContent = ({
         onFinishContent(content.id);
       }
 
+      // Clear sessionStorage
+      clearQuizSession(content.id);
+
       setIsQuizStarted(false);
       setIsReviewMode(false);
       setCurrentAttemptId(null);
@@ -408,6 +658,7 @@ export const QuizContent = ({
       setAnswerCodeMap({});
       setQuizTimeLeft(null);
       setCurrentQuestionIndex(0);
+      quizStartTimeRef.current = null;
 
       // Show success toast
       setToastMessage("Kuis berhasil dikumpulkan!");
@@ -884,20 +1135,77 @@ export const QuizContent = ({
           </div>
 
           <div className="mt-auto pt-1">
-            <button
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              onClick={handleStartQuiz}
-              disabled={attemptsRemaining <= 0 || startQuizMutation.isPending}
-            >
-              <span className="inline-flex items-center justify-center">
-                {startQuizMutation.isPending ? "Starting..." : "Mulai Kuis"}
-              </span>
-            </button>
-            <p className="mt-1.5 text-[11px] text-gray-500 text-center">
-              {attemptsRemaining > 0
-                ? `Anda memiliki ${attemptsRemaining} attempt tersisa.`
-                : "Anda sudah menggunakan semua attempt."}
-            </p>
+            {inProgressAttempt ? (
+              <div className="space-y-2">
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-900 mb-1">
+                    ⚠️ Anda memiliki kuis yang belum selesai
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    Percobaan {inProgressAttempt.attemptNo} • Dimulai{" "}
+                    {formatDate(inProgressAttempt.quizStart)}
+                  </p>
+                  {Object.keys(answerCodeMap).length > 0 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 bg-amber-200 rounded-full h-2">
+                        <div
+                          className="bg-amber-600 h-2 rounded-full transition-all"
+                          style={{
+                            width: `${(Object.keys(answerCodeMap).length / totalQuestions) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-amber-700 font-medium">
+                        {Object.keys(answerCodeMap).length}/{totalQuestions}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  onClick={handleResumeQuiz}
+                >
+                  📝 Lanjutkan Kuis
+                </button>
+                {attemptsRemaining > 1 && (
+                  <button
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-medium shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Anda akan memulai percobaan baru. Percobaan sebelumnya akan dibatalkan. Lanjutkan?"
+                        )
+                      ) {
+                        clearQuizSession(content.id);
+                        setInProgressAttempt(null);
+                        handleStartQuiz();
+                      }
+                    }}
+                  >
+                    🔄 Mulai Percobaan Baru ({attemptsRemaining - 1} tersisa)
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <button
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  onClick={handleStartQuiz}
+                  disabled={
+                    attemptsRemaining <= 0 || startQuizMutation.isPending
+                  }
+                >
+                  <span className="inline-flex items-center justify-center">
+                    {startQuizMutation.isPending ? "Starting..." : "Mulai Kuis"}
+                  </span>
+                </button>
+                <p className="mt-1.5 text-[11px] text-gray-500 text-center">
+                  {attemptsRemaining > 0
+                    ? `Anda memiliki ${attemptsRemaining} attempt tersisa.`
+                    : "Anda sudah menggunakan semua attempt."}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
