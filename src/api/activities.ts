@@ -23,7 +23,7 @@ export type CheckEnrollResponse = {
   success: boolean;
   status: number;
   message: string;
-  data: boolean;
+  data: boolean | { isEnroll: boolean };
 };
 
 export const checkEnroll = async (

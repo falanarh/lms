@@ -6,6 +6,7 @@ interface UseContentNavigationProps {
   sections: Section[];
   selectedContent: Content | null;
   expandedSectionsData: Record<string, Content[]>;
+  orderedContents: Content[];
   onContentSelect: (content: Content) => void;
   onSectionDataUpdate: (sectionId: string, contents: Content[]) => void;
 }
@@ -17,112 +18,69 @@ interface UseContentNavigationReturn {
   navigationState: NavigationState;
 }
 
-interface NavigationPosition {
-  sectionIndex: number;
-  contentIndex: number;
-  currentSectionContents: Content[];
-}
-
 interface NavigationState {
   hasPrevious: boolean;
   hasNext: boolean;
 }
 
-const findCurrentPosition = (
+const findNextContent = (
   currentContent: Content,
-  sections: Section[],
-  expandedSectionsData: Record<string, Content[]>
-): NavigationPosition | null => {
-  for (let i = 0; i < sections.length; i++) {
-    const section = sections[i];
-    const sectionContents = expandedSectionsData[section.id] || [];
-    const contentIndex = sectionContents.findIndex(c => c.id === currentContent.id);
-    if (contentIndex !== -1) {
-      return {
-        sectionIndex: i,
-        contentIndex,
-        currentSectionContents: sectionContents,
-      };
-    }
+  orderedContents: Content[],
+): Content | null => {
+  const currIndex = orderedContents.findIndex(
+    (c) => c.id === currentContent.id
+  );
+
+  for (let i = currIndex + 1; i < orderedContents.length; i++) {
+    const candidate = orderedContents[i];
+    const finished = Boolean((candidate as any)?.userStatus?.isFinished);
+    const access = Boolean((candidate as any)?.userStatus?.hasAccess);
+    if (finished || access) return candidate || null;
   }
   return null;
 };
 
-const findNextContent = (
-  currentContent: Content,
-  sections: Section[],
-  expandedSectionsData: Record<string, Content[]>
-): Content | null => {
-  const currentPosition = findCurrentPosition(currentContent, sections, expandedSectionsData);
-  if (!currentPosition) return null;
-
-  const { sectionIndex, contentIndex, currentSectionContents } = currentPosition;
-
-  if (contentIndex < currentSectionContents.length - 1) {
-    return currentSectionContents[contentIndex + 1] || null;
-  }
-
-  const nextSectionIndex = sectionIndex + 1;
-  if (nextSectionIndex >= sections.length) return null;
-
-  const nextSection = sections[nextSectionIndex];
-  const nextSectionContents = expandedSectionsData[nextSection.id] || [];
-  return nextSectionContents[0] || null;
-};
-
 const findPreviousContent = (
   currentContent: Content,
-  sections: Section[],
-  expandedSectionsData: Record<string, Content[]>
+  orderedContents: Content[]
 ): Content | null => {
-  const currentPosition = findCurrentPosition(currentContent, sections, expandedSectionsData);
-  if (!currentPosition) return null;
+  const currIndex = orderedContents.findIndex(
+    (c) => c.id === currentContent.id
+  );
 
-  const { sectionIndex, contentIndex, currentSectionContents } = currentPosition;
-  if (contentIndex > 0) {
-    return currentSectionContents[contentIndex - 1] || null;
+  for (let i = currIndex - 1; i >= 0; i--) {
+    const candidate = orderedContents[i];
+    const finished = Boolean((candidate as any)?.userStatus?.isFinished);
+    if (finished) return candidate || null;
   }
-
-  const prevSectionIndex = sectionIndex - 1;
-  if (prevSectionIndex < 0) return null;
-
-  const prevSection = sections[prevSectionIndex];
-  const prevSectionContents = expandedSectionsData[prevSection.id] || [];
-  return prevSectionContents[prevSectionContents.length - 1] || null;
+  return null;
 };
 
 const getNavigationState = (
   currentContent: Content | null,
-  sections: Section[],
-  expandedSectionsData: Record<string, Content[]>
+  orderedContents: Content[],
 ): NavigationState => {
-  if (!currentContent || !sections.length) {
+  if (!currentContent || !orderedContents.length) {
     return { hasPrevious: false, hasNext: false };
   }
-  const currentPosition = findCurrentPosition(currentContent, sections, expandedSectionsData);
-  if (!currentPosition) {
-    return { hasPrevious: false, hasNext: false };
-  }
-  const { sectionIndex, contentIndex, currentSectionContents } = currentPosition;
-  const hasPrevious = !(sectionIndex === 0 && contentIndex === 0);
-  const hasNextInSection = contentIndex < currentSectionContents.length - 1;
-  const hasNextSection = sectionIndex < sections.length - 1;
-  return { hasPrevious, hasNext: hasNextInSection || hasNextSection };
+  const next = findNextContent(currentContent, orderedContents);
+  const prev = findPreviousContent(currentContent, orderedContents);
+  return { hasPrevious: Boolean(prev), hasNext: Boolean(next) };
 };
 
 export const useContentNavigation = ({
   sections,
   selectedContent,
   expandedSectionsData,
+  orderedContents,
   onContentSelect,
   onSectionDataUpdate,
 }: UseContentNavigationProps): UseContentNavigationReturn => {
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Calculate navigation state
   const navigationState = useMemo(() => {
-    return getNavigationState(selectedContent, sections, expandedSectionsData);
-  }, [selectedContent, sections, expandedSectionsData]);
+    return getNavigationState(selectedContent, orderedContents);
+  }, [selectedContent, orderedContents]);
 
   const handleNext = async () => {
     if (!selectedContent || !navigationState.hasNext || isNavigating) {
@@ -132,17 +90,13 @@ export const useContentNavigation = ({
     setIsNavigating(true);
 
     try {
-      const nextContent = findNextContent(
-        selectedContent,
-        sections,
-        expandedSectionsData
-      );
+      const nextContent = findNextContent(selectedContent, orderedContents);
 
       if (nextContent) {
         onContentSelect(nextContent);
       }
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     } finally {
       setIsNavigating(false);
     }
@@ -155,8 +109,7 @@ export const useContentNavigation = ({
 
     const previousContent = findPreviousContent(
       selectedContent,
-      sections,
-      expandedSectionsData
+      orderedContents
     );
 
     if (previousContent) {

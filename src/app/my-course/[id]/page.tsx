@@ -14,11 +14,29 @@ import { CourseTabType } from "@/features/detail-course/types/tab";
 import { useContentNavigation } from "@/hooks/useContentNavigation";
 import { useContentUrl } from "@/features/my-course/hooks/useContentUrl";
 import { useCreateReview } from "@/hooks/useReviews";
-import { ContentPlayer, ContentNavigation, CourseContentsTab, CourseContentsSidebar, SidebarToggleButton, RatingsReviewsHeader, WriteReviewModal, MyCoursePageSkeleton, SummaryTab } from "@/features/my-course/components";
-import { Sparkles } from "lucide-react";
+import {
+  ContentPlayer,
+  ContentNavigation,
+  CourseContentsTab,
+  CourseContentsSidebar,
+  SidebarToggleButton,
+  RatingsReviewsHeader,
+  WriteReviewModal,
+  MyCoursePageSkeleton,
+  SummaryTab,
+  SummaryFloatingButton,
+} from "@/features/my-course/components";
+ 
+import { Toast } from "@/components/ui/Toast/Toast";
+import { createToastState } from "@/utils/toastUtils";
 import type { Content } from "@/api/contents";
 import { useSectionContent } from "@/hooks/useSectionContent";
 import { useCourse } from "@/hooks/useCourse";
+import {
+  useStartActivityContent,
+  useFinishActivityContent,
+} from "@/hooks/useActivityContents";
+import { DUMMY_USER_ID } from "@/config/api";
 
 interface MyCoursePageProps {
   params: Promise<{ id: string }>;
@@ -26,23 +44,75 @@ interface MyCoursePageProps {
 
 export default function MyCoursePage({ params }: MyCoursePageProps) {
   const { id } = use(params);
-  const { data: courseDetail, isLoading: isCourseLoading, error } = useCourse(id);
+  const {
+    data: courseDetail,
+    isLoading: isCourseLoading,
+    error,
+  } = useCourse(id);
   const { data: sectionContent } = useSectionContent({ courseId: id });
-  const sections = useMemo(() => (sectionContent?.data?.listSection as any) || [], [sectionContent]);
+  const sections = useMemo(() => {
+    const rawSections = (sectionContent?.data?.listSection as any) || [];
+    return [...rawSections].sort(
+      (a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0)
+    );
+  }, [sectionContent]);
   const { activeContentId, updateContentInUrl } = useContentUrl(id);
   const createReviewMutation = useCreateReview(id);
-  const [activeTab, setActiveTab] = useState<CourseTabType>('information');
+  const [activeTab, setActiveTab] = useState<CourseTabType>("information");
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [completedContentIds, setCompletedContentIds] = useState<string[]>([]);
-  const [expandedSectionsData, setExpandedSectionsData] = useState<Record<string, Content[]>>({});
+  const [startedContentIds, setStartedContentIds] = useState<string[]>([]);
+  const [expandedSectionsData, setExpandedSectionsData] = useState<
+    Record<string, Content[]>
+  >({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [lockedContentIds, setLockedContentIds] = useState<string[]>([]);
+  const [taskSubmissionStatus, setTaskSubmissionStatus] = useState<
+    Record<string, boolean>
+  >({});
+  const [isUrlResolved, setIsUrlResolved] = useState(false);
+  const toastState = createToastState();
+  const orderedContents = useMemo(() => {
+    const secList: any[] = Array.isArray(sections) ? [...sections] : [];
+    secList.sort((a, b) => (a?.sequence ?? 0) - (b?.sequence ?? 0));
+    const flattened: Content[] = [];
+    secList.forEach((sec: any) => {
+      const contents = (
+        (expandedSectionsData[sec.id] ||
+          sec.listContents ||
+          sec.listContent ||
+          []) as Content[]
+      ).slice();
+      contents.sort(
+        (a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0)
+      );
+      contents.forEach((c) => flattened.push(c));
+    });
+    return flattened;
+  }, [sections, expandedSectionsData]);
 
-  const course = courseDetail?.[0];
+  const firstAccessibleUnfinishedId = useMemo(() => {
+    for (const c of orderedContents) {
+      const finished = Boolean((c as any)?.userStatus?.isFinished);
+      const access = Boolean((c as any)?.userStatus?.hasAccess);
+      if (access && !finished) return c.id;
+    }
+    for (const c of orderedContents) {
+      const finished = Boolean((c as any)?.userStatus?.isFinished);
+      if (!finished) return c.id;
+    }
+    return null;
+  }, [orderedContents]);
+
+  const startContentMutation = useStartActivityContent();
+  const finishContentMutation = useFinishActivityContent();
+
+  const course = courseDetail!;
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
+    const mq = window.matchMedia("(min-width: 1024px)");
     setIsSidebarOpen(mq.matches);
   }, []);
 
@@ -50,10 +120,6 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     const firstSection = sections?.[0];
     if (firstSection && expandedSections.length === 0) {
       setExpandedSections([firstSection.id]);
-      const contents = (firstSection as any).listContents || (firstSection as any).listContent || [];
-      if (contents.length > 0) {
-        setExpandedSectionsData((prev) => ({ ...prev, [firstSection.id]: contents }));
-      }
     }
   }, [sections]);
 
@@ -72,23 +138,36 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   }, [sections]);
 
   useEffect(() => {
-    if (isSidebarOpen && activeTab === 'course_contents') {
-      setActiveTab('information');
+    const locked: string[] = [];
+    orderedContents.forEach((c: any) => {
+      const finished = Boolean(c?.userStatus?.isFinished);
+      const access = Boolean(c?.userStatus?.hasAccess);
+      const isFallbackUnlocked = firstAccessibleUnfinishedId === c.id;
+      if (!finished && !(access || isFallbackUnlocked)) locked.push(c.id);
+    });
+    setLockedContentIds(locked);
+  }, [orderedContents, firstAccessibleUnfinishedId]);
+
+  useEffect(() => {
+    if (isSidebarOpen && activeTab === "course_contents") {
+      setActiveTab("information");
     }
   }, [isSidebarOpen]);
 
-  const firstSectionContents = useMemo(() => {
-    const s0 = sections?.[0] as any;
-    return s0?.listContents || s0?.listContent || [];
-  }, [sections]);
+  
 
   useEffect(() => {
     const allData: Record<string, Content[]> = {};
     if (Array.isArray(sections)) {
       sections.forEach((sec: any) => {
-        const contents = (sec.listContents || sec.listContent || []) as Content[];
+        const contents = (sec.listContents ||
+          sec.listContent ||
+          []) as Content[];
         if (contents.length > 0) {
-          allData[sec.id] = contents;
+          const sortedContents = [...contents].sort(
+            (a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0)
+          );
+          allData[sec.id] = sortedContents;
         }
       });
       if (Object.keys(allData).length > 0) {
@@ -97,83 +176,173 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     }
   }, [sections]);
 
-  // Restore content from URL on page load
   useEffect(() => {
     if (activeContentId && expandedSectionsData) {
-      // Find content by ID across all sections
       for (const sectionContents of Object.values(expandedSectionsData)) {
-        const foundContent = sectionContents.find(content => content.id === activeContentId);
+        const foundContent = sectionContents.find(
+          (content) => content.id === activeContentId
+        );
         if (foundContent && foundContent.id !== selectedContent?.id) {
           setSelectedContent(foundContent);
           return;
         }
       }
     }
+    if (!isUrlResolved) {
+      setIsUrlResolved(true);
+    }
   }, [activeContentId, expandedSectionsData, selectedContent?.id]);
 
-  // Auto-select first content if no content is selected and no URL content ID
   useEffect(() => {
-    if (!selectedContent && !activeContentId && firstSectionContents && firstSectionContents.length > 0) {
-      const contentToSelect = firstSectionContents[0];
-      setSelectedContent(contentToSelect);
-      updateContentInUrl(contentToSelect);
+    if (!isUrlResolved) return;
+    if (!selectedContent && !activeContentId) {
+      let contentToSelect: Content | null = null;
+      if (firstAccessibleUnfinishedId) {
+        contentToSelect =
+          orderedContents.find((c) => c.id === firstAccessibleUnfinishedId) || null;
+      } else if (orderedContents.length > 0) {
+        contentToSelect = orderedContents[0] || null;
+      }
+      if (contentToSelect) {
+        setSelectedContent(contentToSelect);
+        updateContentInUrl(contentToSelect);
+      }
     }
-  }, [firstSectionContents, selectedContent, activeContentId, updateContentInUrl]);
+  }, [
+    orderedContents,
+    firstAccessibleUnfinishedId,
+    selectedContent,
+    activeContentId,
+    updateContentInUrl,
+    isUrlResolved,
+  ]);
 
-  // Handle expand/collapse section
+  useEffect(() => {
+    if (!selectedContent) return;
+    if (completedContentIds.includes(selectedContent.id)) return;
+    if (startedContentIds.includes(selectedContent.id)) return;
+
+    if (selectedContent.type === "QUIZ") {
+      return;
+    }
+
+    startContentMutation.mutate({
+      idCourse: id,
+      idUser: DUMMY_USER_ID,
+      idContent: selectedContent.id,
+    });
+    setStartedContentIds((prev) => [...prev, selectedContent.id]);
+  }, [selectedContent?.id, completedContentIds, startedContentIds, id]);
+
   const handleToggleSection = (sectionId: string) => {
-    setExpandedSections(prev => {
+    setExpandedSections((prev) => {
       const next = prev.includes(sectionId)
-        ? prev.filter(id => id !== sectionId)
+        ? prev.filter((id) => id !== sectionId)
         : [...prev, sectionId];
       if (!prev.includes(sectionId)) {
         const section = sections.find((s: any) => s.id === sectionId);
-        const contents = (section as any)?.listContents || (section as any)?.listContent || [];
+        const contents =
+          (section as any)?.listContents || (section as any)?.listContent || [];
         if (contents.length > 0) {
-          setExpandedSectionsData(prevData => ({ ...prevData, [sectionId]: contents }));
+          const sortedContents = [...contents].sort(
+            (a: any, b: any) => (a?.sequence ?? 0) - (b?.sequence ?? 0)
+          );
+          setExpandedSectionsData((prevData) => ({
+            ...prevData,
+            [sectionId]: sortedContents,
+          }));
         }
       }
       return next;
     });
   };
 
-  // Enhanced content selection handler that syncs with URL
-  const handleContentSelect = useCallback((content: Content) => {
-    setSelectedContent(content);
-    updateContentInUrl(content);
-  }, [updateContentInUrl]);
-
-  // Navigation system
-  const handleSectionDataUpdate = useCallback((sectionId: string, contents: Content[]) => {
-    setExpandedSectionsData(prev => {
-      // Prevent unnecessary updates if data is the same
-      if (prev[sectionId] && prev[sectionId].length === contents.length) {
-        const isSame = prev[sectionId].every((content, index) => content.id === contents[index]?.id);
-        if (isSame) return prev;
+  const handleContentSelect = useCallback(
+    (content: Content) => {
+      if (lockedContentIds.includes(content.id)) {
+        toastState.showError(
+          "Content ini masih terkunci. Selesaikan content sebelumnya terlebih dahulu."
+        );
+        return;
       }
-      
-      return {
-        ...prev,
-        [sectionId]: contents,
-      };
-    });
-  }, []);
 
-  const { handleNext, handlePrevious, isNavigating, navigationState } = useContentNavigation({
-    sections: (sections as any) || [],
-    selectedContent,
-    expandedSectionsData,
-    onContentSelect: handleContentSelect,
-    onSectionDataUpdate: handleSectionDataUpdate,
-  });
+      const isCompleted = completedContentIds.includes(content.id);
+      const hasAccess = Boolean((content as any)?.userStatus?.hasAccess);
+      const isFallbackUnlocked = firstAccessibleUnfinishedId === content.id;
+
+      if (!isCompleted && !(hasAccess || isFallbackUnlocked)) {
+        toastState.showError(
+          "Anda harus menyelesaikan content sebelumnya terlebih dahulu."
+        );
+        return;
+      }
+
+      setSelectedContent(content);
+      updateContentInUrl(content);
+    },
+    [
+      updateContentInUrl,
+      completedContentIds,
+      lockedContentIds,
+      firstAccessibleUnfinishedId,
+      toastState,
+    ]
+  );
+
+  const handleSectionDataUpdate = useCallback(
+    (sectionId: string, contents: Content[]) => {
+      setExpandedSectionsData((prev) => {
+        if (prev[sectionId] && prev[sectionId].length === contents.length) {
+          const isSame = prev[sectionId].every(
+            (content, index) => content.id === contents[index]?.id
+          );
+          if (isSame) return prev;
+        }
+
+        return {
+          ...prev,
+          [sectionId]: contents,
+        };
+      });
+    },
+    []
+  );
+
+  const { handleNext, handlePrevious, isNavigating, navigationState } =
+    useContentNavigation({
+      sections: (sections as any) || [],
+      selectedContent,
+      expandedSectionsData,
+      orderedContents,
+      onContentSelect: handleContentSelect,
+      onSectionDataUpdate: handleSectionDataUpdate,
+    });
 
   const handleMarkContentDone = () => {
     if (!selectedContent) return;
-    setCompletedContentIds((prev) => {
-      if (prev.includes(selectedContent.id)) {
-        return prev.filter((id) => id !== selectedContent.id);
+    const isCompleted = completedContentIds.includes(selectedContent.id);
+
+    if (!isCompleted) {
+      if (selectedContent.type === "TASK") {
+        const hasSubmitted = taskSubmissionStatus[selectedContent.id];
+        if (!hasSubmitted) {
+          toastState.showError("Anda harus mengumpulkan tugas terlebih dahulu!");
+          return;
+        }
       }
-      return [...prev, selectedContent.id];
+    }
+
+    finishContentMutation.mutate({
+      idCourse: id,
+      idUser: DUMMY_USER_ID,
+      idContent: selectedContent.id,
+      isFinished: !isCompleted,
+    });
+
+    setCompletedContentIds((prev) => {
+      return isCompleted
+        ? prev.filter((cid) => cid !== selectedContent.id)
+        : [...prev, selectedContent.id];
     });
   };
 
@@ -188,14 +357,14 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         comment: review,
       });
       setIsReviewModalOpen(false);
-      alert('Ulasan berhasil dikirim!');
+      toastState.showSuccess("Ulasan berhasil dikirim!");
     } catch (error) {
-      console.error('Error submitting review:', error);
-      alert('Gagal mengirim ulasan. Silakan coba lagi.');
+      console.error("Error submitting review:", error);
+      toastState.showError("Gagal mengirim ulasan. Silakan coba lagi.");
     }
   };
 
-    if (isCourseLoading || !courseDetail) {
+  if (isCourseLoading || !courseDetail) {
     return (
       <PageContainer>
         <MyCoursePageSkeleton />
@@ -209,7 +378,9 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="text-red-500 text-5xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Error Loading Course
+            </h2>
             <p className="text-gray-600">{error.message}</p>
           </div>
         </div>
@@ -231,18 +402,53 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
     setIsSidebarOpen(true);
   };
 
+  const handleOpenSummary = () => {
+    setActiveTab("summary");
+    setTimeout(() => {
+      const el = document.getElementById("course-tabs-top");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
+
   return (
     <>
-      <div 
+      <div
         className={`
           transition-all duration-300 ease-in-out
-          ${isSidebarOpen ? 'lg:mr-[300px] xl:mr-[350px] 2xl:mr-[400px]' : 'mr-0'}
+          ${isSidebarOpen ? "lg:mr-[300px] xl:mr-[350px] 2xl:mr-[400px]" : "mr-0"}
         `}
       >
         <PageContainer>
           <CourseBreadcrumb items={breadcrumbItems} />
 
-          <ContentPlayer content={selectedContent} isSidebarOpen={isSidebarOpen} />
+          <ContentPlayer
+            content={selectedContent}
+            isSidebarOpen={isSidebarOpen}
+            onTaskSubmitted={(contentId, _isRequired) => {
+              setTaskSubmissionStatus((prev) => ({
+                ...prev,
+                [contentId]: true,
+              }));
+            }}
+            onStartContent={(contentId) => {
+              if (!startedContentIds.includes(contentId)) {
+                startContentMutation.mutate({
+                  idCourse: id,
+                  idUser: DUMMY_USER_ID,
+                  idContent: contentId,
+                });
+                setStartedContentIds((prev) => [...prev, contentId]);
+              }
+            }}
+            onFinishContent={(contentId) => {
+              finishContentMutation.mutate({
+                idCourse: id,
+                idUser: DUMMY_USER_ID,
+                idContent: contentId,
+                isFinished: true,
+              });
+            }}
+          />
 
           {selectedContent && (
             <ContentNavigation
@@ -253,59 +459,57 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
               isNavigating={isNavigating}
               onMarkAsDone={handleMarkContentDone}
               isCompleted={completedContentIds.includes(selectedContent.id)}
+              isMarkingAsDone={finishContentMutation.isPending}
             />
           )}
 
           <CourseTitle title={course?.title || ""} />
 
-          {/* Tabs & Content */}
           <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
-          <CourseTabNavigation 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab}
-            hiddenTabs={isSidebarOpen ? ['course_contents'] : []} 
-          />
-
-          {activeTab === "information" && (
-            <CourseInformationTab
-              method={course?.description?.method || ""}
-              syllabusFile={course?.description?.silabus || ""}
-              totalJP={course?.description?.totalJp || 0}
-              quota={course?.description?.quota || 0}
-              description={course?.description?.description || ""}
-              zoomUrl={undefined}
-              isEnrolled={true}
+            <CourseTabNavigation
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              hiddenTabs={isSidebarOpen ? ["course_contents"] : []}
             />
-          )}
 
-          {activeTab === "course_contents" && (
-            <CourseContentsTab
-              sections={(sections as any) || []}
-              expandedSections={expandedSections}
-              onToggleSection={handleToggleSection}
-              selectedContentId={selectedContent?.id}
-              onSelectContent={handleContentSelect}
-              completedContentIds={completedContentIds}
-              onSectionDataUpdate={handleSectionDataUpdate}
-            />
-          )}
+            {activeTab === "information" && (
+              <CourseInformationTab
+                method={course.groupCourse.description.method}
+                syllabusFile={course.groupCourse.description.silabus}
+                totalJP={course.groupCourse.description.totalJp}
+                quota={course.groupCourse.description.quota}
+                description={course.groupCourse.description.description}
+                zoomUrl={course.zoomUrl || undefined}
+                isEnrolled={true}
+              />
+            )}
 
-          {activeTab === "summary" && (
-              <SummaryTab text={course?.description?.description || ""} />
-          )}
+            {activeTab === "course_contents" && (
+              <CourseContentsTab
+                sections={(sections as any) || []}
+                expandedSections={expandedSections}
+                onToggleSection={handleToggleSection}
+                selectedContentId={selectedContent?.id}
+                onSelectContent={handleContentSelect}
+                completedContentIds={completedContentIds}
+                onSectionDataUpdate={handleSectionDataUpdate}
+                lockedContentIds={lockedContentIds}
+              />
+            )}
 
-          {activeTab === "discussion_forum" && <DiscussionForumTab />}
+            {activeTab === "summary" && (
+              <SummaryTab text={course.groupCourse.description.description} />
+            )}
 
-          {activeTab === "ratings_reviews" && (
+            {activeTab === "discussion_forum" && <DiscussionForumTab />}
+
+            {activeTab === "ratings_reviews" && (
               <>
                 <RatingsReviewsHeader onWriteReview={handleWriteReview} />
-                
-                <RatingsReviewsTab
-                  courseId={id}
-                />
+
+                <RatingsReviewsTab courseId={id} />
               </>
-          )}
-            
+            )}
           </div>
         </PageContainer>
       </div>
@@ -320,15 +524,12 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
           onClose={handleCloseSidebar}
           completedContentIds={completedContentIds}
           onSectionDataUpdate={handleSectionDataUpdate}
+          lockedContentIds={lockedContentIds}
         />
       )}
 
-      {/* Floating Toggle Button */}
-      {!isSidebarOpen && (
-        <SidebarToggleButton onClick={handleOpenSidebar} />
-      )}
+      {!isSidebarOpen && <SidebarToggleButton onClick={handleOpenSidebar} />}
 
-      {/* Write Review Modal */}
       <WriteReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
@@ -337,24 +538,20 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         isLoading={createReviewMutation.isPending}
       />
 
-      <button
-        type="button"
-        aria-label="Lihat Summary"
-        title="Lihat Summary"
-        onClick={() => {
-          setActiveTab('summary');
-          setTimeout(() => {
-            const el = document.getElementById('course-tabs-top');
-            el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 0);
-        }}
-        className="fixed right-6 bottom-24 md:right-8 md:bottom-24 z-50 group"
-      >
-        <div className="inline-flex items-center rounded-full bg-blue-600 text-white shadow-lg overflow-hidden transition-all duration-300 w-12 group-hover:w-40 h-12 px-3 hover:bg-blue-700">
-          <Sparkles className="w-6 h-6 flex-shrink-0" />
-          <span className="ml-2 text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Lihat Summary</span>
+      <SummaryFloatingButton onClick={handleOpenSummary} />
+
+      {toastState.toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+          <Toast
+            variant={toastState.toast.variant}
+            message={toastState.toast.message}
+            onClose={toastState.dismissToast}
+            autoDismiss
+            duration={4000}
+            dismissible
+          />
         </div>
-      </button>
+      )}
     </>
   );
 }
