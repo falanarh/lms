@@ -15,19 +15,38 @@ interface CourseCardProps {
 export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
   if (viewMode === "grid-4") {
     return (
-      <Link href={`/course/${(course as any).id}`}>
+      <Link href={`/course/${course.id}`}>
         <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden transition-transform duration-300 hover:shadow-lg dark:hover:shadow-xl hover:cursor-pointer group">
           <div className="aspect-video relative overflow-hidden">
-            <Image
-              src={
-                (course as any).thumbnail || (course as any).groupCourse?.thumbnail ||
-                "https://dummyimage.com/600x400/000/fff&text=Course"
+            {(() => {
+              const imgSrc =
+                course.groupCourse?.thumbnail ||
+                "https://dummyimage.com/600x400/000/fff&text=Course";
+              const isExternal = /^https?:\/\//i.test(imgSrc);
+
+              if (isExternal) {
+                return (
+                  <Image
+                    src={imgSrc}
+                    alt={course.groupCourse?.title || "Course"}
+                    width={400}
+                    height={225}
+                    unoptimized
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                );
               }
-              alt={(course as any).title || (course as any).groupCourse?.title}
-              width={400}
-              height={225}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
+
+              return (
+                <Image
+                  src={imgSrc}
+                  alt={course.groupCourse?.title || "Course"}
+                  width={400}
+                  height={225}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              );
+            })()}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button className="bg-white text-gray-900 px-6 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-[background,transform,gap] duration-300 hover:bg-gray-100 dark:hover:bg-zinc-200 hover:gap-3 shadow-lg">
                 Lihat Kelas
@@ -39,11 +58,11 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {(course as any).groupCourse.description?.category}
+                {course.groupCourse?.description?.category}
               </Badge>
               <div className="min-h-[56px] md:min-h-[64px]">
                 <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
-                  {(course as any).title || (course as any).groupCourse?.title}
+                  {course.groupCourse?.title}
                 </h3>
               </div>
             </div>
@@ -51,22 +70,22 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
-                  {renderStars((course as any).averageRating || (course as any).rating)}
+                  {renderStars(course.rating || 0)}
                 </div>
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {(course as any).averageRating || (course as any).rating}/5.00
+                  {course.rating || 0}/5.00
                 </span>
               </div>
 
               {/* //TODO: PERBAIKI KETIKA SUDAH ADA TEACHER */}
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <GraduationCap className="w-4 h-4" />
-                <span>{course.teacherName}</span>
+                <span>{course.teacherName || "-"}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <Users className="w-4 h-4" />
-                <span>{(course as any)._count.listActivity} students</span>
+                <span>{course._count?.listActivity || 0} students</span>
               </div>
             </div>
           </div>
@@ -77,19 +96,38 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
 
   if (viewMode === "grid-2") {
     return (
-      <Link href={`/course/${(course as any).id}`}>
+      <Link href={`/course/${course.id}`}>
         <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden transition-transform duration-300 hover:shadow-lg dark:hover:shadow-xl group hover:cursor-pointer flex flex-col md:flex-row">
           <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
-            <Image
-              src={
-                (course as any).thumbnail || (course as any).groupCourse?.thumbnail ||
-                "https://dummyimage.com/600x400/000/fff&text=Course"
+            {(() => {
+              const imgSrc =
+                course.groupCourse?.thumbnail ||
+                "https://dummyimage.com/600x400/000/fff&text=Course";
+              const isExternal = /^https?:\/\//i.test(imgSrc);
+
+              if (isExternal) {
+                return (
+                  <Image
+                    src={imgSrc}
+                    alt={course.groupCourse?.title || "Course"}
+                    width={192}
+                    height={192}
+                    unoptimized
+                    className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                );
               }
-              alt={(course as any).title || (course as any).groupCourse?.title}
-              width={192}
-              height={192}
-              className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
+
+              return (
+                <Image
+                  src={imgSrc}
+                  alt={course.groupCourse?.title || "Course"}
+                  width={192}
+                  height={192}
+                  className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              );
+            })()}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button className="bg-white text-gray-900 px-4 py-2 rounded-full font-semibold text-xs flex items-center gap-2 transition-[background,transform,gap] duration-300 hover:bg-gray-100 dark:hover:bg-zinc-200 hover:gap-3 shadow-md">
                 Lihat Kelas
@@ -101,11 +139,11 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="flex-1 p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {(course as any).groupCourse.description?.category}
+                {course.groupCourse?.description?.category}
               </Badge>
               <div className="min-h-[56px] md:min-h-[64px]">
                 <h3 className="font-bold text-lg text-zinc-900 line-clamp-2 transition-colors duration-200">
-                  {(course as any).title || (course as any).groupCourse?.title}
+                  {course.groupCourse?.title}
                 </h3>
               </div>
             </div>
@@ -113,21 +151,21 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
-                  {renderStars((course as any).averageRating || (course as any).rating)}
+                  {renderStars(course.rating || 0)}
                 </div>
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {(course as any).averageRating || (course as any).rating}/5.00
+                  {course.rating || 0}/5.00
                 </span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <GraduationCap className="w-4 h-4" />
-                <span>{course.teacherName}</span>
+                <span>{course.teacherName || "-"}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <Users className="w-4 h-4" />
-                <span>{(course as any)._count.listActivity} students</span>
+                <span>{course._count?.listActivity || 0} students</span>
               </div>
             </div>
           </div>
@@ -138,19 +176,38 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
 
   if (viewMode === "list") {
     return (
-      <Link href={`/course/${(course as any).id}`}>
+      <Link href={`/course/${course.id}`}>
         <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden transition-transform duration-300  hover:shadow-lg dark:hover:shadow-xl group hover:cursor-pointer flex flex-col md:flex-row">
           <div className="w-full md:w-48 flex-shrink-0 relative overflow-hidden">
-            <Image
-              src={
-                (course as any).thumbnail || (course as any).groupCourse?.thumbnail ||
-                "https://dummyimage.com/600x400/000/fff&text=Course"
+            {(() => {
+              const imgSrc =
+                course.groupCourse?.thumbnail ||
+                "https://dummyimage.com/600x400/000/fff&text=Course";
+              const isExternal = /^https?:\/\//i.test(imgSrc);
+
+              if (isExternal) {
+                return (
+                  <Image
+                    src={imgSrc}
+                    alt={course.groupCourse?.title || "Course"}
+                    width={192}
+                    height={192}
+                    unoptimized
+                    className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                );
               }
-              alt={(course as any).title || (course as any).groupCourse?.title}
-              width={192}
-              height={192}
-              className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
+
+              return (
+                <Image
+                  src={imgSrc}
+                  alt={course.groupCourse?.title || "Course"}
+                  width={192}
+                  height={192}
+                  className="w-full h-48 md:h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              );
+            })()}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button className="bg-white text-gray-900 px-4 py-2 rounded-full font-semibold text-xs flex items-center gap-2 transition-[background,transform,gap] duration-300 hover:bg-gray-100 dark:hover:bg-zinc-200 hover:gap-3 shadow-md">
                 Lihat Kelas
@@ -162,14 +219,14 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
           <div className="flex-1 p-6 flex flex-col">
             <div className="space-y-2">
               <Badge variant="secondary" size="sm">
-                {(course as any).groupCourse.description?.category}
+                {course.groupCourse?.description?.category}
               </Badge>
               <h3 className="font-bold text-lg text-zinc-900 line-clamp-1 transition-colors duration-200">
-                {(course as any).title || (course as any).groupCourse?.title}
+                {course.groupCourse?.title}
               </h3>
-              {(course as any).groupCourse.description?.description && (
+              {course.groupCourse?.description?.description && (
                 <p className="text-zinc-600 text-sm line-clamp-2">
-                  {(course as any).groupCourse.description.description}
+                  {course.groupCourse.description.description}
                 </p>
               )}
             </div>
@@ -177,21 +234,21 @@ export function CourseCard({ course, viewMode = "grid-4" }: CourseCardProps) {
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
-                  {renderStars((course as any).averageRating || (course as any).rating)}
+                  {renderStars(course.rating || 0)}
                 </div>
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {(course as any).averageRating || (course as any).rating}/5.00
+                  {course.rating || 0}/5.00
                 </span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <GraduationCap className="w-4 h-4" />
-                <span>{course.teacherName}</span>
+                <span>{course.teacherName || "-"}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                 <Users className="w-4 h-4" />
-                <span>{(course as any)._count.listActivity} students</span>
+                <span>{course._count?.listActivity || 0} students</span>
               </div>
             </div>
           </div>

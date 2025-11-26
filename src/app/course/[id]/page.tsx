@@ -38,6 +38,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const toastState = createToastState();
+  const scheduleTabRef = useRef<HTMLDivElement | null>(null);
 
   const { data: sectionContent, isLoading: isSectionsLoading } =
     useSectionContent({
@@ -73,7 +74,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
     );
   }
 
-  const course = courseDetail?.[0];
+  const course = courseDetail;
 
   const handleEnrollToggle = () => {
     if (isEnrolling) return;
@@ -105,23 +106,23 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         : [...prev, sectionId]
     );
   };
-  
+
   const handleScheduleClick = () => {
     // Switch to schedule tab
     setActiveTab("schedule_attendance");
-    
+
     // Scroll to the tab section with longer delay to ensure content is fully rendered
     setTimeout(() => {
       if (scheduleTabRef.current) {
-
         console.log("Scrolling to schedule tab...");
         // Get the element's position
-        const elementPosition = scheduleTabRef.current.getBoundingClientRect().top;
+        const elementPosition =
+          scheduleTabRef.current.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - 80; // 80px offset for better visibility
 
         window.scrollTo({
           top: offsetPosition,
-          behavior: "smooth"
+          behavior: "smooth",
         });
       }
       console.log("failed to scroll to schedule tab");
@@ -131,104 +132,113 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "All Courses", href: "/course" },
-    { label: course?.title || "Course", isActive: true },
+    {
+      label: course?.groupCourse?.title || course?.title || "Course",
+      isActive: true,
+    },
   ];
 
   return (
-
     <>
       <AttendanceNotificationBanner
         onClickSchedule={handleScheduleClick}
         hasSchedule={true}
       />
 
-    <PageContainer>
-      <CourseBreadcrumb items={breadcrumbItems} />
+      <PageContainer>
+        <CourseBreadcrumb items={breadcrumbItems} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 space-y-4">
-          <CourseThumbnail
-            thumbnail={course.groupCourse.thumbnail || undefined}
-            title={course.groupCourse.title}
-          />
-          <CourseTitle title={course?.title} />
-        </div>
-
-        <div className="space-y-4">
-          <CourseInfoCard
-            category={course?.description?.category}
-            rating={course?.averageRating}
-            totalRatings={course?.totalUsers}
-            type={course?.typeCourse}
-            isEnrolled={isEnrolled}
-            onToggle={handleEnrollToggle}
-            courseId={course.id}
-            buttonLabel={(() => {
-              if (justEnrolled) return "Start Learning";
-              const d: any = enrollStatus?.data;
-              const isEnrolledFlag =
-                typeof d === "object" ? d?.isEnroll === true : Boolean(d);
-              return isEnrolledFlag ? "Continue Learning" : "Enroll Now";
-            })()}
-            isProcessing={isEnrolling}
-            teacherName={course.teacherName}
-          />
-        </div>
-      </div>
-        </div>
-      </div>
-
-      {/* Tabs & Content */}
-      <div className="space-y-6 pb-8">
-        <CourseTabNavigation
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          hiddenTabs={["summary"]}
-        />
-
-        {activeTab === "information" && (
-          <CourseInformationTab
-            method={course.groupCourse.description.method}
-            syllabusFile={course.groupCourse.description.silabus}
-            totalJP={course.groupCourse.description.totalJp}
-            quota={course.groupCourse.description.quota}
-            description={course.groupCourse.description.description}
-            zoomUrl={course.zoomUrl || undefined}
-            isEnrolled={false}
-          />
-        )}
-
-        {activeTab === "course_contents" &&
-          (isSectionsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-gray-500">Loading sections...</div>
-            </div>
-          ) : (
-            <CourseContentsTab
-              sections={(sectionContent?.data?.listSection as any) || []}
-              expandedSections={expandedSections}
-              onToggleSection={handleToggleSection}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2 space-y-4">
+            <CourseThumbnail
+              thumbnail={course?.groupCourse?.thumbnail || undefined}
+              title={course?.groupCourse?.title || ""}
             />
-          ))}
+            <CourseTitle
+              title={course?.groupCourse?.title || course?.title || ""}
+            />
+          </div>
 
-        {activeTab === "discussion_forum" && <DiscussionForumTab />}
-        {activeTab === "discussion_forum" && <DiscussionForumTab />}
-
-        {activeTab === "ratings_reviews" && <RatingsReviewsTab courseId={id} />}
-      </div>
-      {/* Toast */}
-      {toastState.toast && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
-          <Toast
-            variant={toastState.toast.variant}
-            message={toastState.toast.message}
-            onClose={toastState.dismissToast}
-            autoDismiss
-            duration={4000}
-            dismissible
-          />
+          <div className="space-y-4">
+            <CourseInfoCard
+              category={
+                course?.groupCourse?.description?.category ||
+                course?.description?.category ||
+                ""
+              }
+              rating={course?.averageRating || course?.rating || 0}
+              totalRatings={course?.totalUsers || course?.totalUserRating || 0}
+              type={course?.groupCourse?.typeCourse || course?.typeCourse || ""}
+              isEnrolled={isEnrolled}
+              onToggle={handleEnrollToggle}
+              courseId={course?.id || id}
+              buttonLabel={(() => {
+                if (justEnrolled) return "Start Learning";
+                const d: any = enrollStatus?.data;
+                const isEnrolledFlag =
+                  typeof d === "object" ? d?.isEnroll === true : Boolean(d);
+                return isEnrolledFlag ? "Continue Learning" : "Enroll Now";
+              })()}
+              isProcessing={isEnrolling}
+              teacherName={course?.teacherName || ""}
+            />
+          </div>
         </div>
-      )}
-    </PageContainer>
+
+        {/* Tabs & Content */}
+        <div className="space-y-6 pb-8">
+          <CourseTabNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            hiddenTabs={["summary"]}
+          />
+
+          {activeTab === "information" && (
+            <CourseInformationTab
+              method={course?.groupCourse?.description?.method || ""}
+              syllabusFile={course?.groupCourse?.description?.silabus || ""}
+              totalJP={course?.groupCourse?.description?.totalJp || 0}
+              quota={course?.groupCourse?.description?.quota || 0}
+              description={course?.groupCourse?.description?.description || ""}
+              zoomUrl={course?.zoomUrl || undefined}
+              isEnrolled={false}
+            />
+          )}
+
+          {activeTab === "course_contents" &&
+            (isSectionsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500">Loading sections...</div>
+              </div>
+            ) : (
+              <CourseContentsTab
+                sections={(sectionContent?.data?.listSection as any) || []}
+                expandedSections={expandedSections}
+                onToggleSection={handleToggleSection}
+              />
+            ))}
+
+          {activeTab === "discussion_forum" && <DiscussionForumTab />}
+          {activeTab === "discussion_forum" && <DiscussionForumTab />}
+
+          {activeTab === "ratings_reviews" && (
+            <RatingsReviewsTab courseId={id} />
+          )}
+        </div>
+        {/* Toast */}
+        {toastState.toast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+            <Toast
+              variant={toastState.toast.variant}
+              message={toastState.toast.message}
+              onClose={toastState.dismissToast}
+              autoDismiss
+              duration={4000}
+              dismissible
+            />
+          </div>
+        )}
+      </PageContainer>
+    </>
   );
 }

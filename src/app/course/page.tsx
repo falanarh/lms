@@ -14,7 +14,7 @@ import { useCourses } from "@/hooks/useCourses";
 import { useCategories } from "@/hooks/useCategories";
 import { COURSE_CATEGORIES } from "@/features/course/constant/course";
 
-const COURSES_PER_PAGE = 8
+const COURSES_PER_PAGE = 8;
 
 export default function CoursePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,26 +25,30 @@ export default function CoursePage() {
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  const { data: categoriesData, isLoading: isLoadingCategories, error: categoriesError } = useCategories();
+  const {
+    data: categoriesData,
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+  } = useCategories();
 
   const { data: response, isLoading: isLoadingCourses } = useCourses({
     searchQuery: debouncedSearchQuery,
     selectedCategory,
     sortBy,
     page: currentPage,
-    perPage: COURSES_PER_PAGE
+    perPage: COURSES_PER_PAGE,
   });
 
   const categories = useMemo(() => {
     if (categoriesError || !categoriesData) {
       return COURSE_CATEGORIES;
     }
-    return ['All Categories', ...categoriesData];
+    return ["All Categories", ...categoriesData];
   }, [categoriesData, categoriesError]);
 
-  const courses = response || [];
-  const pageMeta = undefined; // Response doesn't have pageMeta
-  const totalPages = 1; // Default to 1 since we don't have pagination
+  const courses = response?.data || [];
+  const pageMeta = response?.pageMeta; // pagination metadata returned by API
+  const totalPages = pageMeta?.totalPageCount || 1;
 
   useEffect(() => {
     setCurrentPage(1);
