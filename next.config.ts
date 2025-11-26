@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
         source: '/scorm-content/:path*',
         destination: 'http://localhost:3000/scorm-content/:path*',
       },
+     {
+      source: "/api/auth/me",
+      destination: "https://14d87ace0ad2.ngrok-free.app/auth/me",
+    },
+
     ];
   },
   images: {
@@ -85,6 +90,11 @@ const nextConfig: NextConfig = {
       'res.cloudinary.com',
       'pub-b50c5924d2c64c1397f8e200306b9bfb.r2.dev',
     ],
+  },
+
+ 
+  experimental: {
+    allowedDevOrigins: ["http://10.101.20.220:3001"],
   },
   reactStrictMode: false,
 };

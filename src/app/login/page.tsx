@@ -17,7 +17,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
     try {
-      window.location.href = process.env.NEXT_PUBLIC_CALLBACK_URL || "http://localhost:3000/auth/callback";
+      window.location.href = "https://14d87ace0ad2.ngrok-free.app/auth/google" || "http://localhost:3000/auth/callback";
     } catch (err) {
       setError('Terjadi kesalahan saat mencoba login dengan Google');
       setIsLoading(false);
