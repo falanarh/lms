@@ -8,14 +8,12 @@
 'use client';
 
 import React from 'react';
-import { Filter, X, Calendar, User, BookOpen } from 'lucide-react';
+import { Filter, X, Calendar, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button/Button';
 import { Input } from '@/components/ui/Input/Input';
 import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
-import { useLogActivityTableState } from '@/hooks/useLogActivity';
+import { useLogActivityTableState, useCategoryLogTypes, useLogTypes, useLogActivities } from '@/hooks/useLogActivity';
 import { 
-  LOG_TYPE_LABELS, 
-  CATEGORY_LABELS,
   SORT_OPTIONS,
 } from '@/types/log-activity';
 
@@ -34,7 +32,6 @@ export default function LogActivityFilters({
     selectedLogTypes,
     selectedCategory,
     selectedUserName,
-    selectedCourseName,
     dateRange,
     sortBy,
     hasActiveFilters,
@@ -42,55 +39,53 @@ export default function LogActivityFilters({
     setSelectedLogTypes,
     setSelectedCategory,
     setSelectedUserName,
-    setSelectedCourseName,
     setDateRange,
     setSortBy,
     clearFilters,
+    queryParams,
   } = filterState;
 
-  // Transform log types for dropdown
+  const { data: categoryLogTypes } = useCategoryLogTypes();
+  const { data: logTypes } = useLogTypes();
+
+  // Subscribe to the same logs query used by the main table to derive user list
+  const { data: logsForFilters = [] } = useLogActivities(queryParams);
+
   const logTypeOptions = [
     { value: 'all', label: 'All Log Types' },
-    ...Object.entries(LOG_TYPE_LABELS).map(([value, label]) => ({
-      value,
-      label,
-    })),
+    ...logTypes.map((lt) => ({ value: lt.id, label: lt.name })),
   ];
 
-  // Get unique user names from dummy data (in real app, this would come from API)
-  const userNameOptions = [
-    { value: '', label: 'All Users' },
-    { value: 'John Doe', label: 'John Doe' },
-    { value: 'Jane Smith', label: 'Jane Smith' },
-    { value: 'Mike Johnson', label: 'Mike Johnson' },
-    { value: 'Sarah Wilson', label: 'Sarah Wilson' },
-    { value: 'David Brown', label: 'David Brown' },
-    { value: 'Emily Davis', label: 'Emily Davis' },
-    { value: 'Chris Miller', label: 'Chris Miller' },
-    { value: 'Lisa Garcia', label: 'Lisa Garcia' },
-  ];
+  // Build unique user name options from current logs
+  const userNameOptions = React.useMemo(() => {
+    const options: { value: string; label: string }[] = [
+      { value: '', label: 'All Users' },
+    ];
 
-  // Get unique course names from dummy data (in real app, this would come from API)
-  const courseNameOptions = [
-    { value: '', label: 'All Courses' },
-    { value: 'React Fundamentals', label: 'React Fundamentals' },
-    { value: 'JavaScript Basics', label: 'JavaScript Basics' },
-    { value: 'Python for Beginners', label: 'Python for Beginners' },
-    { value: 'Data Science Essentials', label: 'Data Science Essentials' },
-    { value: 'Web Development Bootcamp', label: 'Web Development Bootcamp' },
-    { value: 'Machine Learning Intro', label: 'Machine Learning Intro' },
-    { value: 'Database Design', label: 'Database Design' },
-    { value: 'UI/UX Design Principles', label: 'UI/UX Design Principles' },
-  ];
+    const seen = new Set<string>();
+    logsForFilters.forEach((log) => {
+      const name = log.nameUser?.trim();
+      if (!name) return;
+      if (seen.has(name)) return;
+      seen.add(name);
+      options.push({ value: name, label: name });
+    });
 
-  // Transform categories for dropdown
+    return options;
+  }, [logsForFilters]);
+
+  // Category options (placeholder - dihubungkan ke API CategoryLogType di masa depan)
   const categoryOptions = [
     { value: 'all', label: 'All Categories' },
-    ...Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
-      value,
-      label,
-    })),
+    ...categoryLogTypes.map((c) => ({ value: c.id, label: c.name })),
   ];
+
+  // Resolve selected category label for Active Filters chip
+  const selectedCategoryLabel = React.useMemo(() => {
+    if (selectedCategory === 'all') return undefined;
+    const found = categoryLogTypes.find((c) => c.id === selectedCategory);
+    return found?.name ?? selectedCategory;
+  }, [selectedCategory, categoryLogTypes]);
 
   // Sort options
   const sortOptions = [
@@ -233,23 +228,7 @@ export default function LogActivityFilters({
             />
           </div>
 
-          {/* Course Name Filter */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              <BookOpen className="w-4 h-4 inline mr-1" />
-              Course Name
-            </label>
-            <Dropdown
-              items={courseNameOptions}
-              value={selectedCourseName}
-              onChange={(value) => setSelectedCourseName(value)}
-              placeholder="Select course"
-              searchable={true}
-              size="md"
-              variant="outline"
-              className="w-full"
-            />
-          </div>
+          {/* Course Name Filter removed - not part of Log schema */}
 
           {/* Date Range Start */}
           <div className="space-y-2">
@@ -322,9 +301,9 @@ export default function LogActivityFilters({
               </span>
             )}
             
-            {selectedCategory !== 'all' && (
+            {selectedCategory !== 'all' && selectedCategoryLabel && (
               <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                Category: {CATEGORY_LABELS[selectedCategory as keyof typeof CATEGORY_LABELS]}
+                Category: {selectedCategoryLabel}
                 <X 
                   className="w-3 h-3 cursor-pointer hover:text-blue-900" 
                   onClick={() => setSelectedCategory('all')}
@@ -338,16 +317,6 @@ export default function LogActivityFilters({
               <X 
                 className="w-3 h-3 cursor-pointer hover:text-blue-900" 
                 onClick={() => setSelectedUserName('')}
-              />
-            </span>
-          )}
-          
-          {selectedCourseName && selectedCourseName !== '' && (
-            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-              Course: {selectedCourseName}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:text-blue-900" 
-                onClick={() => setSelectedCourseName('')}
               />
             </span>
           )}

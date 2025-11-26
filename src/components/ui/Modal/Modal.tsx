@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 
 interface ModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   title?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
@@ -35,8 +35,10 @@ export function Modal({
   if (!isOpen) return null;
 
   const handleClose = () => {
-    onClose();
+    onClose?.();
   };
+
+  const showHeader = !!title || typeof onClose === "function";
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -49,19 +51,19 @@ export function Modal({
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <div
-          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 transform ${className}`}
+          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-gray-800 rounded-2xl shadow-2xl transition-all duration-300 transform ${className}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          {(title || onClose) && (
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          {showHeader && (
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 {title && (
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {title}
                   </h2>
                 )}
-                {onClose && (
+                {typeof onClose === "function" && (
                   <button
                     type="button"
                     onClick={handleClose}

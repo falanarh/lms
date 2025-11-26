@@ -11,6 +11,7 @@
 
 import React, { useState, useMemo } from "react";
 import { Search, Plus, Filter, Grid3X3, List, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { Input } from "@/components/ui/Input/Input";
 import { Dropdown } from "@/components/ui/Dropdown/Dropdown";
 import { Button } from "@/components/ui/Button/Button";
@@ -189,10 +190,12 @@ const KnowledgeManagementListItem = ({
         <div className="shrink-0">
           <div className="w-20 h-14 bg-gray-100 rounded overflow-hidden">
             {knowledge.thumbnail && (
-              <img
+              <Image
                 src={knowledge.thumbnail}
                 alt={knowledge.title}
                 className="w-full h-full object-cover"
+                width={80}
+                height={56}
               />
             )}
           </div>
@@ -545,7 +548,7 @@ export default function KnowledgeManagementList({
           {/* Main Search and Filter Row */}
           <div className="flex flex-col py-8 space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
             {/* Search Section */}
-            <div className="flex-1 max-w-md">
+            <div className="flex-1">
               <Input
                 type="text"
                 placeholder="Search knowledge centers..."

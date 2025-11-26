@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, LayoutGrid, Calendar, BookOpen } from 'lucide-react';
+import { Search, LayoutGrid, Calendar, BookOpen, Play, Headphones, FileText, Newspaper, Video } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
 import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
 import { KnowledgeType } from '@/types/knowledge-center';
@@ -67,7 +67,7 @@ export default function KnowledgeHero({
   ];
 
   return (
-    <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-blue-50/30 border-b border-gray-200/50 -mt-16">
+    <section className="relative h-screen flex items-center justify-center border-b border-gray-200/50 -mt-16">
       {/* Animated Background Decorations */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Large blur circles */}
@@ -75,12 +75,43 @@ export default function KnowledgeHero({
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-green-200/20 via-blue-200/20 to-transparent rounded-full blur-3xl -ml-32 -mb-32"></div>
 
         {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)] opacity-20"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5ded4_1px,transparent_1px),linear-gradient(to_bottom,#e5ded4_1px,transparent_1px)] bg-[size:80px_80px] opacity-20 pointer-events-none"></div>
 
-        {/* Floating decorative elements */}
+        {/* Original floating decorative shapes */}
         <div className="absolute top-24 left-20 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-blue-500/10 rounded-2xl rotate-12 backdrop-blur-sm border border-white/20"></div>
         <div className="absolute top-40 right-32 w-16 h-16 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-full backdrop-blur-sm border border-white/20"></div>
         <div className="absolute bottom-32 right-20 w-24 h-24 bg-gradient-to-br from-green-400/10 to-blue-400/10 rounded-3xl -rotate-6 backdrop-blur-sm border border-white/20"></div>
+
+        {/* Floating content type icons */}
+        {/* Video icon - top left */}
+        <div className="absolute top-32 left-[250px] w-16 h-16 bg-gradient-to-br from-red-100/60 to-red-200/40 rounded-2xl backdrop-blur-sm border border-red-200/30 flex items-center justify-center animate-bounce-slow hover:scale-110 transition-transform duration-500">
+          <Video className="w-7 h-7 text-red-500/70" />
+        </div>
+        
+        {/* Podcast/Audio icon - top right */}
+        <div className="absolute top-32 right-[250px] w-14 h-14 bg-gradient-to-br from-purple-100/60 to-purple-200/40 rounded-full backdrop-blur-sm border border-purple-200/30 flex items-center justify-center animate-pulse hover:scale-110 transition-transform duration-500">
+          <Headphones className="w-6 h-6 text-purple-500/70" />
+        </div>
+        
+        {/* File/Document icon - middle left */}
+        <div className="absolute top-1/2 left-36 w-12 h-12 bg-gradient-to-br from-blue-100/60 to-blue-200/40 rounded-xl backdrop-blur-sm border border-blue-200/30 flex items-center justify-center animate-float hover:scale-110 transition-transform duration-500">
+          <FileText className="w-5 h-5 text-blue-500/70" />
+        </div>
+        
+        {/* Article/News icon - bottom left */}
+        <div className="absolute bottom-24 left-[250px] w-18 h-18 bg-gradient-to-br from-green-100/60 to-green-200/40 rounded-2xl backdrop-blur-sm border border-green-200/30 flex items-center justify-center animate-bounce-slow hover:scale-110 transition-transform duration-500">
+          <Newspaper className="w-8 h-8 text-green-500/70" />
+        </div>
+        
+        {/* Webinar icon - bottom right */}
+        <div className="absolute bottom-24 right-[250px] w-20 h-20 bg-gradient-to-br from-orange-100/60 to-orange-200/40 rounded-3xl backdrop-blur-sm border border-orange-200/30 flex items-center justify-center animate-pulse hover:scale-110 transition-transform duration-500">
+          <Calendar className="w-9 h-9 text-orange-500/70" />
+        </div>
+        
+        {/* Play button icon - middle right */}
+        <div className="absolute top-1/2 right-36 w-14 h-14 bg-gradient-to-br from-cyan-100/60 to-cyan-200/40 rounded-full backdrop-blur-sm border border-cyan-200/30 flex items-center justify-center animate-float hover:scale-110 transition-transform duration-500">
+          <Play className="w-6 h-6 text-cyan-500/70 ml-1" />
+        </div>
       </div>
 
       <div className="relative w-full max-w-7xl mx-auto mb-12 px-4 sm:px-6 lg:px-8">

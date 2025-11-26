@@ -5,6 +5,9 @@
  * Makes imports cleaner and more organized
  */
 
+// Component Props
+export type { MediaViewerProps } from '@/components/knowledge-center/MediaViewer';
+
 // Generic API Response Types
 export type {
   ApiResponse,
@@ -70,7 +73,6 @@ export type {
   CreateKnowledgeFormData,
   FormErrors,
   KnowledgeCardProps,
-  MediaViewerProps,
   RichTextEditorProps,
   // KnowledgeCenterSettings removed - settings page deleted
 

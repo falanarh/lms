@@ -54,7 +54,7 @@ export const ContentPlayer = ({
       case "link":
         return (
           <LinkContent
-            url={content.contentUrl}
+            url={content.contentUrl || ""}
             title={content.name}
             description={content.description}
             isSidebarOpen={isSidebarOpen}

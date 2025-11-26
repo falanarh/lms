@@ -3,6 +3,7 @@
 // TeacherAvatar component with client-side state management
 import { User } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
 
 interface TeacherAvatarProps {
   teacherName: string;
@@ -33,18 +34,26 @@ export function TeacherAvatar({
     md: 'w-8 h-8 text-sm',
     lg: 'w-10 h-10 text-base'
   };
-  
+
   const iconSizeClasses = {
     sm: 'w-3 h-3',
     md: 'w-4 h-4',
     lg: 'w-5 h-5'
   };
+
+  const imageSize = {
+    sm: { width: 24, height: 24 },
+    md: { width: 32, height: 32 },
+    lg: { width: 40, height: 40 }
+  };
   
   if (avatarUrl && !imageError) {
     return (
-      <img
+      <Image
         src={avatarUrl}
         alt={`${teacherName} avatar`}
+        width={imageSize[size].width}
+        height={imageSize[size].height}
         className={`${sizeClasses[size]} rounded-full object-cover flex-shrink-0 ${className}`}
         onError={() => setImageError(true)}
       />

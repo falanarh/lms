@@ -4,7 +4,10 @@ export type Quiz = {
   idContent: string;
   idCurriculum?: string;
   curriculum?: string;
+  // Primary duration field from API
   durationLimit: number;
+  // Optional alias used in some UI components
+  timeLimit?: number;
   totalQuestions?: number;
   maxPoint?: number;
   passingScore: number;
@@ -14,6 +17,17 @@ export type Quiz = {
   deleted: boolean;
   createdAt: string;
   updatedAt: string;
+  // Optional joined content metadata when quiz is fetched together with its content
+  content?: {
+    idSection?: string;
+    type?: string;
+    contentUrl?: string;
+    name?: string;
+    description?: string;
+    contentStart?: string;
+    contentEnd?: string;
+    sequence?: number;
+  };
 };
 
 export type QuizCreateRequest = {
@@ -44,7 +58,7 @@ const BASE_URL =
 
 export const getQuizzes = async (): Promise<Quiz[]> => {
   try {
-    const response = await axios.get<Quiz[]>(`${BASE_URL}/api/v1/quizzes`, {
+    const response = await axios.get<Quiz[]>(`${BASE_URL}/quizzes`, {
       headers: {
         Accept: "application/json",
       },
@@ -60,13 +74,13 @@ export const getQuizzes = async (): Promise<Quiz[]> => {
 
 export const getQuizById = async (id: string): Promise<Quiz> => {
   try {
-    const response = await axios.get<Quiz>(`${BASE_URL}/api/v1/quizzes/${id}`, {
+    const response = await axios.get<Quiz>(`${BASE_URL}/quizzes/${id}`, {
       headers: {
         Accept: "application/json",
       },
       withCredentials: false,
     });
-    console.log("ini quiznya: " , response?.data);
+    console.log("ini quiznya: ", response?.data);
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching quiz by ID:", error);

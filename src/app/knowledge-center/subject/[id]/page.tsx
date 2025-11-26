@@ -9,9 +9,10 @@ import { Dropdown } from '@/components/ui/Dropdown/Dropdown';
 import { Input } from '@/components/ui/Input/Input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledge } from '@/hooks/useKnowledgeCenter';
-import { useKnowledgeSubjects } from '@/hooks/useKnowledgeSubject';
+import { useKnowledgeSubject } from '@/hooks/useKnowledgeSubject';
 import { useDebounce } from '@/hooks/useDebounce';
 import { SortOption, SORT_OPTIONS, KnowledgeQueryParams } from '@/types/knowledge-center';
+import { Icon, IconName } from '@/components/ui/icon-picker';
 
 // Skeleton component for knowledge cards
 const KnowledgeCardSkeleton = () => (
@@ -46,13 +47,10 @@ export default function KnowledgeSubjectDetailPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   
-  const { data: subjects } = useKnowledgeSubjects();
+  const { data: currentSubject, isLoading: isSubjectLoading } = useKnowledgeSubject(subjectId);
 
   // Debounce search within a subject so API calls are not made on every keystroke
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
-  
-  // Find the current subject
-  const currentSubject = subjects?.find(subject => subject.id === subjectId);
 
   // Build query params for API
   const queryparams: KnowledgeQueryParams = useMemo(() => ({
@@ -106,7 +104,7 @@ export default function KnowledgeSubjectDetailPage() {
     label: option.label,
   }));
 
-  if (!currentSubject && subjects) {
+  if (!currentSubject && !isSubjectLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -150,7 +148,7 @@ export default function KnowledgeSubjectDetailPage() {
           {/* Subject Header */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center">
-              <BookOpen className="w-8 h-8 text-green-600" />
+              <Icon name={(currentSubject?.icon) as IconName || 'book-open'} className="w-8 h-8 text-green-600" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">

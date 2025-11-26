@@ -6,7 +6,7 @@ import { X, Download, Volume2, FileText } from 'lucide-react';
 
 import { CONTENT_TYPES, ContentType } from '@/types/knowledge-center';
 
-interface MediaViewerProps {
+export interface MediaViewerProps {
   src: string;
   type: ContentType;
   title?: string;

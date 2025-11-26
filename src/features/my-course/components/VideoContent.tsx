@@ -36,7 +36,7 @@ export const VideoContent = ({ content, isSidebarOpen }: VideoContentProps) => {
         onPlay={handlePlay}
         onPause={handlePause}
       >
-        <source src={content.contentUrl} type="video/mp4" />
+        <source src={content.contentUrl || ""} type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 

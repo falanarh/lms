@@ -24,6 +24,7 @@ import {
   getDefaultThumbnailUrl,
 } from '@/lib/knowledge-center/transform';
 import { encodeMediaUrl } from '@/utils/urlUtils';
+import { ensureArray, safeFilter } from '@/utils/array-fix-utils';
 import {
   CreateKnowledgeCenterRequest,
   KnowledgeCenter,
@@ -41,7 +42,7 @@ export const useKnowledge = (params: KnowledgeQueryParams = {}) => {
   });
 
   const response = queryResult.data;
-  const items = (response?.data || []) as KnowledgeCenter[];
+  const items = ensureArray<KnowledgeCenter>(response?.data || response);
   const pageMeta = response?.pageMeta;
 
   const legacyMeta =
@@ -194,7 +195,7 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
   const relatedParams = useMemo<KnowledgeQueryParams>(
     () => ({
       page: 1,
-      limit: 4,
+      limit: 7,
       sort: SORT_OPTIONS.POPULAR,
       subject: detailQuery.data?.idSubject ? [detailQuery.data.idSubject] : undefined,
     }),
@@ -208,9 +209,11 @@ export const useKnowledgeDetailPage = ({ id }: UseKnowledgeDetailPageParams) => 
   });
 
   const relatedKnowledge = useMemo(() => {
-    const list = (relatedQuery.data?.data || []) as KnowledgeCenter[];
-    return list.filter((item) => item.id !== detailQuery.data?.id);
-  }, [relatedQuery.data?.data, detailQuery.data?.id]);
+    const list = ensureArray<KnowledgeCenter>(
+      relatedQuery.data?.data || relatedQuery.data,
+    );
+    return safeFilter<KnowledgeCenter>(list, (item) => item.id !== detailQuery.data?.id);
+  }, [relatedQuery.data, detailQuery.data?.id]);
 
   const handleShare = useCallback(async () => {
     if (typeof window === 'undefined' || !detailQuery.data) return;

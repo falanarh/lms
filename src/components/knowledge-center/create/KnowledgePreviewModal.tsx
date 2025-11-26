@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { X } from "lucide-react";
+import Image from "next/image";
 import {
   KnowledgeDetailInfo,
   KnowledgeDetailActionBar,
@@ -202,10 +203,13 @@ export default function KnowledgePreviewModal({
               {/* Hero Section */}
               {resolvedThumbnail && (
                 <div className="relative h-64 md:h-96 lg:h-[500px]">
-                  <img
+                  <Image
                     src={resolvedThumbnail}
                     alt={formData.title}
                     className="w-full h-full object-cover"
+                    width={800}
+                    height={500}
+                    priority
                   />
                 </div>
               )}
@@ -218,6 +222,7 @@ export default function KnowledgePreviewModal({
                 {/* Action Bar */}
                 <KnowledgeDetailActionBar
                   knowledge={previewKnowledge}
+                  isLiked={false}
                   isLiking={false}
                   onLike={() => {}}
                 />

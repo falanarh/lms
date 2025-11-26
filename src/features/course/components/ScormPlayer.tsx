@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
 interface ScormPlayerProps {
   scormUrl: string;
@@ -14,8 +14,8 @@ interface ScormPlayerProps {
 export function ScormPlayer({
   scormUrl,
   title,
-  height = '600px',
-  width = '100%',
+  height = "600px",
+  width = "100%",
   onProgress,
   onComplete,
 }: ScormPlayerProps) {
@@ -24,17 +24,33 @@ export function ScormPlayer({
   // ✅ ENSURE THE URL IS ABSOLUTE BEFORE USING IT
   // This is the critical fix.
   const absoluteScormUrl = React.useMemo(() => {
-    if (!scormUrl) return '';
-    
+    if (!scormUrl) return "";
+
     // If it's already a full URL (starts with http:// or https://), use it as is.
-    if (scormUrl.startsWith('http://') || scormUrl.startsWith('https://')) {
+    if (scormUrl.startsWith("http://") || scormUrl.startsWith("https://")) {
       return scormUrl;
     }
-    
+
     // Otherwise, we can't reliably construct an absolute URL,
     // so we'll return an empty string to prevent loading.
-    console.error('ScormPlayer: Invalid URL provided. Expected an absolute URL.', { scormUrl });
-    return '';
+    console.error(
+      "ScormPlayer: Invalid URL provided. Expected an absolute URL.",
+      { scormUrl },
+    );
+    return "";
+  }, [scormUrl]);
+
+  // Check if the URL is from a different domain
+  const isCrossDomain = React.useMemo(() => {
+    if (!scormUrl || typeof window === "undefined") return false;
+
+    try {
+      const scormUrlObj = new URL(scormUrl);
+      const currentUrl = window.location.origin;
+      return scormUrlObj.origin !== currentUrl;
+    } catch {
+      return false;
+    }
   }, [scormUrl]);
 
   useEffect(() => {
@@ -46,17 +62,32 @@ export function ScormPlayer({
       // You can add more sophisticated API communication here if needed
     };
 
-    const handleError = () => {
+    const handleError = (event: any) => {
       console.error(`SCORM content failed to load: ${absoluteScormUrl}`);
+      // Check if it's a CORS error
+      if (
+        event &&
+        event.message &&
+        event.message.includes(
+          "Failed to read a named property 'API' from 'Window'",
+        )
+      ) {
+        console.error(
+          "CORS Error: SCORM content cannot access the API due to cross-origin restrictions.",
+        );
+        console.log(
+          "Solution: Host the SCORM API on the same domain as the content, or use a proxy.",
+        );
+      }
     };
 
-    iframe.addEventListener('load', handleLoad);
-    iframe.addEventListener('error', handleError);
+    iframe.addEventListener("load", handleLoad);
+    iframe.addEventListener("error", handleError);
 
     // Cleanup function
     return () => {
-      iframe.removeEventListener('load', handleLoad);
-      iframe.removeEventListener('error', handleError);
+      iframe.removeEventListener("load", handleLoad);
+      iframe.removeEventListener("error", handleError);
     };
   }, [absoluteScormUrl]);
 
@@ -64,9 +95,12 @@ export function ScormPlayer({
     return (
       <div className="flex items-center justify-center h-full bg-red-50 text-red-600 p-4 rounded-lg border-2 border-red-200">
         <p>
-          <strong>SCORM Loading Error:</strong> The URL provided to the SCORM player is not a valid absolute URL.
+          <strong>SCORM Loading Error:</strong> The URL provided to the SCORM
+          player is not a valid absolute URL.
         </p>
-        <p className="text-sm mt-2">Please check the console for more details.</p>
+        <p className="text-sm mt-2">
+          Please check the console for more details.
+        </p>
       </div>
     );
   }
@@ -82,6 +116,7 @@ export function ScormPlayer({
       style={{ border: 'none' }}
       allowFullScreen
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      sandbox="allow-scripts allow-same-origin"
     />
   );
 }

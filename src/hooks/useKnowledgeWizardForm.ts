@@ -78,7 +78,7 @@ export const useKnowledgeWizardForm = () => {
         const result = completeFormSchema.safeParse(value);
         if (!result.success) {
           // Return first error for form-level display
-          return result.error.errors[0]?.message || 'Validation failed';
+          return result.error.issues[0]?.message || 'Validation failed';
         }
         return undefined;
       },
@@ -166,9 +166,9 @@ export const useKnowledgeWizardForm = () => {
         // Then validate with schema
         const result = schema.safeParse(currentValues);
         if (!result.success) {
-          console.error('❌ Step 2 validation failed:', result.error.errors);
+          console.error('❌ Step 2 validation failed:', result.error.issues);
           // Set field errors declaratively
-          result.error.errors.forEach((error) => {
+          result.error.issues.forEach((error) => {
             const fieldPath = error.path.join('.');
             form.setFieldMeta(fieldPath as any, (prev: any) => ({
               ...prev,
@@ -191,8 +191,8 @@ export const useKnowledgeWizardForm = () => {
 
           const result = webinarDetailsSchema.safeParse(currentValues.webinar);
           if (!result.success) {
-            console.error('❌ Webinar validation failed:', result.error.errors);
-            result.error.errors.forEach((error) => {
+            console.error('❌ Webinar validation failed:', result.error.issues);
+            result.error.issues.forEach((error) => {
               const fieldPath = 'webinar.' + error.path.join('.');
               form.setFieldMeta(fieldPath as any, (prev: any) => ({
                 ...prev,
@@ -227,8 +227,8 @@ export const useKnowledgeWizardForm = () => {
           // Validate with schema
           const result = contentDetailsWithMediaSchema.safeParse(currentValues.knowledgeContent);
           if (!result.success) {
-            console.error('❌ Content validation failed:', result.error.errors);
-            result.error.errors.forEach((error) => {
+            console.error('❌ Content validation failed:', result.error.issues);
+            result.error.issues.forEach((error) => {
               const fieldPath = 'knowledgeContent.' + error.path.join('.');
               form.setFieldMeta(fieldPath as any, (prev: any) => ({
                 ...prev,
@@ -244,7 +244,7 @@ export const useKnowledgeWizardForm = () => {
       // Step 4: Final validation
       const result = schema.safeParse(currentValues);
       if (!result.success) {
-        console.error(`❌ Step ${currentStep} validation failed:`, result.error.errors);
+        console.error(`❌ Step ${currentStep} validation failed:`, result.error.issues);
         return false;
       }
 

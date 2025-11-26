@@ -12,9 +12,7 @@ export const QuestionOptionSchema = z.object({
 export const QuizQuestionSchema = z.object({
   id: z.string().optional(),
   questionText: z.string().min(1, 'Question text is required').max(2000, 'Question text too long'),
-  questionType: z.enum(['multiple_choice', 'essay', 'true_false'], {
-    required_error: 'Question type is required'
-  }),
+  questionType: z.enum(['multiple_choice', 'essay', 'true_false']),
   points: z.number().int().min(1, 'Points must be at least 1').max(100, 'Points cannot exceed 100'),
   order: z.number().int().min(0).optional(),
   timeLimit: z.number().int().min(0).optional(),
@@ -113,9 +111,7 @@ export const QuizQuestionSchema = z.object({
 export const CreateQuestionRequestSchema = z.object({
   idContent: z.string().uuid('Invalid content ID format'),
   name: z.string().min(1, 'Question name is required').max(100, 'Name too long'),
-  questionType: z.enum(['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER'], {
-    required_error: 'Question type is required'
-  }),
+  questionType: z.enum(['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER']),
   questionText: z.string().min(1, 'Question text is required').max(2000, 'Question text too long'),
   maxScore: z.number().int().min(1, 'Score must be at least 1').max(100, 'Score cannot exceed 100'),
   optionsCode: z.array(z.string().length(3, 'Option code must be exactly 3 characters')).optional(),

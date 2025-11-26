@@ -29,34 +29,6 @@ export default function Subject({
   const containerRef = useRef<HTMLDivElement>(null);
   const { data: subjects, isLoading } = useKnowledgeSubjects();
 
-  // const getSubjectIconByName = (subjectName: string) => {
-  //   if (subjectName === 'all') return LayoutGrid;
-
-  //   const name = subjectName.toLowerCase();
-  //   if (name.includes('statistik') || name.includes('data') || name.includes('database')) return Database;
-  //   if (name.includes('ekonomi') || name.includes('business') || name.includes('finance')) return BarChart3;
-  //   if (name.includes('global') || name.includes('internasional') || name.includes('dunia')) return Globe;
-  //   if (name.includes('kerja') || name.includes('pekerjaan') || name.includes('karir')) return Briefcase;
-  //   if (name.includes('pelatihan') || name.includes('education') || name.includes('belajar')) return GraduationCap;
-  //   if (name.includes('inovasi') || name.includes('teknologi') || name.includes('riset')) return Lightbulb;
-  //   if (name.includes('target') || name.includes('goal') || name.includes('sasaran')) return Target;
-  //   if (name.includes('sistem') || name.includes('komputer') || name.includes('it')) return Cpu;
-  //   if (name.includes('organisasi') || name.includes('instansi') || name.includes('lembaga')) return Building2;
-  //   if (name.includes('wilayah') || name.includes('daerah') || name.includes('regional')) return MapPin;
-  //   if (name.includes('sosial') || name.includes('masyarakat') || name.includes('people')) return Users2;
-  //   return BookOpen;
-  // };
-
-// const getSubjectIcon = (subjectName: string, subjectIcon?: string) => {
-//     // Use icon from API if available, fallback to name-based logic
-//     if (subjectIcon && subjectIcon.trim()) {
-//       // For now, use name-based logic even with icon from API
-//       // In the future, you could map icon strings to Lucide icons here
-//       return getSubjectIconByName(subjectName);
-//     }
-//     return getSubjectIconByName(subjectName);
-//   };
-
   const subjectOptions = useMemo(() => {
     // Get unique subjects from API data
     const uniqueSubjects = (subjects || [])

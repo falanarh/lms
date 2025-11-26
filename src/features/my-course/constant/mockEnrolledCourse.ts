@@ -54,60 +54,80 @@ export const mockEnrolledSections: Section[] = [
     name: "Introduction to Web Development",
     description: "Get started with the fundamentals of web development lorem ipsum dolor sit amet consectetur adipisicing elit lorem ipsum dolor sit amet consectetur adipisicing elit lorem ipsum dolor sit amet consectetur adipisicing elit",
     sequence: 1,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
   },
   {
     id: "section-2",
     name: "HTML & CSS Fundamentals yayayayayayayayya",
     description: "Master the building blocks of web pages",
     sequence: 2,
+    createdAt: new Date("2024-01-02"),
+    updatedAt: new Date("2024-01-02"),
   },
   {
     id: "section-3",
     name: "JavaScript Essentials",
     description: "Learn modern JavaScript programming",
     sequence: 3,
+    createdAt: new Date("2024-01-03"),
+    updatedAt: new Date("2024-01-03"),
   },
   {
     id: "section-4",
     name: "React.js Basics",
     description: "Build interactive user interfaces with React",
     sequence: 4,
+    createdAt: new Date("2024-01-04"),
+    updatedAt: new Date("2024-01-04"),
   },
   {
     id: "section-5",
     name: "Next.js & Server-Side Rendering",
     description: "Create production-ready applications with Next.js",
     sequence: 5,
+    createdAt: new Date("2024-01-05"),
+    updatedAt: new Date("2024-01-05"),
   },
   {
     id: "section-6",
     name: "Backend Development with Node.js",
     description: "Build scalable server-side applications",
     sequence: 6,
+    createdAt: new Date("2024-01-06"),
+    updatedAt: new Date("2024-01-06"),
   },
   {
     id: "section-7",
     name: "Database Design & Management",
     description: "Work with SQL and NoSQL databases",
     sequence: 7,
+    createdAt: new Date("2024-01-07"),
+    updatedAt: new Date("2024-01-07"),
   },
   {
     id: "section-8",
     name: "API Development",
     description: "Create RESTful APIs and GraphQL endpoints",
     sequence: 8,
+    createdAt: new Date("2024-01-08"),
+    updatedAt: new Date("2024-01-08"),
   },
   {
     id: "section-9",
     name: "Authentication & Security",
     description: "Implement secure user authentication",
     sequence: 9,
+    createdAt: new Date("2024-01-09"),
+    updatedAt: new Date("2024-01-09"),
   },
   {
     id: "section-10",
     name: "Deployment & DevOps",
     description: "Deploy your applications to production",
     sequence: 10,
+    createdAt: new Date("2024-01-10"),
+    updatedAt: new Date("2024-01-10"),
   },
 ];
 
@@ -116,6 +136,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-1": [
     {
       id: "content-1-1",
+      idSection: "section-1",
       type: "video",
       name: "Welcome to Web Development yayyayayayayayayyaya",
       description: "Introduction to the course and what you'll learn yayayayayayayyayayayayayay",
@@ -126,6 +147,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-1-2",
+      idSection: "section-1",
       type: "pdf",
       name: "Course Syllabus yayayayayayayayayayayayyayayayayay",
       description: "Complete course outline and learning objectives",
@@ -136,6 +158,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-1-3",
+      idSection: "section-1",
       type: "scorm",
       name: "Interactive Learning Module",
       description: "H5P Interactive Content - Course Presentation",
@@ -148,6 +171,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-2": [
     {
       id: "content-2-1",
+      idSection: "section-2",
       type: "video",
       name: "HTML Basics",
       description: "Learn HTML tags, elements, and structure",
@@ -158,6 +182,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-2-2",
+      idSection: "section-2",
       type: "video",
       name: "CSS Fundamentals",
       description: "Styling web pages with CSS",
@@ -168,6 +193,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-2-3",
+      idSection: "section-2",
       type: "assignment",
       name: "Build Your First Web Page",
       description: "Create a personal portfolio page using HTML & CSS",
@@ -178,6 +204,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-2-4",
+      idSection: "section-2",
       type: "document",
       name: "CSS Cheat Sheet",
       description: "Quick reference guide for CSS properties",
@@ -190,6 +217,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-3": [
     {
       id: "content-3-1",
+      idSection: "section-3",
       type: "video",
       name: "JavaScript Introduction",
       description: "Variables, data types, and operators",
@@ -200,6 +228,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-3-2",
+      idSection: "section-3",
       type: "video",
       name: "Functions and Scope",
       description: "Master JavaScript functions",
@@ -210,6 +239,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-3-3",
+      idSection: "section-3",
       type: "video",
       name: "Arrays and Objects",
       description: "Working with complex data structures",
@@ -220,6 +250,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-3-4",
+      idSection: "section-3",
       type: "quiz",
       name: "JavaScript Fundamentals Quiz",
       description: "Test your JavaScript knowledge",
@@ -232,6 +263,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-4": [
     {
       id: "content-4-1",
+      idSection: "section-4",
       type: "video",
       name: "Introduction to React",
       description: "What is React and why use it?",
@@ -242,6 +274,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-4-2",
+      idSection: "section-4",
       type: "video",
       name: "Components and Props",
       description: "Building reusable UI components",
@@ -252,6 +285,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-4-3",
+      idSection: "section-4",
       type: "video",
       name: "State and Lifecycle",
       description: "Managing component state",
@@ -262,6 +296,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-4-4",
+      idSection: "section-4",
       type: "assignment",
       name: "Build a Todo App",
       description: "Create a functional todo list with React",
@@ -274,6 +309,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-5": [
     {
       id: "content-5-1",
+      idSection: "section-5",
       type: "video",
       name: "Next.js Overview",
       description: "Introduction to Next.js framework",
@@ -284,6 +320,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-5-2",
+      idSection: "section-5",
       type: "video",
       name: "Server-Side Rendering",
       description: "Understanding SSR and SSG",
@@ -294,6 +331,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-5-3",
+      idSection: "section-5",
       type: "document",
       name: "Next.js Best Practices",
       description: "Tips and tricks for Next.js development",
@@ -306,6 +344,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-6": [
     {
       id: "content-6-1",
+      idSection: "section-6",
       type: "video",
       name: "Node.js Basics",
       description: "Introduction to server-side JavaScript",
@@ -316,6 +355,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-6-2",
+      idSection: "section-6",
       type: "video",
       name: "Express.js Framework",
       description: "Building web servers with Express",
@@ -326,6 +366,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-6-3",
+      idSection: "section-6",
       type: "assignment",
       name: "Build a REST API",
       description: "Create a RESTful API with Express",
@@ -338,6 +379,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-7": [
     {
       id: "content-7-1",
+      idSection: "section-7",
       type: "video",
       name: "Database Fundamentals",
       description: "Introduction to databases",
@@ -348,6 +390,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-7-2",
+      idSection: "section-7",
       type: "video",
       name: "SQL with PostgreSQL",
       description: "Working with relational databases",
@@ -358,6 +401,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-7-3",
+      idSection: "section-7",
       type: "video",
       name: "MongoDB Basics",
       description: "NoSQL database with MongoDB",
@@ -368,6 +412,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-7-4",
+      idSection: "section-7",
       type: "quiz",
       name: "Database Design Quiz",
       description: "Test your database knowledge",
@@ -380,6 +425,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-8": [
     {
       id: "content-8-1",
+      idSection: "section-8",
       type: "video",
       name: "RESTful API Design",
       description: "Best practices for API design",
@@ -390,6 +436,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-8-2",
+      idSection: "section-8",
       type: "video",
       name: "GraphQL Introduction",
       description: "Modern API with GraphQL",
@@ -400,6 +447,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-8-3",
+      idSection: "section-8",
       type: "document",
       name: "API Documentation Guide",
       description: "How to document your APIs",
@@ -412,6 +460,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-9": [
     {
       id: "content-9-1",
+      idSection: "section-9",
       type: "video",
       name: "Authentication Basics",
       description: "Understanding authentication and authorization",
@@ -422,6 +471,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-9-2",
+      idSection: "section-9",
       type: "video",
       name: "JWT and Sessions",
       description: "Implementing secure authentication",
@@ -432,6 +482,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-9-3",
+      idSection: "section-9",
       type: "assignment",
       name: "Implement User Authentication",
       description: "Add login and registration to your app",
@@ -444,6 +495,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
   "section-10": [
     {
       id: "content-10-1",
+      idSection: "section-10",
       type: "video",
       name: "Deployment Strategies",
       description: "How to deploy web applications",
@@ -454,6 +506,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-10-2",
+      idSection: "section-10",
       type: "video",
       name: "CI/CD Pipeline",
       description: "Continuous integration and deployment",
@@ -464,6 +517,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-10-3",
+      idSection: "section-10",
       type: "document",
       name: "Production Checklist",
       description: "Things to check before going live",
@@ -474,6 +528,7 @@ export const mockEnrolledActivities: Record<string, Content[]> = {
     },
     {
       id: "content-10-4",
+      idSection: "section-10",
       type: "assignment",
       name: "Final Project Deployment",
       description: "Deploy your complete application",

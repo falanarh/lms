@@ -16,7 +16,7 @@ export const ScormContent = ({ content, isSidebarOpen }: ScormContentProps) => {
     >
       <iframe
         key={content.id}
-        src={content.contentUrl}
+        src={content.contentUrl || ""}
         className="w-full h-full border-0"
         title={content.name}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-top-navigation allow-downloads"

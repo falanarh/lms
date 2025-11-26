@@ -1,6 +1,7 @@
 "use client";
 import { Bell, User2, Menu, X, LogOut, Edit, Settings } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
@@ -214,7 +215,7 @@ export function Navbar({
                       aria-haspopup="true"
                     >
                       {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                        <Image src={user.avatarUrl} alt="" className="size-full object-cover" width={32} height={32} />
                       ) : (
                         <User2 size={20} />
                       )}
@@ -232,7 +233,7 @@ export function Navbar({
                           <div className="flex items-center gap-4">
                             <div className="size-12 rounded-full flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-zinc-700 text-gray-600 dark:text-zinc-400">
                               {user?.avatarUrl ? (
-                                <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                                <Image src={user.avatarUrl} alt="" className="size-full object-cover" width={48} height={48} />
                               ) : (
                                 <User2 size={24} />
                               )}
@@ -363,7 +364,7 @@ export function Navbar({
                 <div className="flex items-center gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-800">
                   <div className="size-12 rounded-full flex items-center justify-center overflow-hidden bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-400 flex-shrink-0">
                     {user?.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="" className="size-full object-cover" />
+                      <Image src={user.avatarUrl} alt="" className="size-full object-cover" width={48} height={48} />
                     ) : (
                       <User2 size={24} />
                     )}
@@ -512,10 +513,10 @@ function DefaultBrandIcon() {
 
 function LogoEwarkop() {
   return (
-    <img 
-      src="/logo_ewarkop.webp" 
-      alt="E-Warkop Logo" 
-      width={128} 
+    <Image
+      src="/logo_ewarkop.webp"
+      alt="E-Warkop Logo"
+      width={128}
       height={128}
       className="object-contain"
     />

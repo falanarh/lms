@@ -1,10 +1,14 @@
 "use client"
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Facebook, Instagram, Linkedin, Twitter, Mail, Phone, MapPin } from "lucide-react";
 
 export function Footer() {
+  const pathname = usePathname();
   const currentYear = new Date().getFullYear();
+
+  if (pathname?.startsWith('/tutor-ai')) return null;
 
   const footerLinks = {
     platform: [

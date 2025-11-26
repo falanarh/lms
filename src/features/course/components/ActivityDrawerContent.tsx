@@ -83,14 +83,17 @@ type ActivityType =
   | "SCORM"
   | "TASK"
   | "jadwal_kurikulum"
+  | "COURSE_SCHEDULE"
   | null;
 type ContentSource = "new" | "curriculum" | "bank" | null;
 
 // Material type for session
 interface SessionMaterial {
-  type: "pdf" | "video" | "doc" | "ppt";
+  type: "pdf" | "video" | "doc";
   title: string;
   size: string;
+  url?: string;
+  id: string;
 }
 
 // Session type for curriculum selection
@@ -105,12 +108,11 @@ interface Session {
   description?: string;
   materials?: SessionMaterial[];
   jp?: number; // Jumlah Pertemuan
-  masterContent?: {
-    name: string;
-    description: string;
-    contentUrl: string | null;
-    type: string;
-  };
+  rbmp?: string; // PDF URL
+  bahanAjarUrl?: string; // PDF URL
+  bahanTayangUrl?: string; // PDF URL
+  alatPeraga?: string; // PDF URL
+  isMooc?: boolean;
   groupCourse?: {
     name: string;
   };
@@ -125,6 +127,8 @@ interface UploadedMaterial {
   id: string;
   title: string;
   size: string;
+  url?: string;
+  type?: string;
 }
 
 // ✅ UPDATE: Tambahkan contentId dan initialData
@@ -232,13 +236,17 @@ export function ActivityDrawerContent({
 
   // Function to calculate the next sequence number
   const calculateNextSequence = (sectionId: string): number => {
-    if (!sectionsData?.data) return 1;
+    if (!sectionsData || sectionsData.length === 0) return 1;
 
-    const section = sectionsData.data.find(section => section.id === sectionId);
-    if (!section?.listContent || section.listContent.length === 0) return 1;
+    const section = sectionsData.find(
+      (section) => section.id === sectionId,
+    );
+    if (!section?.listContents || section.listContents.length === 0) return 1;
 
     // Find the highest sequence number and add 1
-    const maxSequence = Math.max(...section.listContent.map(content => content.sequence || 0));
+    const maxSequence = Math.max(
+      ...section.listContents.map((content) => content.sequence || 0),
+    );
     return maxSequence + 1;
   };
 
@@ -370,7 +378,7 @@ export function ActivityDrawerContent({
         restrictionEnabled,
         timeEnabled: restrictions.timeEnabled,
       });
-  
+
       if (!sectionId && !isEditMode) {
         console.log("❌ No section ID found");
         setShowToast(true);
@@ -378,7 +386,7 @@ export function ActivityDrawerContent({
         setToastVariant("warning");
         return;
       }
-  
+
       if (!selectedActivityType) {
         console.log("❌ No activity type selected");
         setShowToast(true);
@@ -386,14 +394,14 @@ export function ActivityDrawerContent({
         setToastVariant("warning");
         return;
       }
-  
+
       try {
         console.log("✅ Form validation passed, proceeding with submission...");
-  
+
         // ✅ Prepare dates - z.coerce.date() will automatically convert string to Date object
         let contentStart: Date | null = null;
         let contentEnd: Date | null = null;
-  
+
         // Set dates if form values exist (from form fields)
         if (value.contentStart) {
           contentStart = new Date(value.contentStart);
@@ -401,103 +409,103 @@ export function ActivityDrawerContent({
           contentStart.setHours(contentStart.getHours() - 7);
           console.log("✅ Set contentStart (-7h UTC):", contentStart);
         }
-  
+
         if (value.contentEnd) {
           contentEnd = new Date(value.contentEnd);
           // ✅ Subtract 7 hours to convert from WIB to UTC for backend
           contentEnd.setHours(contentEnd.getHours() - 7);
           console.log("✅ Set contentEnd (-7h UTC):", contentEnd);
         }
-  
+
         // ✅ Get current user ID - REPLACE WITH YOUR AUTH CONTEXT
         // For example: const { user } = useAuth(); const currentUserId = user.id;
         const currentUserId = "93f4cbda-f755-4bb9-a44c-928f8270659b"; // ⚠️ TODO: Replace with actual user ID
-        
-  
+
         if (selectedActivityType === "QUIZ") {
-          const sequence = isEditMode && initialData?.sequence
-        ? initialData.sequence
-        : calculateNextSequence(sectionId!);
+          const sequence =
+            isEditMode && initialData?.sequence
+              ? initialData.sequence
+              : calculateNextSequence(sectionId!);
 
-      const contentData = {
-        idSection: sectionId!,
-        name: value.name,
-        description: value.description || "",
-        type: "QUIZ",
-        contentUrl: "",
-        sequence,
-        contentStart,
-        contentEnd,
-      };
+          const contentData = {
+            idSection: sectionId!,
+            name: value.name,
+            description: value.description || "",
+            type: "QUIZ",
+            contentUrl: "",
+            sequence,
+            contentStart,
+            contentEnd,
+          };
 
-      const quizData = {
-        durationLimit: quizTimeLimitEnabled
-          ? parseInt(quizTimeLimit) || 60
-          : 60,
-        totalQuestions: 1, // Will be calculated from questions
-        maxPoint: 100, // Will be calculated from questions
-        passingScore: passingGradeEnabled
-          ? parseFloat(quizGradeToPass) || 60
-          : 60,
-        attemptLimit: parseInt(quizAttemptsAllowed) || 1,
-        shuffleQuestions: quizShuffleQuestions,
-      };
+          const quizData = {
+            durationLimit: quizTimeLimitEnabled
+              ? parseInt(quizTimeLimit) || 60
+              : 60,
+            totalQuestions: 1, // Will be calculated from questions
+            maxPoint: 100, // Will be calculated from questions
+            passingScore: passingGradeEnabled
+              ? parseFloat(quizGradeToPass) || 60
+              : 60,
+            attemptLimit: parseInt(quizAttemptsAllowed) || 1,
+            shuffleQuestions: quizShuffleQuestions,
+          };
 
-      if (isEditMode && contentId) {
-        // ========== UPDATE EXISTING QUIZ ==========
-        const updateData = {
-          type: "QUIZ" as const,
-          name: value.name,
-          description: value.description || "",
-          contentStart,
-          contentEnd,
-          quizData,
-        };
+          if (isEditMode && contentId) {
+            // ========== UPDATE EXISTING QUIZ ==========
+            const updateData = {
+              type: "QUIZ" as const,
+              name: value.name,
+              description: value.description || "",
+              contentStart,
+              contentEnd,
+              quizData,
+            };
 
-        console.log("🚀 Updating QUIZ with data:", updateData);
+            console.log("🚀 Updating QUIZ with data:", updateData);
 
-        const validatedData = updateContentSchema.parse(updateData);
+            const validatedData = updateContentSchema.parse(updateData);
 
-        const apiData = {
-          ...validatedData,
-          contentStart: validatedData.contentStart?.toISOString() ?? null,
-          contentEnd: validatedData.contentEnd?.toISOString() ?? null,
-          quizData: updateData.quizData,
-        };
+            const apiData = {
+              ...validatedData,
+              contentStart: validatedData.contentStart?.toISOString() ?? null,
+              contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+              quizData: updateData.quizData,
+            };
 
-        console.log("🚀 Final API data for UPDATE:", apiData);
-        updateContent({ id: contentId, data: apiData as any });
-      } else {
-        // ========== CREATE NEW QUIZ ==========
-        const createData = {
-          idSection: sectionId!,
-          type: "QUIZ" as const,
-          name: value.name,
-          description: value.description || "",
-          contentUrl: "",
-          sequence,
-          contentStart,
-          contentEnd,
-          quizData,
-        };
+            console.log("🚀 Final API data for UPDATE:", apiData);
+            updateContent({ id: contentId, data: apiData as any });
+          } else {
+            // ========== CREATE NEW QUIZ ==========
+            const createData = {
+              idSection: sectionId!,
+              type: "QUIZ" as const,
+              name: value.name,
+              description: value.description || "",
+              contentUrl: "",
+              sequence,
+              contentStart,
+              contentEnd,
+              quizData,
+            };
 
-        console.log("🚀 Creating QUIZ with data:", createData);
+            console.log("🚀 Creating QUIZ with data:", createData);
 
-        const validatedData = createContentSchema.parse(createData);
+            const validatedData = createContentSchema.parse(createData);
 
-        const apiData = {
-          ...validatedData,
-          contentStart: validatedData.contentStart?.toISOString() ?? null,
-          contentEnd: validatedData.contentEnd?.toISOString() ?? null,
-          quizData: createData.quizData,
-        };
+            const apiData = {
+              ...validatedData,
+              contentStart: validatedData.contentStart?.toISOString() ?? null,
+              contentEnd: validatedData.contentEnd?.toISOString() ?? null,
+              quizData: createData.quizData,
+            };
 
-        console.log("🚀 Final API data for CREATE:", apiData);
-        createContent(apiData as any);
-      }
+            console.log("🚀 Final API data for CREATE:", apiData);
+            createContent(apiData as any);
+          }
         } else if (selectedActivityType === "TASK") {
           // ========== TASK CREATION/UPDATE ==========
-          
+
           // Prepare task deadline from form
           let taskDeadline: Date | null = null;
           if (deadlineEnabled && value.deadline) {
@@ -506,7 +514,7 @@ export function ActivityDrawerContent({
             taskDeadline.setHours(taskDeadline.getHours() - 7);
             console.log("✅ TASK deadline (-7h UTC):", taskDeadline);
           }
-  
+
           if (isEditMode && contentId) {
             // ========== UPDATE EXISTING TASK ==========
             let updateData = {
@@ -525,23 +533,23 @@ export function ActivityDrawerContent({
                 createdBy: currentUserId,
               },
             };
-  
+
             console.log("🚀 Final updateData for TASK:", updateData);
-  
+
             const validatedData = updateContentSchema.parse(updateData);
-  
+
             // ✅ Convert Date objects back to ISO strings for API
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-  
+
             updateContent({ id: contentId, data: apiData as any });
           } else {
             // ========== CREATE NEW TASK ==========
             const sequence = calculateNextSequence(sectionId!);
-  
+
             let createData = {
               idSection: sectionId!,
               type: selectedActivityType,
@@ -560,18 +568,18 @@ export function ActivityDrawerContent({
                 createdBy: currentUserId,
               },
             };
-  
+
             console.log("🚀 Final createData for TASK:", createData);
-  
+
             const validatedData = createContentSchema.parse(createData);
-  
+
             // ✅ Convert Date objects back to ISO strings for API
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-  
+
             createContent(apiData as any);
           }
         } else {
@@ -579,10 +587,16 @@ export function ActivityDrawerContent({
           if (isEditMode && contentId) {
             // ========== UPDATE OTHER TYPES ==========
             let updateData = {
-              type: selectedActivityType,
+              type:
+                selectedActivityType === "jadwal_kurikulum"
+                  ? "COURSE_SCHEDULE"
+                  : selectedActivityType,
               name: value.name,
               description: value.description || "",
-              contentUrl: value.contentUrl || "",
+              contentUrl:
+                selectedActivityType === "jadwal_kurikulum"
+                  ? null
+                  : value.contentUrl || "",
               contentStart,
               contentEnd,
               ...(value.videoFile && { videoFile: value.videoFile }),
@@ -594,41 +608,64 @@ export function ActivityDrawerContent({
                   scheduleName: selectedSession.title,
                   jp: selectedSession.jp,
                   scheduleDate: selectedSession.date,
+                  // Include PDF URLs directly from the session
+                  ...(selectedSession.rbmp && {
+                    rbmp: selectedSession.rbmp,
+                  }),
+                  ...(selectedSession.bahanAjarUrl && {
+                    bahanAjarUrl: selectedSession.bahanAjarUrl,
+                  }),
+                  ...(selectedSession.bahanTayangUrl && {
+                    bahanTayangUrl: selectedSession.bahanTayangUrl,
+                  }),
+                  ...(selectedSession.alatPeraga && {
+                    alatPeraga: selectedSession.alatPeraga,
+                  }),
                 }),
             };
-  
+
             // ✅ Handle video source selection for VIDEO type
-            if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
+            if (
+              selectedActivityType === "VIDEO" &&
+              value.videoSource === "link" &&
+              value.videoUrl
+            ) {
               updateData.type = "LINK";
               updateData.contentUrl = value.videoUrl;
               delete (updateData as any).videoFile;
-              console.log("✅ VIDEO link mode UPDATE - converted to LINK type:", updateData);
+              console.log(
+                "✅ VIDEO link mode UPDATE - converted to LINK type:",
+                updateData,
+              );
             }
-  
+
             console.log("🚀 Final updateData:", updateData);
-  
+
             const validatedData = updateContentSchema.parse(updateData);
-  
+
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-  
+
             updateContent({ id: contentId, data: apiData as any });
           } else {
             // ========== CREATE OTHER TYPES ==========
             const sequence = calculateNextSequence(sectionId!);
-  
+
             let createData = {
               idSection: sectionId!,
               type:
-                selectedActivityType === "jadwal_kurikulum" && selectedSession
-                  ? selectedSession.masterContent?.type
+                selectedActivityType === "jadwal_kurikulum"
+                  ? "COURSE_SCHEDULE"
                   : selectedActivityType,
               name: value.name,
               description: value.description || "",
-              contentUrl: value.contentUrl || "",
+              contentUrl:
+                selectedActivityType === "jadwal_kurikulum"
+                  ? null
+                  : value.contentUrl || "",
               sequence,
               contentStart,
               contentEnd,
@@ -641,40 +678,61 @@ export function ActivityDrawerContent({
                   scheduleName: selectedSession.title,
                   jp: selectedSession.jp,
                   scheduleDate: selectedSession.date,
+                  // Include PDF URLs directly from the session
+                  ...(selectedSession.rbmp && {
+                    rbmp: selectedSession.rbmp,
+                  }),
+                  ...(selectedSession.bahanAjarUrl && {
+                    bahanAjarUrl: selectedSession.bahanAjarUrl,
+                  }),
+                  ...(selectedSession.bahanTayangUrl && {
+                    bahanTayangUrl: selectedSession.bahanTayangUrl,
+                  }),
+                  ...(selectedSession.alatPeraga && {
+                    alatPeraga: selectedSession.alatPeraga,
+                  }),
                 }),
             };
-  
+
             // ✅ Handle video source selection for VIDEO type
-            if (selectedActivityType === "VIDEO" && value.videoSource === "link" && value.videoUrl) {
+            if (
+              selectedActivityType === "VIDEO" &&
+              value.videoSource === "link" &&
+              value.videoUrl
+            ) {
               createData.type = "LINK";
               createData.contentUrl = value.videoUrl;
               delete (createData as any).videoFile;
-              console.log("✅ VIDEO link mode - converted to LINK type:", createData);
+              console.log(
+                "✅ VIDEO link mode - converted to LINK type:",
+                createData,
+              );
             }
-  
+
             console.log("🚀 Final createData:", createData);
-  
+
             const validatedData = createContentSchema.parse(createData);
-  
+
             const apiData = {
               ...validatedData,
               contentStart: validatedData.contentStart?.toISOString() ?? null,
               contentEnd: validatedData.contentEnd?.toISOString() ?? null,
             };
-  
+
             createContent(apiData as any);
           }
         }
       } catch (error) {
         console.log("❌ Form submission error:", {
           error,
-          errorType: error instanceof Error ? error.constructor.name : "Unknown",
+          errorType:
+            error instanceof Error ? error.constructor.name : "Unknown",
           isZodError: error instanceof ZodError,
           isRegularError: error instanceof Error,
           errorMessage: error instanceof Error ? error.message : String(error),
           zodIssues: error instanceof ZodError ? error.issues : null,
         });
-  
+
         if (error instanceof ZodError) {
           setShowToast(true);
           setToastMessage(error.issues[0].message);
@@ -685,7 +743,9 @@ export function ActivityDrawerContent({
           setToastVariant("warning");
         } else {
           setShowToast(true);
-          setToastMessage(`Terjadi kesalahan tidak diketahui: ${String(error)}`);
+          setToastMessage(
+            `Terjadi kesalahan tidak diketahui: ${String(error)}`,
+          );
           setToastVariant("warning");
         }
       }
@@ -724,7 +784,8 @@ export function ActivityDrawerContent({
   const [quizGradingEnabled, setQuizGradingEnabled] = useState(false);
   const [quizStartDate, setQuizStartDate] = useState("");
   const [quizEndDate, setQuizEndDate] = useState("");
-  const [showQuizQuestionsManager, setShowQuizQuestionsManager] = useState(false);
+  const [showQuizQuestionsManager, setShowQuizQuestionsManager] =
+    useState(false);
 
   // Upload states for R2
   const [uploading, setUploading] = useState(false);
@@ -750,7 +811,8 @@ export function ActivityDrawerContent({
 
   // Bank content states
   const [bankContentPage, setBankContentPage] = useState(1);
-  const [selectedBankContent, setSelectedBankContent] = useState<MasterContent | null>(null);
+  const [selectedBankContent, setSelectedBankContent] =
+    useState<MasterContent | null>(null);
   const [bankContentSearch, setBankContentSearch] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isUsingBankContent, setIsUsingBankContent] = useState(false);
@@ -819,8 +881,9 @@ export function ActivityDrawerContent({
             initialData.contentUrl.split("/").pop() || initialData.contentUrl;
           setUploadedMaterials([
             {
-              id: `existing-${Date.now()}`,
+              id: `document-${Date.now()}`,
               title: fileName,
+              size: "Unknown",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -836,6 +899,7 @@ export function ActivityDrawerContent({
             {
               id: `existing-${Date.now()}`,
               title: fileName,
+              size: "-",
             },
           ]);
           form.setFieldValue("contentUrl", initialData.contentUrl);
@@ -882,7 +946,10 @@ export function ActivityDrawerContent({
         setDeadlineDate(formattedDeadline);
         setDeadlineEnabled(true);
         setCompletionEnabled(true);
-        console.log("✅ Set TASK deadline from contentEnd (+7h WIB):", formattedDeadline);
+        console.log(
+          "✅ Set TASK deadline from contentEnd (+7h WIB):",
+          formattedDeadline,
+        );
       } else if (initialData.deadline) {
         // Fallback if deadline field exists
         const deadlineObj = new Date(initialData.deadline);
@@ -893,7 +960,10 @@ export function ActivityDrawerContent({
         setDeadlineDate(formattedDeadline);
         setDeadlineEnabled(true);
         setCompletionEnabled(true);
-        console.log("✅ Set TASK deadline from deadline field (+7h WIB):", formattedDeadline);
+        console.log(
+          "✅ Set TASK deadline from deadline field (+7h WIB):",
+          formattedDeadline,
+        );
       }
     }
   }, [isEditMode, initialData]);
@@ -921,35 +991,61 @@ export function ActivityDrawerContent({
     form.setFieldValue("name", session.title);
     form.setFieldValue(
       "description",
-      session.description ||
-        session.masterContent?.description ||
-        session.topic ||
-        "",
+      session.description || session.topic || "",
     );
     console.log("🎯 Form values after pre-fill:", form.state.values);
 
-    // If there's a content URL from masterContent, set it based on the material type
-    if (session.masterContent?.contentUrl) {
-      const contentUrl = session.masterContent.contentUrl;
-      const contentType = session.masterContent.type.toLowerCase();
+    // Create materials array from all PDF URLs
+    const materials = [];
 
-      // Set content URL based on material type
-      form.setFieldValue("contentUrl", contentUrl);
+    // Add RBMP material if available
+    if (session.rbmp) {
+      materials.push({
+        id: `rbmp-${Date.now()}`,
+        title: "RBPMP",
+        url: session.rbmp,
+        type: "pdf",
+        size: "Unknown",
+      });
+    }
 
-      // Update the relevant state based on content type
-      if (contentType === "video") {
-        setUploadedVideo(contentUrl);
-      } else if (contentType === "pdf") {
-        setUploadedMaterials([
-          {
-            id: `curriculum-${Date.now()}`,
-            title: session.masterContent.name,
-            size: "Unknown",
-          },
-        ]);
-      } else if (contentType === "link") {
-        setLinkUrl(contentUrl);
-      }
+    // Add Bahan Ajar material if available
+    if (session.bahanAjarUrl) {
+      materials.push({
+        id: `bahan-ajar-${Date.now()}`,
+        title: "Bahan Ajar",
+        url: session.bahanAjarUrl,
+        type: "pdf",
+        size: "Unknown",
+      });
+    }
+
+    // Add Bahan Tayang material if available
+    if (session.bahanTayangUrl) {
+      materials.push({
+        id: `bahan-tayang-${Date.now()}`,
+        title: "Bahan Tayang",
+        url: session.bahanTayangUrl,
+        type: "pdf",
+        size: "Unknown",
+      });
+    }
+
+    // Add Alat Peraga material if available
+    if (session.alatPeraga) {
+      materials.push({
+        id: `alat-peraga-${Date.now()}`,
+        title: "Alat Peraga",
+        url: session.alatPeraga,
+        type: "pdf",
+        size: "Unknown",
+      });
+    }
+
+    // For jadwal_kurikulum, we don't need to set documentFile
+    // The PDF URLs are handled separately in the form submission
+    if (materials.length > 0) {
+      setUploadedMaterials(materials);
     }
 
     // Log JP information for debugging
@@ -980,7 +1076,10 @@ export function ActivityDrawerContent({
       const contentType = bankContent.type.toLowerCase();
 
       if (contentType === "video") {
-        if (bankContent.contentUrl.includes('youtube.com') || bankContent.contentUrl.includes('vimeo.com')) {
+        if (
+          bankContent.contentUrl.includes("youtube.com") ||
+          bankContent.contentUrl.includes("vimeo.com")
+        ) {
           setVideoSource("link");
           setVideoUrl(bankContent.contentUrl);
         } else {
@@ -1058,16 +1157,36 @@ export function ActivityDrawerContent({
   const handleFileUploadToR2 = async (
     file: File,
     onSuccess: (publicUrl: string, fileName: string) => void,
-    activityType: string
+    activityType: string,
   ) => {
     if (!file) return;
 
     // Validate file based on activity type
     const allowedTypes = {
-      VIDEO: ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
-      PDF: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/msword', 'application/vnd.ms-powerpoint'],
-      TASK: ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/msword', 'application/vnd.ms-powerpoint'],
-      SCORM: ['application/zip', 'application/x-zip-compressed'],
+      VIDEO: [
+        "video/mp4",
+        "video/mpeg",
+        "video/quicktime",
+        "video/x-msvideo",
+        "video/webm",
+      ],
+      PDF: [
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.ms-powerpoint",
+      ],
+      TASK: [
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.ms-powerpoint",
+      ],
+      SCORM: ["application/zip", "application/x-zip-compressed"],
     };
 
     const maxSizes = {
@@ -1078,11 +1197,14 @@ export function ActivityDrawerContent({
     };
 
     const types = allowedTypes[activityType as keyof typeof allowedTypes] || [];
-    const maxSize = maxSizes[activityType as keyof typeof maxSizes] || 5 * 1024 * 1024;
+    const maxSize =
+      maxSizes[activityType as keyof typeof maxSizes] || 5 * 1024 * 1024;
 
     if (!validateFile(file, types, maxSize)) {
       const maxSizeMB = maxSize / (1024 * 1024);
-      setUploadError(`File tidak valid. Pastikan file bertipe yang sesuai dan kurang dari ${maxSizeMB}MB`);
+      setUploadError(
+        `File tidak valid. Pastikan file bertipe yang sesuai dan kurang dari ${maxSizeMB}MB`,
+      );
       return;
     }
 
@@ -1094,9 +1216,10 @@ export function ActivityDrawerContent({
       setUploadedFileUrl(uploadResult.publicUrl);
       onSuccess(uploadResult.publicUrl, uploadResult.fileName);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload gagal";
       setUploadError(errorMessage);
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
     } finally {
       setUploading(false);
     }
@@ -1105,16 +1228,18 @@ export function ActivityDrawerContent({
   const handleVideoUploadToR2 = async (file: File) => {
     // Validate file
     const allowedTypes = [
-      'video/mp4',
-      'video/mpeg',
-      'video/quicktime',
-      'video/x-msvideo',
-      'video/webm'
+      "video/mp4",
+      "video/mpeg",
+      "video/quicktime",
+      "video/x-msvideo",
+      "video/webm",
     ];
     const maxSize = 50 * 1024 * 1024; // 50MB
 
     if (!validateFile(file, allowedTypes, maxSize)) {
-      setUploadError("File tidak valid. Pastikan file bertipe MP4/MOV/AVI/WebM dan kurang dari 50MB");
+      setUploadError(
+        "File tidak valid. Pastikan file bertipe MP4/MOV/AVI/WebM dan kurang dari 50MB",
+      );
       return;
     }
 
@@ -1137,7 +1262,8 @@ export function ActivityDrawerContent({
       setToastMessage("Video berhasil diupload!");
       setToastVariant("success");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload gagal";
       setUploadError(errorMessage);
       setShowToast(true);
       setToastMessage(errorMessage);
@@ -1150,45 +1276,48 @@ export function ActivityDrawerContent({
   const handleDocumentUploadToR2 = async (file: File) => {
     // Validate file
     const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ];
     const maxSize = 5 * 1024 * 1024; // 5MB
-  
+
     if (!validateFile(file, allowedTypes, maxSize)) {
-      setUploadError("File tidak valid. Pastikan file bertipe PDF/DOC/PPT dan kurang dari 5MB");
+      setUploadError(
+        "File tidak valid. Pastikan file bertipe PDF/DOC/PPT dan kurang dari 5MB",
+      );
       return;
     }
-  
+
     setUploading(true);
     setUploadError("");
-  
+
     try {
       const { publicUrl, fileName } = await uploadFileToR2(file);
-      
+
       // Update state
       const newMaterial = {
         id: `${fileName}-${Date.now()}`,
         title: fileName,
         size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
       };
-      
-      setUploadedMaterials(prev => [...prev, newMaterial]);
+
+      setUploadedMaterials((prev) => [...prev, newMaterial]);
       setUploadedFileUrl(publicUrl);
-      
+
       // Update form values
       form.setFieldValue("contentUrl", publicUrl);
       form.setFieldValue("documentFile", file);
-      
+
       // Show success message
       setShowToast(true);
       setToastMessage("Dokumen berhasil diupload!");
       setToastVariant("success");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload gagal";
       setUploadError(errorMessage);
       setShowToast(true);
       setToastMessage(errorMessage);
@@ -1200,14 +1329,13 @@ export function ActivityDrawerContent({
 
   const handleScormUploadToR2 = async (file: File) => {
     // Validate file
-    const allowedTypes = [
-      'application/zip',
-      'application/x-zip-compressed'
-    ];
+    const allowedTypes = ["application/zip", "application/x-zip-compressed"];
     const maxSize = 100 * 1024 * 1024; // 100MB
 
     if (!validateFile(file, allowedTypes, maxSize)) {
-      setUploadError("File tidak valid. Pastikan file bertipe ZIP dan kurang dari 100MB");
+      setUploadError(
+        "File tidak valid. Pastikan file bertipe ZIP dan kurang dari 100MB",
+      );
       return;
     }
 
@@ -1230,7 +1358,8 @@ export function ActivityDrawerContent({
       setToastMessage("SCORM package berhasil diupload!");
       setToastVariant("success");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload gagal';
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload gagal";
       setUploadError(errorMessage);
       setShowToast(true);
       setToastMessage(errorMessage);
@@ -1241,17 +1370,21 @@ export function ActivityDrawerContent({
   };
 
   const handleTaskUploadToR2 = (file: File) => {
-    handleFileUploadToR2(file, (publicUrl, fileName) => {
-      const newMaterial = {
-        id: `${fileName}-${Date.now()}`,
-        title: fileName,
-        size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-      };
+    handleFileUploadToR2(
+      file,
+      (publicUrl, fileName) => {
+        const newMaterial = {
+          id: `${fileName}-${Date.now()}`,
+          title: fileName,
+          size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+        };
 
-      setUploadedMaterials(prev => [...prev, newMaterial]);
-      form.setFieldValue("contentUrl", publicUrl);
-      form.setFieldValue("documentFile", file);
-    }, 'TASK');
+        setUploadedMaterials((prev) => [...prev, newMaterial]);
+        form.setFieldValue("contentUrl", publicUrl);
+        form.setFieldValue("documentFile", file);
+      },
+      "TASK",
+    );
   };
 
   // ✅ UPDATED: handleSave dengan logic untuk CREATE dan UPDATE
@@ -1361,8 +1494,7 @@ export function ActivityDrawerContent({
             <p className="text-sm text-green-700 dark:text-green-300 dark:text-green-300">
               {selectedActivityType === "TASK"
                 ? "Atur kriteria penyelesaian tugas"
-                : "Atur kriteria kapan activity dianggap selesai"
-              }
+                : "Atur kriteria kapan activity dianggap selesai"}
             </p>
           </div>
         </div>
@@ -1392,7 +1524,8 @@ export function ActivityDrawerContent({
                   <div>
                     <h6 className="font-medium">Wajib Mengumpulkan</h6>
                     <p className="text-sm text-gray-500 dark:text-zinc-400">
-                      Peserta harus mengumpulkan tugas untuk menyelesaikan aktivitas
+                      Peserta harus mengumpulkan tugas untuk menyelesaikan
+                      aktivitas
                     </p>
                   </div>
                   <Switch
@@ -1410,7 +1543,10 @@ export function ActivityDrawerContent({
                       Tetapkan deadline pengumpulan tugas
                     </p>
                   </div>
-                  <Switch checked={deadlineEnabled} onChange={setDeadlineEnabled} />
+                  <Switch
+                    checked={deadlineEnabled}
+                    onChange={setDeadlineEnabled}
+                  />
                 </div>
                 {deadlineEnabled && (
                   <div>
@@ -1450,7 +1586,10 @@ export function ActivityDrawerContent({
                     Tetapkan deadline penyelesaian aktivitas
                   </p>
                 </div>
-                <Switch checked={deadlineEnabled} onChange={setDeadlineEnabled} />
+                <Switch
+                  checked={deadlineEnabled}
+                  onChange={setDeadlineEnabled}
+                />
               </div>
               {deadlineEnabled && (
                 <div>
@@ -1642,6 +1781,49 @@ export function ActivityDrawerContent({
         {!isLoading && !error && (
           <div className="space-y-3">
             {courseSchedules.map((schedule) => {
+              // Create materials array from all PDF URLs
+              const materials = [];
+
+              // Add RBMP material if available
+              if (schedule.rbmp) {
+                materials.push({
+                  id: `rbmp-${schedule.id}`,
+                  type: "pdf" as const,
+                  title: "RBPMP",
+                  size: "Unknown",
+                });
+              }
+
+              // Add Bahan Ajar material if available
+              if (schedule.bahanAjarUrl) {
+                materials.push({
+                  id: `bahan-ajar-${schedule.id}`,
+                  type: "pdf" as const,
+                  title: "Bahan Ajar",
+                  size: "Unknown",
+                });
+              }
+
+              // Add Bahan Tayang material if available
+              if (schedule.bahanTayangUrl) {
+                materials.push({
+                  id: `bahan-tayang-${schedule.id}`,
+                  type: "pdf" as const,
+                  title: "Bahan Tayang",
+                  size: "Unknown",
+                });
+              }
+
+              // Add Alat Peraga material if available
+              if (schedule.alatPeraga) {
+                materials.push({
+                  id: `alat-peraga-${schedule.id}`,
+                  type: "pdf" as const,
+                  title: "Alat Peraga",
+                  size: "Unknown",
+                });
+              }
+
               const sessionData = {
                 id: schedule.id,
                 title: schedule.name,
@@ -1650,40 +1832,29 @@ export function ActivityDrawerContent({
                   month: "long",
                   year: "numeric",
                 }),
-                status: "upcoming" as const,
-                topic: schedule.masterContent.name,
-                duration: `${schedule.jp * 45} menit`, // Assuming JP = 45 minutes
-                instructor: schedule.groupCourse.name,
-                jp: schedule.jp, // Add JP value
-                description: schedule.description, // Add description
-                masterContent: schedule.masterContent, // Add masterContent data
-                groupCourse: schedule.groupCourse, // Add groupCourse data
-                materials: schedule.masterContent.contentUrl
-                  ? [
-                      {
-                        type:
-                          schedule.masterContent.type.toLowerCase() === "pdf"
-                            ? ("pdf" as const)
-                            : schedule.masterContent.type.toLowerCase() ===
-                                "video"
-                              ? ("video" as const)
-                              : ("doc" as const),
-                        title: schedule.masterContent.name,
-                        size: "Unknown",
-                      },
-                    ]
-                  : [],
+                status: schedule.isMooc
+                  ? ("ongoing" as const)
+                  : ("upcoming" as const),
+                topic: schedule.description || "Tidak ada topik",
+                duration: `${schedule.jp} JP`,
+                instructor: "Instruktur",
+                jp: schedule.jp,
+                description: schedule.description,
+                materials: materials,
+                rbmp: schedule.rbmp,
+                bahanAjarUrl: schedule.bahanAjarUrl,
+                bahanTayangUrl: schedule.bahanTayangUrl,
+                alatPeraga: schedule.alatPeraga,
+                isMooc: schedule.isMooc,
               };
 
               return (
                 <SessionCard
                   key={schedule.id}
                   title={sessionData.title}
-                  topic={sessionData.topic}
+                  topic={sessionData.description}
                   status={sessionData.status}
                   date={sessionData.date}
-                  duration={sessionData.duration}
-                  instructor={sessionData.instructor}
                   materials={sessionData.materials}
                   jp={sessionData.jp}
                   onClick={() => handleSessionSelect(sessionData)}
@@ -1834,8 +2005,12 @@ export function ActivityDrawerContent({
                   >
                     <div className="flex items-center gap-3">
                       {/* Content Type Icon */}
-                      <div className={`size-10 rounded-lg bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 flex items-center justify-center flex-shrink-0`}>
-                        <Icon className={`size-5 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400`} />
+                      <div
+                        className={`size-10 rounded-lg bg-${typeInfo.color}-100 dark:bg-${typeInfo.color}-900/30 flex items-center justify-center flex-shrink-0`}
+                      >
+                        <Icon
+                          className={`size-5 text-${typeInfo.color}-600 dark:text-${typeInfo.color}-400`}
+                        />
                       </div>
 
                       {/* Content Info */}
@@ -1844,7 +2019,10 @@ export function ActivityDrawerContent({
                           <h5 className="font-semibold text-gray-900 dark:text-zinc-100 truncate">
                             {content.name}
                           </h5>
-                          <Badge variant="outline" className={`text-xs border-${typeInfo.color}-300 dark:border-${typeInfo.color}-700 text-${typeInfo.color}-700 dark:text-${typeInfo.color}-300`}>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs border-${typeInfo.color}-300 dark:border-${typeInfo.color}-700 text-${typeInfo.color}-700 dark:text-${typeInfo.color}-300`}
+                          >
                             {typeInfo.label}
                           </Badge>
                         </div>
@@ -1855,7 +2033,9 @@ export function ActivityDrawerContent({
                         )}
                         {content.contentUrl && (
                           <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">
-                            📎 {content.contentUrl.split('/').pop() || 'File tersedia'}
+                            📎{" "}
+                            {content.contentUrl.split("/").pop() ||
+                              "File tersedia"}
                           </p>
                         )}
                       </div>
@@ -1876,13 +2056,14 @@ export function ActivityDrawerContent({
                 <div className="max-w-md mx-auto">
                   <Database className="size-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 dark:text-zinc-100 mb-2">
-                    {bankContentSearch ? "Tidak Ada Hasil Pencarian" : "Bank Konten Kosong"}
+                    {bankContentSearch
+                      ? "Tidak Ada Hasil Pencarian"
+                      : "Bank Konten Kosong"}
                   </h3>
                   <p className="text-gray-600 dark:text-zinc-400">
                     {bankContentSearch
                       ? `Tidak ada konten dengan judul "${bankContentSearch}". Coba kata kunci lain.`
-                      : "Tidak ada konten yang tersedia di bank. Tambahkan konten terlebih dahulu."
-                    }
+                      : "Tidak ada konten yang tersedia di bank. Tambahkan konten terlebih dahulu."}
                   </p>
                   {bankContentSearch && (
                     <button
@@ -1903,7 +2084,6 @@ export function ActivityDrawerContent({
                   currentPage={bankContentPage}
                   totalPages={pageMeta.totalPageCount}
                   onPageChange={handleBankContentPageChange}
-                  showPerPageSelector={false}
                 />
               </div>
             )}
@@ -1929,23 +2109,28 @@ export function ActivityDrawerContent({
   if (contentSource === "new" && !selectedActivityType && !isEditMode) {
     return (
       <div className="space-y-4">
-        <BackButton onClick={() => {
-          setContentSource(null);
-          resetBankContentState();
-        }} />
+        <BackButton
+          onClick={() => {
+            setContentSource(null);
+            resetBankContentState();
+          }}
+        />
         <h4 className="mb-4">Pilih jenis konten yang ingin ditambahkan:</h4>
 
         <div className="space-y-6">
           {ACTIVITY_ROWS.map((row, rowIndex) => (
-            <div key={rowIndex} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div
+              key={rowIndex}
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            >
               {row.map(({ type, label, description, icon: Icon, color }) => (
                 <Card
                   key={type}
                   className={`p-6 cursor-pointer hover:border-${color}-500 hover:shadow-lg transition-all`}
                   onClick={() => {
-                  setSelectedActivityType(type as ActivityType);
-                  resetBankContentState();
-                }}
+                    setSelectedActivityType(type as ActivityType);
+                    resetBankContentState();
+                  }}
                 >
                   <div className="flex flex-col items-center text-center gap-3">
                     <div
@@ -1955,7 +2140,9 @@ export function ActivityDrawerContent({
                     </div>
                     <div>
                       <p className="font-medium">{label}</p>
-                      <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{description}</p>
+                      <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+                        {description}
+                      </p>
                     </div>
                   </div>
                 </Card>
@@ -2001,7 +2188,7 @@ export function ActivityDrawerContent({
         {!isEditMode && (
           <BackButton
             onClick={() => {
-              setSelectedActivityType(null);
+              setSelectedActivityType(null as ActivityType);
               setSelectedSession(null);
             }}
           />
@@ -2085,16 +2272,14 @@ export function ActivityDrawerContent({
               )}
             />
 
-            {/* Only show completion sections for TASK and QUIZ */}
-            {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
-              <CompletionSection />
-            )}
-
+            {/* Only show completion sections for TASK */}
+            {selectedActivityType === "TASK" && <CompletionSection />}
 
             {showMaterialsList && (
               <div className="mt-6">
                 <Label className="mb-3 block">Materi Pembelajaran</Label>
                 <div className="space-y-2">
+                  {/* Display materials from session materials array */}
                   {selectedSession.materials?.map(
                     (material: SessionMaterial, index: number) => {
                       return (
@@ -2117,10 +2302,77 @@ export function ActivityDrawerContent({
                       );
                     },
                   )}
+
+                  {/* Display PDF materials directly from session */}
+                  {selectedSession.rbmp && (
+                    <ActivityCard
+                      key="rbmp"
+                      title="RBPMP"
+                      type="PDF"
+                      showAction
+                      actionLabel="Download"
+                      onAction={() => {
+                        console.log("View RBPMP:", selectedSession.rbmp);
+                      }}
+                    />
+                  )}
+
+                  {selectedSession.bahanAjarUrl && (
+                    <ActivityCard
+                      key="bahan-ajar"
+                      title="Bahan Ajar"
+                      type="PDF"
+                      showAction
+                      actionLabel="Download"
+                      onAction={() => {
+                        console.log(
+                          "View Bahan Ajar:",
+                          selectedSession.bahanAjarUrl,
+                        );
+                      }}
+                    />
+                  )}
+
+                  {selectedSession.bahanTayangUrl && (
+                    <ActivityCard
+                      key="bahan-tayang"
+                      title="Bahan Tayang"
+                      type="PDF"
+                      showAction
+                      actionLabel="Download"
+                      onAction={() => {
+                        console.log(
+                          "View Bahan Tayang:",
+                          selectedSession.bahanTayangUrl,
+                        );
+                      }}
+                    />
+                  )}
+
+                  {selectedSession.alatPeraga && (
+                    <ActivityCard
+                      key="alat-peraga"
+                      title="Alat Peraga"
+                      type="PDF"
+                      showAction
+                      actionLabel="Download"
+                      onAction={() => {
+                        console.log(
+                          "View Alat Peraga:",
+                          selectedSession.alatPeraga,
+                        );
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             )}
           </>
+        )}
+
+        {/* Only show completion sections for TASK and QUIZ */}
+        {(selectedActivityType === "TASK" || selectedActivityType === "QUIZ") && (
+          <CompletionSection />
         )}
 
         {selectedActivityType === "VIDEO" && (
@@ -2145,7 +2397,9 @@ export function ActivityDrawerContent({
                   <div className="flex flex-col items-center text-center gap-2">
                     <Video className="size-6 text-blue-600" />
                     <span className="font-medium">Upload Video</span>
-                    <span className="text-sm text-gray-500 dark:text-zinc-400">File video lokal</span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">
+                      File video lokal
+                    </span>
                   </div>
                 </Card>
                 <Card
@@ -2162,7 +2416,9 @@ export function ActivityDrawerContent({
                   <div className="flex flex-col items-center text-center gap-2">
                     <Link className="size-6 text-orange-600" />
                     <span className="font-medium">Link Video</span>
-                    <span className="text-sm text-gray-500 dark:text-zinc-400">YouTube, platform lain</span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">
+                      YouTube, platform lain
+                    </span>
                   </div>
                 </Card>
               </div>
@@ -2274,7 +2530,8 @@ export function ActivityDrawerContent({
                       </p>
                     )}
                     <p className="text-sm text-gray-500 dark:text-zinc-400 mt-2">
-                      Masukkan link video dari YouTube, Vimeo, atau platform video lainnya
+                      Masukkan link video dari YouTube, Vimeo, atau platform
+                      video lainnya
                     </p>
                   </div>
                 )}
@@ -2328,7 +2585,11 @@ export function ActivityDrawerContent({
             name="documentFile"
             validators={{
               onChange: ({ value }) => {
-                if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
+                if (
+                  !value &&
+                  uploadedMaterials.length === 0 &&
+                  !isUsingBankContent
+                ) {
                   return "Dokumen harus diupload";
                 }
                 return undefined;
@@ -2472,7 +2733,11 @@ export function ActivityDrawerContent({
               name="documentFile"
               validators={{
                 onChange: ({ value }) => {
-                  if (!value && uploadedMaterials.length === 0 && !isUsingBankContent) {
+                  if (
+                    !value &&
+                    uploadedMaterials.length === 0 &&
+                    !isUsingBankContent
+                  ) {
                     return "Dokumen tugas harus diupload";
                   }
                   return undefined;
@@ -2511,7 +2776,9 @@ export function ActivityDrawerContent({
                   {uploading && (
                     <div className="mt-3 flex items-center text-indigo-600">
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      <span className="text-sm">Mengupload dokumen tugas...</span>
+                      <span className="text-sm">
+                        Mengupload dokumen tugas...
+                      </span>
                     </div>
                   )}
                   {uploadedMaterials.length > 0 && !uploading && (
@@ -2635,7 +2902,9 @@ export function ActivityDrawerContent({
                             value={quizOpenDate}
                             onChange={(e) => setQuizOpenDate(e.target.value)}
                             className={`border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-11 ${
-                              quizOpenDate ? "text-green-900 dark:text-green-100" : ""
+                              quizOpenDate
+                                ? "text-green-900 dark:text-green-100"
+                                : ""
                             }`}
                           />
                           {quizOpenDate && (
@@ -2925,7 +3194,9 @@ export function ActivityDrawerContent({
                   </div>
                   <div>
                     <p className="font-medium">{label}</p>
-                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">{description}</p>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+                      {description}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -2951,21 +3222,25 @@ export function ActivityDrawerContent({
   // ✅ Quiz Questions Manager View
   if (showQuizQuestionsManager) {
     const quizInfo = {
-      id: contentId || '',
-      title: form.state.values.name || 'Kuis Baru',
-      description: form.state.values.description || '',
-      timeLimit: quizTimeLimitEnabled ? parseInt(quizTimeLimit) || 60 : undefined,
+      id: contentId || "",
+      title: form.state.values.name || "Kuis Baru",
+      description: form.state.values.description || "",
+      timeLimit: quizTimeLimitEnabled
+        ? parseInt(quizTimeLimit) || 60
+        : undefined,
       shuffleQuestions: quizShuffleQuestions,
-      passingScore: passingGradeEnabled ? parseFloat(quizGradeToPass) || 60 : undefined,
+      passingScore: passingGradeEnabled
+        ? parseFloat(quizGradeToPass) || 60
+        : undefined,
       totalQuestions: 0, // Will be calculated
-      maxPoints: 0 // Will be calculated
+      maxPoints: 0, // Will be calculated
     };
 
     return (
       <QuizQuestionsManager
         quizInfo={quizInfo}
         onBack={() => setShowQuizQuestionsManager(false)}
-        onSaveQuiz={(savedQuizInfo, questions, questionsToSave) => {
+        onSaveQuiz={(savedQuizInfo, questions) => {
           // Update form values with quiz info
           form.setFieldValue("name", savedQuizInfo.title);
           form.setFieldValue("description", savedQuizInfo.description || "");
@@ -2978,17 +3253,22 @@ export function ActivityDrawerContent({
           setQuizGradeToPass(savedQuizInfo.passingScore?.toString() || "60");
 
           // Store questions to save when quiz is created (for create mode)
-          if (questionsToSave && !contentId) {
+          if (questions && !contentId) {
             // Save questions to state for later use when quiz is created
-            (window as any).tempQuestionsToSave = questionsToSave;
-            console.log("Questions prepared for bulk creation:", questionsToSave);
+            (window as any).tempQuestionsToSave = questions;
+            console.log(
+              "Questions prepared for bulk creation:",
+              questions,
+            );
           }
 
           setShowQuizQuestionsManager(false);
-          showToastMessage("Soal kuis berhasil disimpan!", "success");
+          setShowToast(true);
+          setToastMessage("Soal kuis berhasil disimpan!");
+          setToastVariant("success");
         }}
         initialQuestions={[]} // Will be populated from backend later
-        contentId={contentId} // Pass the contentId for API calls
+        quizId={contentId || "new"} // Pass the contentId as quizId, fallback to "new" for new quizzes
       />
     );
   }

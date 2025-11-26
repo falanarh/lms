@@ -391,7 +391,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "My Courses", href: "/my-course" },
-    { label: course.groupCourse.title, isActive: true },
+    { label: course?.title || "Course", isActive: true },
   ];
 
   const handleCloseSidebar = () => {
@@ -463,7 +463,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
             />
           )}
 
-          <CourseTitle title={course.groupCourse.title} />
+          <CourseTitle title={course?.title || ""} />
 
           <div id="course-tabs-top" className="space-y-6 pb-8 mt-8">
             <CourseTabNavigation
@@ -534,7 +534,7 @@ export default function MyCoursePage({ params }: MyCoursePageProps) {
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         onSubmit={handleSubmitReview}
-        courseName={course.groupCourse.title}
+        courseName={course?.title || ""}
         isLoading={createReviewMutation.isPending}
       />
 

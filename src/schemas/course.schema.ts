@@ -23,3 +23,15 @@ export const courseGetResponseSchema = z.object({
   data: z.array(courseSchema),
   pagemeta: pagemetaSchema
 })
+
+export const updateZoomUrlSchema = z.object({
+  zoomUrl: z
+    .string()
+    .url("Link harus berupa URL yang valid")
+    .refine(
+      (url) => url.includes("zoom.us"),
+      "Link harus berupa URL Zoom yang valid (mengandung 'zoom.us')"
+    ),
+});
+
+export type UpdateZoomUrlInput = z.infer<typeof updateZoomUrlSchema>;

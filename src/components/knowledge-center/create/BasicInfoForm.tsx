@@ -264,11 +264,11 @@ export default function BasicInfoForm({
         validators={{
           onChange: ({ value }: { value: string[] }) => {
             const result = basicInfoSchema.shape.tags.safeParse(value);
-            return result.success ? undefined : result.error.errors[0]?.message;
+            return result.success ? undefined : result.error.issues[0]?.message;
           },
           onBlur: ({ value }: { value: string[] }) => {
             const result = basicInfoSchema.shape.tags.safeParse(value);
-            return result.success ? undefined : result.error.errors[0]?.message;
+            return result.success ? undefined : result.error.issues[0]?.message;
           },
         }}
       >

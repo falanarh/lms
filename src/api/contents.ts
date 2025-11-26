@@ -1,15 +1,16 @@
-import { API_COURSE_BASE_URL } from "@/config/api";
 import axios from "axios";
 
 export type Content = {
   id: string;
-  idSection?: string; // Optional since API response doesn't include this
+  idSection: string;
   type: string;
-  contentUrl: string;
+  contentUrl: string | null;
   name: string;
   description: string;
   contentStart: string;
   contentEnd: string;
+  // Optional deadline field used by TASK UI; often mirrors contentEnd
+  deadline?: string;
   sequence: number;
   createdAt?: string;
   updatedAt?: string;
@@ -18,7 +19,12 @@ export type Content = {
   scheduleName?: string;
   jp?: number;
   scheduleDate?: string;
-   // ✅ NEW: Task data fields
+  // PDF URL fields for curriculum materials
+  rbmp?: string;
+  bahanAjarUrl?: string;
+  bahanTayangUrl?: string;
+  alatPeraga?: string;
+  // ✅ NEW: Task data fields
   taskData?: {
     maxPoint: number;
     isRequired?: boolean;
@@ -39,7 +45,7 @@ export type Content = {
 };
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_COURSE_BASE_URL || "http://localhost:3000";
 
 export const getContents = async (): Promise<Content[]> => {
   const response = await axios.get<Content[]>(`${BASE_URL}/contents`, {
@@ -50,11 +56,11 @@ export const getContents = async (): Promise<Content[]> => {
 };
 
 export const getContentsBySectionId = async (sectionId: string): Promise<Content[]> => {
-  const response = await axios.get(`${API_COURSE_BASE_URL}/sections/${sectionId}/content`, {
+  const response = await axios.get<Content[]>(`${BASE_URL}/contents/section/${sectionId}`, {
     withCredentials: false,
   });
-  
-  return response.data.data.listContent;
+  console.log(response.data);
+  return response.data;
 };
 
 export const createContent = async (

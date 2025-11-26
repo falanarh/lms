@@ -7,9 +7,11 @@
 
 import React, { useState, useRef } from "react";
 import { X, Upload, AlertTriangle } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { Dropdown } from "@/components/ui/Dropdown";
+import type { FormApi } from "@tanstack/react-form";
 
 // Type definitions for TanStack Form field
 interface FormField<T = unknown> {
@@ -39,7 +41,7 @@ export function getErrorMessage(error: any): string {
  * Displays field errors and validation state according to official docs
  * Standard error styling: text-red-600 text-xs mt-1.5
  */
-export function FieldInfo({ field }: { field: FormField }) {
+export function FieldInfo<T = unknown>({ field }: { field: FormField<T> }) {
   const errors = field.state.meta.errors.filter(Boolean).map(getErrorMessage);
 
   // Remove duplicate error messages
@@ -280,9 +282,11 @@ export function FormFileUpload({
                 imageSource.substring(0, 50) + "..."
               );
               return (
-                <img
+                <Image
                   src={imageSource}
                   alt="Preview"
+                  width={640}
+                  height={320}
                   className="w-full h-80 object-cover"
                 />
               );
@@ -372,7 +376,7 @@ export function FormFileUpload({
                 // Process warnings
                 if (file.type.startsWith("image/") && recommendations) {
                   const newWarnings: string[] = [];
-                  const img = new Image();
+                  const img = new window.Image();
                   img.onload = () => {
                     if (
                       recommendations.minWidth &&
@@ -503,7 +507,7 @@ export function FormSubmitButton({
   className = "",
   ...props
 }: {
-  form: FormField;
+  form: any;
   children: React.ReactNode;
   isSubmitting?: boolean;
   className?: string;
@@ -539,7 +543,7 @@ export function FormResetButton({
   className = "",
   ...props
 }: {
-  form: FormField;
+  form: any;
   children: React.ReactNode;
   className?: string;
   [key: string]: unknown;
@@ -677,7 +681,7 @@ export const validateField = (
 ): string | undefined => {
   const result = validator.safeParse(value);
   if (!result.success) {
-    return result.error.errors[0]?.message;
+    return result.error.issues[0]?.message;
   }
   return undefined;
 };

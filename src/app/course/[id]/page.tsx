@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CourseBreadcrumb,
@@ -14,6 +14,7 @@ import {
   RatingsReviewsTab,
   PageContainer,
   DetailCourseSkeleton,
+  ScheduleAttendanceTab,
 } from "@/features/detail-course/components";
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseTab } from "@/features/detail-course/hooks/useCourseTab";
@@ -21,6 +22,7 @@ import { useSectionContent } from "@/hooks/useSectionContent";
 import { useStartActivity, useCheckEnroll } from "@/hooks/useActivity";
 import { Toast } from "@/components/ui/Toast/Toast";
 import { createToastState } from "@/utils/toastUtils";
+import { AttendanceNotificationBanner } from "@/features/detail-course/components/AttendanceNotifBanner";
 
 interface DetailCoursePageProps {
   params: Promise<{
@@ -71,7 +73,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
     );
   }
 
-  const course = courseDetail;
+  const course = courseDetail?.[0];
 
   const handleEnrollToggle = () => {
     if (isEnrolling) return;
@@ -103,14 +105,43 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
         : [...prev, sectionId]
     );
   };
+  
+  const handleScheduleClick = () => {
+    // Switch to schedule tab
+    setActiveTab("schedule_attendance");
+    
+    // Scroll to the tab section with longer delay to ensure content is fully rendered
+    setTimeout(() => {
+      if (scheduleTabRef.current) {
+
+        console.log("Scrolling to schedule tab...");
+        // Get the element's position
+        const elementPosition = scheduleTabRef.current.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - 80; // 80px offset for better visibility
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }
+      console.log("failed to scroll to schedule tab");
+    }, 300); // Increased delay to 300ms
+  };
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "All Courses", href: "/course" },
-    { label: course.groupCourse.title, isActive: true },
+    { label: course?.title || "Course", isActive: true },
   ];
 
   return (
+
+    <>
+      <AttendanceNotificationBanner
+        onClickSchedule={handleScheduleClick}
+        hasSchedule={true}
+      />
+
     <PageContainer>
       <CourseBreadcrumb items={breadcrumbItems} />
 
@@ -120,15 +151,15 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             thumbnail={course.groupCourse.thumbnail || undefined}
             title={course.groupCourse.title}
           />
-          <CourseTitle title={course.groupCourse.title} />
+          <CourseTitle title={course?.title} />
         </div>
 
         <div className="space-y-4">
           <CourseInfoCard
-            category={course.groupCourse.description?.category}
-            rating={course.rating}
-            totalRatings={course.totalUserRating}
-            type={course.groupCourse.typeCourse}
+            category={course?.description?.category}
+            rating={course?.averageRating}
+            totalRatings={course?.totalUsers}
+            type={course?.typeCourse}
             isEnrolled={isEnrolled}
             onToggle={handleEnrollToggle}
             courseId={course.id}
@@ -142,6 +173,8 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             isProcessing={isEnrolling}
             teacherName={course.teacherName}
           />
+        </div>
+      </div>
         </div>
       </div>
 
@@ -178,6 +211,7 @@ export default function DetailCoursePage({ params }: DetailCoursePageProps) {
             />
           ))}
 
+        {activeTab === "discussion_forum" && <DiscussionForumTab />}
         {activeTab === "discussion_forum" && <DiscussionForumTab />}
 
         {activeTab === "ratings_reviews" && <RatingsReviewsTab courseId={id} />}

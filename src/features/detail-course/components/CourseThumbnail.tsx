@@ -1,4 +1,5 @@
 import { BookOpen } from "lucide-react";
+import Image from "next/image";
 
 interface CourseThumbnailProps {
   thumbnail?: string;
@@ -10,9 +11,11 @@ export const CourseThumbnail = ({ thumbnail, title }: CourseThumbnailProps) => {
   if (thumbnail) {
     return (
       <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-gray-200 dark:border-zinc-700">
-        <img
+        <Image
           src={thumbnail}
           alt={title}
+          width={640}
+          height={360}
           className="w-full h-full object-cover"
         />
       </div>

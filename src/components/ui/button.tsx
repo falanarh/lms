@@ -44,12 +44,14 @@ function Button({
   leftIcon,
   rightIcon,
   children,
+  isLoading,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
     leftIcon?: React.ReactNode
     rightIcon?: React.ReactNode
+    isLoading?: boolean
   }) {
   const Comp = asChild ? Slot : "button"
 
